@@ -84,7 +84,16 @@ export class DriveStore {
     return this.recipesId;
   }
 
-  private async call(method: string, url: string, init: { body?: string; contentType?: string } = {}): Promise<Response> {
+  /**
+   * One Drive request. On 401 the token is renewed once; background calls (renew false) fail instead, because
+   * renewing may open Google's window, which only a click may do.
+   */
+  private async call(
+    method: string,
+    url: string,
+    init: { body?: string; contentType?: string } = {},
+    renew = true,
+  ): Promise<Response> {
     const send = async (token: string) =>
       this.fetchFn(url, {
         method,
@@ -92,7 +101,7 @@ export class DriveStore {
         body: init.body,
       });
     let response = await send(await this.auth.token());
-    if (response.status === 401) {
+    if (response.status === 401 && renew) {
       response = await send(await this.auth.renew());
     }
     if (!response.ok) {
@@ -110,8 +119,8 @@ export class DriveStore {
     return response;
   }
 
-  private async json<T>(method: string, url: string, init?: { body?: string; contentType?: string }): Promise<T> {
-    return (await (await this.call(method, url, init)).json()) as T;
+  private async json<T>(method: string, url: string, init?: { body?: string; contentType?: string }, renew = true): Promise<T> {
+    return (await (await this.call(method, url, init, renew)).json()) as T;
   }
 
   private async findFolder(role: "root" | "recipes", parent?: string): Promise<string | undefined> {
@@ -143,7 +152,7 @@ export class DriveStore {
   }
 
   /** The recipe files (*.json) in the recipes folder that this editor can see. */
-  async list(): Promise<DriveFile[]> {
+  async list(options: { renew?: boolean } = {}): Promise<DriveFile[]> {
     const files: DriveFile[] = [];
     let pageToken: string | undefined;
     do {
@@ -154,7 +163,12 @@ export class DriveStore {
         spaces: "drive",
         ...(pageToken ? { pageToken } : {}),
       });
-      const page = await this.json<{ files: ApiFile[]; nextPageToken?: string }>("GET", `${API}/files?${params}`);
+      const page = await this.json<{ files: ApiFile[]; nextPageToken?: string }>(
+        "GET",
+        `${API}/files?${params}`,
+        undefined,
+        options.renew ?? true,
+      );
       files.push(...page.files.filter((f) => f.name.toLowerCase().endsWith(".json")).map(toDriveFile));
       pageToken = page.nextPageToken;
     } while (pageToken);

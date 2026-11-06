@@ -37,3 +37,17 @@ export function ErrorBanner(props: { message: string; onClose: () => void }) {
     </div>
   );
 }
+
+export function InfoBanner(props: { message: string; onClose: () => void }) {
+  return (
+    <div
+      role="status"
+      class="flex items-start gap-3 rounded-xl bg-white px-4 py-3 text-sm text-ink ring-1 ring-stone-200 dark:bg-surface-dark dark:text-ink-light dark:ring-white/10"
+    >
+      <span class="flex-1">{props.message}</span>
+      <button type="button" class="font-medium underline" onClick={props.onClose}>
+        OK
+      </button>
+    </div>
+  );
+}

@@ -54,6 +54,11 @@ export class GoogleAuth implements TokenSource {
     return this.accessToken !== undefined;
   }
 
+  /** True while the token is valid, so a request needs no renewal (which may open Google's window). */
+  hasValidToken(): boolean {
+    return this.accessToken !== undefined && Date.now() < this.expiresAt - EXPIRY_MARGIN_MS;
+  }
+
   private async tokenClient(): Promise<google.accounts.oauth2.TokenClient> {
     if (!this.client) {
       await loadScript(GSI_SCRIPT);

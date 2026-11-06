@@ -46,6 +46,9 @@ a release that changes sign-in or Drive behaviour.
   move-down buttons.
 - `ACC-039` (EDT-012) On the focused handle of goal 2, ArrowUp makes it goal 1 and the handle of the moved goal keeps
   the focus; ArrowUp on goal 1 changes nothing.
+- `ACC-042` (EDT-010, GUI-030) Clicking the recipe name in the title opens a field; typing a new name and Enter shows
+  it as the title and in the list; Escape after typing restores the old name; a new recipe opens with the field
+  focused; there is no other name field.
 - `ACC-017` (BRW-004, DRV-010) A recipe has pending changes until it is downloaded (draft) or saved (Drive), and again
   after a change.
 - `ACC-018` (EDT-016) On the first visit (new browser storage) the list holds the draft `BENIWEISS`; on a later visit

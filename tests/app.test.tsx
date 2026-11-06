@@ -284,3 +284,50 @@ describe("App, reordering goals by drag and drop (EDT-012)", () => {
     expect(goalTypes()).toEqual(["MashIn", "HeatUp", "Lautering"]);
   });
 });
+
+describe("App, editing the recipe name in the title (EDT-010)", () => {
+  const nameInput = () => root.querySelector<HTMLInputElement>("[aria-label=Recipe] input[aria-label='Recipe name']");
+  const titleButton = () => root.querySelector<HTMLButtonElement>("[aria-label=Recipe] button[aria-label^='Edit recipe name']");
+
+  async function type(text: string) {
+    await act(async () => {
+      nameInput()!.value = text;
+      nameInput()!.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+  }
+
+  async function key(name: string) {
+    await act(async () => {
+      nameInput()!.dispatchEvent(new KeyboardEvent("keydown", { key: name, bubbles: true }));
+    });
+  }
+
+  it("ACC-042 clicking the name opens a field; Enter keeps the new name, Escape restores the old one", async () => {
+    const store = new MemoryStore();
+    await store.put(newDoc("Kept", { version: 2, name: "Kept recipe", mashing_process: { goals: [{ type: "MashIn" }] } }));
+    await show(store);
+    expect(nameInput()).toBeNull(); // no separate name field
+    expect(titleButton()?.textContent).toContain("Kept recipe");
+
+    await act(async () => titleButton()!.click());
+    expect(document.activeElement).toBe(nameInput());
+    await type("Hefeweizen");
+    await key("Enter");
+    expect(nameInput()).toBeNull();
+    expect(titleButton()?.textContent).toContain("Hefeweizen");
+    expect(listText()).toEqual([expect.stringContaining("Hefeweizen")]);
+
+    await act(async () => titleButton()!.click());
+    await type("Something else");
+    await key("Escape");
+    expect(titleButton()?.textContent).toContain("Hefeweizen");
+  });
+
+  it("ACC-042 a new recipe opens with the name field focused", async () => {
+    await show(new MemoryStore());
+    await act(async () => button("New recipe").click());
+    await nameAs("Weizen", "Create");
+    expect(nameInput()).not.toBeNull();
+    expect(document.activeElement).toBe(nameInput());
+  });
+});

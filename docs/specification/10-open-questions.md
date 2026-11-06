@@ -26,3 +26,4 @@ answered). Record answers here and update the affected sections; do not change b
 | `QE-18` | What is the feature called in the UI? | **2026-11-06:** "Cloud Sync"; the provider is "Google Drive" (the only one so far), always named in full. Google's own button keeps its text "Sign in with Google" (branding guidelines). | `GUI-001`, `GUI-002`, `BRW-003`, `DRV-006`, `DRV-010`, `DRV-012`, `GUI-031` |
 | `QE-19` | Is "Delete all recipes in this browser" needed? | **2026-11-06:** no, removed; single recipes are deleted from their menu. | `BRW-006`, `GUI-020` |
 | `QE-20` | How are goals reordered? | **2026-11-06:** by drag and drop (mouse and touch) with a handle on each goal, and the arrow keys on the handle for the keyboard; the move-up/move-down arrow buttons are removed. | `EDT-012` |
+| `QE-21` | Where is the recipe name edited? | **2026-11-06:** in the title (click the name or the pencil next to it), not in a second field below it. | `EDT-010`, `GUI-030` |

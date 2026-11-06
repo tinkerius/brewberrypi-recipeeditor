@@ -42,7 +42,9 @@ Applies signed out (drafts, §4) and signed in (Drive recipes, §5) alike, unles
 
 ## 3.3 Editing a recipe
 
-- `EDT-010` The recipe name is edited in a text field.
+- `EDT-010` The recipe name is edited **in the title** (`QE-21`): clicking the name, or the pencil next to it, turns it
+  into a text field; Enter or leaving the field keeps the change, Escape restores the name it had before. A recipe
+  without a name (a new one) starts with the field open. There is no separate name field.
 - `EDT-011` Goals are listed in brewing order. Each goal has its type (all goal types of app spec 04, with their
   display name), a one-line explanation, and the fields its type takes (app `RCP` §7.3 table): temperature,
   minutes, and for Rest optionally both name and description (one switch adds or removes both); CookWater always

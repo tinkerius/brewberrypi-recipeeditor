@@ -1,11 +1,13 @@
 ---
 paths:
   - "docs/specification/**"
+  - "docs/adr/**"
 ---
 
 # Editing the specification
 
-- Keep `docs/specification/` about *what* the editor does; technology choices belong in the code and `README.md`.
+- Keep `docs/specification/` about *what* the editor does; technology and architecture choices belong in
+  `docs/adr/` (copy `0000-template.md`).
 - The recipe file format is the app's (brewberrypi-app `docs/specification/07-recipes.md`): cite it ("app `RCP-007`"),
   never redefine it here.
 - Never change specified behaviour silently. A behaviour change needs a product-owner answer recorded in

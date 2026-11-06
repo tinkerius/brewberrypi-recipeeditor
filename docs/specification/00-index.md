@@ -1,7 +1,8 @@
 # BrewberryPi Recipe Editor — Functional Specification (Index)
 
-> **Scope:** *what* the recipe editor at https://recipes.brewberrypi.org does. Technology choices (Preact, Vite,
-> Google Identity Services, …) are in the code and `README.md`, not here.
+> **Scope:** *what* the recipe editor at https://recipes.brewberrypi.org does. Technology and architecture choices
+> (Preact, Vite, Google Identity Services, …) are recorded in [docs/adr/](../adr/) (start with
+> [ADR-0001](../adr/0001-architecture.md)), not here.
 >
 > **Source of truth for the recipe file format:** the specification of
 > [brewberrypi-app](https://github.com/tinkerius/brewberrypi-app) (`docs/specification/07-recipes.md`,

@@ -39,6 +39,7 @@ within seconds.
 
 | Path | Content |
 |---|---|
+| `docs/adr/` | Technology and architecture decisions (ADR-0001: static site, Google token model, `drive.file`, Drive folder, drafts, sync) |
 | `docs/specification/` | **What the editor does**: requirements (`FMT`, `EDT`, `BRW`, `DRV`, `SYN`, `GUI`, `NFR`), acceptance criteria (`ACC`), open questions (`QE`). Start with `00-index.md` |
 | `index.html`, `src/main.tsx`, `src/App.tsx` | The editor page (Vite, Preact, TypeScript, Tailwind CSS v4, the same stack and look as the app's web UI) |
 | `src/model.ts`, `src/validate.ts` | The recipe format: goal types, file formatting, validation without a JSON-schema library (strict Content-Security-Policy, no `eval`) |

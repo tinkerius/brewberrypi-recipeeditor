@@ -29,7 +29,8 @@ commit (`NFR-030`).
   problems (`EDT-020`). Fields a goal type does not take can be removed with one action.
 - `FMT-006` Written files (download, Drive) are formatted like the app's shipped recipes: `version` first, then
   `name`, then `mashing_process` with one goal per line; no `$schema`. Reading a written file gives the same recipe.
-- `FMT-007` The samples are exactly the app's shipped recipes (app `RCP-002`; today `BENIWEISS` and `WaterBoil`).
+- `FMT-007` The samples are exactly the app's shipped recipes (app `RCP-002`; today `BENIWEISS` and `WaterBoil`);
+  `EDT-016` uses `BENIWEISS`.
   The editor MUST NOT contain other recipes, not even in tests (app `Q-32`).
 - `FMT-008` Recipe texts are data: names and descriptions, including legacy spellings, are kept as they are
   (app `Q-07`).

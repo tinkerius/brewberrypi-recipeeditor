@@ -29,7 +29,7 @@
   version), **Discard my changes** (reload from Drive), or cancel.
 - `DRV-008` Renaming and deleting: `EDT-006`, `EDT-008`. A file deleted or moved elsewhere is dropped from the list
   when it is opened, with a notice.
-- `DRV-009` **Add files from Drive** opens Google's file picker (JSON files, starting in the recipes folder). Picked
+- `DRV-009` **Add untracked file from cloud storage** opens Google's file picker (JSON files, starting in the recipes folder). Picked
   files in the recipes folder are listed; files picked elsewhere are copied into it under a free name. This is how
   recipe files put into the folder some other way (drive.google.com, Drive for desktop) become visible to the
   editor (`DRV-002`).

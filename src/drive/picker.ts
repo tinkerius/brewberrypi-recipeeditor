@@ -1,5 +1,5 @@
 /**
- * "Add files from Drive": the Google Picker. With scope drive.file the editor only sees files it created; recipe
+ * "Add untracked file from cloud storage": the Google Picker. With scope drive.file the editor only sees files it created; recipe
  * files the user put into the recipes folder some other way (drive.google.com, Drive for desktop) become visible
  * once they are picked here. The picker needs the API key and the project number (appId) for that.
  */

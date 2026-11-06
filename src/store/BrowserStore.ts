@@ -10,6 +10,8 @@ export type BrowserStorageKind = "persistent" | "best-effort" | "memory";
 
 export interface DraftStore {
   readonly kind: BrowserStorageKind;
+  /** The storage was created just now: the first visit in this browser (always true in memory, EDT-016). */
+  readonly firstUse: boolean;
   all(): Promise<Doc[]>;
   put(doc: Doc): Promise<void>;
   delete(key: string): Promise<void>;
@@ -26,11 +28,15 @@ function request<T>(req: IDBRequest<T>): Promise<T> {
   });
 }
 
-function openDatabase(factory: IDBFactory): Promise<IDBDatabase> {
+function openDatabase(factory: IDBFactory): Promise<{ db: IDBDatabase; created: boolean }> {
   return new Promise((resolve, reject) => {
+    let created = false;
     const req = factory.open(DB_NAME, 1);
-    req.onupgradeneeded = () => req.result.createObjectStore(STORE, { keyPath: "key" });
-    req.onsuccess = () => resolve(req.result);
+    req.onupgradeneeded = () => {
+      created = true;
+      req.result.createObjectStore(STORE, { keyPath: "key" });
+    };
+    req.onsuccess = () => resolve({ db: req.result, created });
     req.onerror = () => reject(req.error ?? new Error("IndexedDB not available"));
     req.onblocked = () => reject(new Error("IndexedDB blocked"));
   });
@@ -40,6 +46,7 @@ class IndexedDbStore implements DraftStore {
   constructor(
     private readonly db: IDBDatabase,
     readonly kind: BrowserStorageKind,
+    readonly firstUse: boolean,
   ) {}
 
   private store(mode: IDBTransactionMode): IDBObjectStore {
@@ -65,6 +72,7 @@ class IndexedDbStore implements DraftStore {
 
 export class MemoryStore implements DraftStore {
   readonly kind = "memory";
+  readonly firstUse = true;
   private readonly docs = new Map<string, Doc>();
 
   async all(): Promise<Doc[]> {
@@ -105,9 +113,9 @@ export async function openDraftStore(
     return new MemoryStore();
   }
   try {
-    const db = await openDatabase(factory);
+    const { db, created } = await openDatabase(factory);
     const persistent = await requestPersistence(storage);
-    return new IndexedDbStore(db, persistent ? "persistent" : "best-effort");
+    return new IndexedDbStore(db, persistent ? "persistent" : "best-effort", created);
   } catch {
     // Firefox private windows (older versions), disabled storage, ...
     return new MemoryStore();

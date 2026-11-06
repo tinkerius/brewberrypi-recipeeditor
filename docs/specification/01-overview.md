@@ -38,6 +38,6 @@
 | Goal | One step of the mashing process (app spec 04), e.g. HeatUp, Rest |
 | Draft | A recipe kept in the browser while signed out (§4) |
 | Drive recipe | A recipe file in the user's Drive folder `BrewberryPi/recipes` (§5) |
-| Sample | One of the recipes the app ships (app `RCP-002`), offered as a starting point |
+| Sample | One of the recipes the app ships (app `RCP-002`); `BENIWEISS` is given to a new workspace (`EDT-016`) |
 | Complete | Valid in the app's format, so the app lists it (it may still have no goals, app `Q-34`) |
 | Pending changes | Changes not downloaded (draft) or not saved to Drive (Drive recipe) yet |

@@ -174,3 +174,31 @@ describe("App, the recipe menu", () => {
     expect(root.querySelector("[role=menu]")?.getAttribute("aria-label")).toBe("Actions for Kept recipe");
   });
 });
+
+describe("App, a new workspace and the list layout", () => {
+  it("ACC-018 gets the sample BENIWEISS on the first visit, and nothing on a later one", async () => {
+    const first = new MemoryStore(); // a new browser storage
+    await show(first);
+    expect(listText()).toEqual([expect.stringContaining("BENIWEISS.json")]);
+    expect((await first.all()).map((d) => d.id)).toEqual(["BENIWEISS"]);
+    render(null, root);
+
+    const later = new MemoryStore();
+    Object.defineProperty(later, "firstUse", { value: false });
+    await show(later);
+    expect(listText()).toEqual([]);
+  });
+
+  it("ACC-019 is titled My Recipes, with New recipe and Upload recipe below the recipes and no sample menu", async () => {
+    await show(new MemoryStore());
+    const panel = root.querySelector("[aria-label='Recipe list']")!;
+    expect(panel.querySelector("h2")?.textContent).toBe("My Recipes");
+    const list = panel.querySelector("[aria-label=Recipes]")!;
+    for (const label of ["New recipe", "Upload recipe"]) {
+      const b = button(label);
+      expect(list.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    }
+    expect(root.textContent).not.toContain("New from a sample recipe");
+    expect(root.querySelector("select[aria-label='New recipe from a sample']")).toBeNull();
+  });
+});

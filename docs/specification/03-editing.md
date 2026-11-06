@@ -6,17 +6,25 @@ Applies signed out (drafts, §4) and signed in (Drive recipes, §5) alike, unles
 
 - `EDT-001` **New recipe** asks for the file name (`EDT-003`) and then opens an **empty** recipe: no name, no goals
   (`FMT-001`). It is incomplete until it has a name (`FMT-004`).
-- `EDT-002` **New from a sample recipe** offers the samples (`FMT-007`); it asks for the file name, suggesting the
-  sample's id or the next free one (`EDT-004`), and opens a copy of the sample.
-- `EDT-003` The file name is asked **only** when a recipe is created (new, from a sample, duplicate) and when it is
+- `EDT-002` *(removed 2026-11-06, `QE-17`: there is no "New from a sample recipe"; a new workspace gets a sample
+  instead, `EDT-016`.)*
+- `EDT-003` The file name is asked **only** when a recipe is created (new, duplicate) and when it is
   renamed (`EDT-006`), in a dialog. The dialog refuses a name that is invalid (`FMT-002`) or already used by
   another recipe in the list, and says why; Enter confirms, Escape cancels. There is no file name field in the
   editor itself (`GUI-030`).
 - `EDT-004` A suggested file name is the source's id if it is free, else `<id>-2`, `<id>-3`, … (the first free one).
-- `EDT-005` **Upload files** (several at once, or dropped onto the page) opens each file as a new recipe named
+- `EDT-005` **Upload recipe** (one or several files, or files dropped onto the page) opens each file as a new recipe named
   after the file (`<id>.json` → `<id>`). A name already in the list gets the next free one (`EDT-004`) and a
   notice. Files that cannot be opened (not JSON, larger than 1 MB, unreadable, newer format, `FMT-003`) are
   listed in one notice; the others are opened.
+- `EDT-016` A **new workspace gets the sample `BENIWEISS`** (`FMT-007`) once, so a new user sees an example
+  (`QE-17`):
+  - signed in: at the first sign-in with a Google account, when the editor creates the Drive folder
+    (`DRV-003`), the file `BENIWEISS.json` is saved there;
+  - signed out: on the first visit in a browser, when the browser storage is created, as a draft (`BRW-001`); without
+    browser storage (`BRW-002`) every visit counts as the first.
+
+  It is not added again later, also not when the user deleted it or the list is empty.
 
 ## 3.2 Recipe actions (menu)
 

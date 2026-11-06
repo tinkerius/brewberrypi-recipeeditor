@@ -22,6 +22,13 @@ describe("draft store", () => {
     expect(await second.all()).toEqual([]);
   });
 
+  it("ACC-018 knows the first visit: the storage is created just now", async () => {
+    const factory = new IDBFactory();
+    expect((await openDraftStore(factory, storage(true))).firstUse).toBe(true);
+    expect((await openDraftStore(factory, storage(true))).firstUse).toBe(false);
+    expect((await openDraftStore(undefined, undefined)).firstUse).toBe(true); // memory: every visit
+  });
+
   it("ACC-021 says when the browser may clear the drafts", async () => {
     expect((await openDraftStore(new IDBFactory(), storage(false))).kind).toBe("best-effort");
     expect((await openDraftStore(new IDBFactory(), undefined)).kind).toBe("best-effort");

@@ -24,14 +24,16 @@ The look follows the BrewberryPi brand and the app's web UI (brand colours, Zill
 
 ## 7.3 Recipe list
 
-- `GUI-020` Title "In this browser" (signed out) or "In your Drive" (signed in); **New recipe**, **Upload files**,
-  **New from a sample recipe…**, signed in **Add files from Drive**; signed out **Delete all recipes in this
-  browser** below the list.
+- `GUI-020` Title **My Recipes** (signed in and out, `QE-17`); the recipes; **below** them the buttons **New recipe**
+  and **Upload recipe**, the hint that recipe files can be dropped onto the page, signed in the link
+  **Add untracked file from cloud storage** (`GUI-023`), signed out **Delete all recipes in this browser**.
 - `GUI-021` Each recipe shows its name (or file name, or "Untitled recipe"), `<id>.json`, and the markers
   **incomplete** and **not downloaded** / **unsaved**.
 - `GUI-022` Each recipe has a **menu** (`EDT-006`..`EDT-009`): Rename…, Duplicate…, Download, Delete…. It opens with
   the ⋯ button on the row (always visible on narrow screens and on the selected row, otherwise on hover) or a right
   click on the row; Escape closes it, arrow keys move in it.
+- `GUI-023` Rare actions are shown as a **link** (text with the brand's berry underline, as the links on
+  brewberrypi.org), not as a button: **Add untracked file from cloud storage** (`DRV-009`, an edge case, `QE-17`).
 
 ## 7.4 Recipe
 

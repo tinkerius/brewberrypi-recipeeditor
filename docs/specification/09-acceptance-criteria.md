@@ -43,6 +43,11 @@ a release that changes sign-in or Drive behaviour.
   keeps the shared values; fields are in file order.
 - `ACC-017` (BRW-004, DRV-010) A recipe has pending changes until it is downloaded (draft) or saved (Drive), and again
   after a change.
+- `ACC-018` (EDT-016) On the first visit (new browser storage) the list holds the draft `BENIWEISS`; on a later visit
+  with an empty list nothing is added. In Drive, the first sign-in (the folders are created) saves `BENIWEISS.json`;
+  a later sign-in (the folders exist) adds nothing.
+- `ACC-019` (GUI-020) The list is titled "My Recipes"; "New recipe" and "Upload recipe" come after the recipes;
+  there is no "New from a sample recipe".
 
 ## 9.3 Browser drafts
 
@@ -87,6 +92,6 @@ a release that changes sign-in or Drive behaviour.
   recipe folder, the app lists it.
 - `ACC-052` *manual* (SYN-002) A recipe edited on another device appears on the first within about 10 s; a file
   deleted at drive.google.com leaves the list with the notice.
-- `ACC-053` *manual* (DRV-009) A recipe file dropped into the folder at drive.google.com appears after "Add files
-  from Drive".
+- `ACC-053` *manual* (DRV-009) A recipe file dropped into the folder at drive.google.com appears after "Add
+  untracked file from cloud storage", which is shown as a link (GUI-023).
 - `ACC-054` *manual* (DRV-011, DRV-013) A second tab is signed in at once; signing out in it signs out the first.

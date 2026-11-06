@@ -22,6 +22,14 @@ export const BUTTON_STYLES = {
     "hover:enabled:bg-stone-100 disabled:opacity-30 dark:text-stone-300 dark:ring-white/10 dark:hover:enabled:bg-white/10",
 } as const;
 
+/**
+ * Rare actions as a link, like the links on brewberrypi.org (site/styles.css `.link`): text with the berry underline.
+ */
+export const LINK_STYLE =
+  "text-left text-sm font-medium text-ink underline decoration-berry decoration-2 underline-offset-4 " +
+  "hover:enabled:decoration-berry-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-berry " +
+  "disabled:cursor-not-allowed disabled:opacity-40 dark:text-ink-light dark:decoration-berry-light dark:focus-visible:outline-berry-light";
+
 export const INPUT_STYLE =
   "w-full rounded-lg bg-white px-3 py-2 text-sm text-ink shadow-xs ring-1 ring-stone-300 ring-inset " +
   "placeholder:text-stone-400 focus-visible:outline-2 focus-visible:outline-berry " +

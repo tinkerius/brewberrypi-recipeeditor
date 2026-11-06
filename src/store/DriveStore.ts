@@ -147,11 +147,15 @@ export class DriveStore {
     return created.id;
   }
 
-  /** Finds the folders BrewberryPi/recipes, or creates them. */
-  async init(): Promise<void> {
+  /**
+   * Finds the folders BrewberryPi/recipes, or creates them. created: the recipes folder was created just now, i.e.
+   * the first sign-in with this Google account (EDT-016).
+   */
+  async init(): Promise<{ created: boolean }> {
     this.rootId = (await this.findFolder("root")) ?? (await this.createFolder(ROOT_FOLDER_NAME, "root"));
-    this.recipesId =
-      (await this.findFolder("recipes", this.rootId)) ?? (await this.createFolder(RECIPES_FOLDER_NAME, "recipes", this.rootId));
+    const found = await this.findFolder("recipes", this.rootId);
+    this.recipesId = found ?? (await this.createFolder(RECIPES_FOLDER_NAME, "recipes", this.rootId));
+    return { created: found === undefined };
   }
 
   /** The recipe files (*.json) in the recipes folder that this editor can see. */

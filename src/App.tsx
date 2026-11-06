@@ -11,7 +11,7 @@ import { pickRecipeFiles } from "./drive/picker";
 import { CHANGE_POLL_MS, FULL_SYNC_MS, driveDoc, mergeDriveList } from "./driveSync";
 import { downloadRecipe, readRecipeFile } from "./file";
 import { emptyRecipe, readRecipe, type Recipe } from "./model";
-import { SAMPLES } from "./samples";
+import { firstSample } from "./samples";
 import { openDraftStore, type DraftStore } from "./store/BrowserStore";
 import { DriveError, DriveStore, NameTakenError, VersionConflictError, type DriveFile } from "./store/DriveStore";
 import { ErrorBanner, InfoBanner, StorageBanner } from "./ui/Banners";
@@ -21,14 +21,13 @@ import { Modal } from "./ui/Modal";
 import { RecipeEditor } from "./ui/RecipeEditor";
 import { NameDialog } from "./ui/NameDialog";
 import { RecipeList, type RecipeAction } from "./ui/RecipeList";
-import { BUTTON_STYLES, CARD_STYLE, HINT_STYLE, SELECT_STYLE, TITLE_STYLE } from "./ui/styles";
+import { BUTTON_STYLES, CARD_STYLE, HINT_STYLE, LINK_STYLE, TITLE_STYLE } from "./ui/styles";
 
 export const APP_TITLE = "Recipe Editor";
 
 /** What the file-name dialog is for: the name is asked when a recipe is created, duplicated or renamed. */
 type NameRequest =
   | { kind: "new" }
-  | { kind: "sample"; sampleId: string }
   | { kind: "duplicate"; key: string }
   | { kind: "rename"; key: string };
 const SAVE_DELAY_MS = 200;
@@ -142,7 +141,14 @@ export function App(props: { openDrafts?: () => Promise<DraftStore>; auth?: Goog
       draftsRef.current = store;
       setDrafts(store);
       try {
-        const kept = sortDocs(await store.all());
+        let kept = sortDocs(await store.all());
+        const sample = firstSample();
+        if (store.firstUse && kept.length === 0 && sample) {
+          // EDT-016: a new workspace gets an example, once.
+          const doc = newDoc(sample.id, sample.recipe);
+          await store.put(doc);
+          kept = [doc];
+        }
         setDocs(kept);
         setSelectedKey(kept[0]?.key);
       } catch (e) {
@@ -209,11 +215,6 @@ export function App(props: { openDrafts?: () => Promise<DraftStore>; auth?: Goog
 
   const newRecipe = () => setNameRequest({ kind: "new" });
 
-  const newFromSample = (sampleId: string) => {
-    if (SAMPLES.some((s) => s.id === sampleId)) {
-      setNameRequest({ kind: "sample", sampleId });
-    }
-  };
 
   const upload = async (files: FileList | File[]) => {
     const problems: string[] = [];
@@ -311,11 +312,9 @@ export function App(props: { openDrafts?: () => Promise<DraftStore>; auth?: Goog
   const nameDialog = (request: NameRequest) => {
     const doc = "key" in request ? docsRef.current.find((d) => d.key === request.key) : undefined;
     const others = new Set(docsRef.current.filter((d) => d !== doc || request.kind !== "rename").map((d) => d.id));
-    const sample = request.kind === "sample" ? SAMPLES.find((s) => s.id === request.sampleId) : undefined;
     const close = () => setNameRequest(undefined);
     const settings = {
       new: { title: "New recipe", initial: "", confirmLabel: "Create" },
-      sample: { title: `New recipe from ${request.kind === "sample" ? request.sampleId : ""}`, initial: freeId(sample?.id ?? "recipe", others), confirmLabel: "Create" },
       duplicate: { title: `Duplicate ${doc?.id ?? ""}.json`, initial: freeId(doc?.id || "recipe", others), confirmLabel: "Duplicate" },
       rename: { title: `Rename ${doc?.id ?? ""}.json`, initial: doc?.id ?? "", confirmLabel: "Rename" },
     }[request.kind];
@@ -331,8 +330,6 @@ export function App(props: { openDrafts?: () => Promise<DraftStore>; auth?: Goog
           close();
           if (request.kind === "new") {
             putDoc(newDoc(id, emptyRecipe()), true);
-          } else if (request.kind === "sample" && sample) {
-            putDoc(newDoc(id, structuredClone(sample.recipe)), true);
           } else if (request.kind === "duplicate" && doc) {
             void ensureLoaded(doc.key).then((source) => source && putDoc(newDoc(id, structuredClone(source.recipe)), true));
           } else if (request.kind === "rename" && doc) {
@@ -577,14 +574,22 @@ export function App(props: { openDrafts?: () => Promise<DraftStore>; auth?: Goog
    */
   const enterDrive = async (offerDrafts: boolean) => {
     const store = new DriveStore(auth.current);
-    await store.init();
+    const { created } = await store.init();
+    const sample = firstSample();
+    if (created && sample) {
+      await store.create(sample.id, sample.recipe); // EDT-016: the first sign-in gets an example, once
+    }
     await store.startChanges();
     const account = await store.about();
     rememberHint(account.email);
     // Leave the browser drafts (they stay stored) and show the Drive recipes.
     saveTimers.current.forEach((t) => clearTimeout(t));
     saveTimers.current.clear();
-    const browserDrafts = offerDrafts ? ((await draftsRef.current?.all()) ?? docsRef.current) : [];
+    // The untouched sample of a first visit (EDT-016) is not offered: Drive has its own.
+    const untouchedSample = sample ? fingerprint(newDoc(sample.id, sample.recipe)) : undefined;
+    const browserDrafts = (offerDrafts ? ((await draftsRef.current?.all()) ?? docsRef.current) : []).filter(
+      (d) => fingerprint(d) !== untouchedSample,
+    );
     setDocs([]);
     placeRef.current = { kind: "drive", store, account };
     setPlace(placeRef.current);
@@ -800,7 +805,7 @@ export function App(props: { openDrafts?: () => Promise<DraftStore>; auth?: Goog
         {place.kind === "drive" && (
           <p class={HINT_STYLE}>
             Your recipes are files in your Google Drive, folder <strong>BrewberryPi/recipes</strong>. Recipe files you put there
-            yourself appear here after you add them with “Add files from Drive”.
+            yourself appear here after you add them with “Add untracked file from cloud storage”.
           </p>
         )}
         {error && <ErrorBanner message={error} onClose={() => setError(undefined)} />}
@@ -814,13 +819,22 @@ export function App(props: { openDrafts?: () => Promise<DraftStore>; auth?: Goog
 
       <div class="mt-4 grid flex-1 items-start gap-4 lg:grid-cols-[19rem_1fr]">
         <aside class={`${CARD_STYLE} min-w-0`} aria-label="Recipe list">
-          <h2 class={TITLE_STYLE}>{inDrive ? "In your Drive" : "In this browser"}</h2>
-          <div class="mt-3 flex flex-wrap gap-2">
+          <h2 class={TITLE_STYLE}>My Recipes</h2>
+          <div class="mt-3">
+            <RecipeList
+              docs={docs}
+              selectedKey={selectedKey}
+              pendingLabel={inDrive ? "unsaved" : "not downloaded"}
+              onSelect={selectDoc}
+              onAction={onRecipeAction}
+            />
+          </div>
+          <div class="mt-4 flex flex-wrap gap-2 border-t border-stone-200 pt-4 dark:border-white/10">
             <button type="button" class={BUTTON_STYLES.primary} disabled={isBusy} onClick={newRecipe}>
               New recipe
             </button>
             <button type="button" class={BUTTON_STYLES.secondary} disabled={isBusy} onClick={() => uploadInput.current?.click()}>
-              Upload files
+              Upload recipe
             </button>
             <input
               ref={uploadInput}
@@ -837,45 +851,19 @@ export function App(props: { openDrafts?: () => Promise<DraftStore>; auth?: Goog
                 e.currentTarget.value = "";
               }}
             />
-            <select
-              class={`${SELECT_STYLE} w-full`}
-              aria-label="New recipe from a sample"
-              disabled={isBusy}
-              value=""
-              onChange={(e) => {
-                newFromSample(e.currentTarget.value);
-                e.currentTarget.value = "";
-              }}
-            >
-              <option value="">New from a sample recipe…</option>
-              {SAMPLES.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.id} — {s.recipe.name}
-                </option>
-              ))}
-            </select>
-            {inDrive && (
-              <button
-                type="button"
-                class={`${BUTTON_STYLES.secondary} w-full`}
-                disabled={isBusy || !pickerConfigured()}
-                title={pickerConfigured() ? undefined : "The Google Picker is not configured in this build."}
-                onClick={addFromDrive}
-              >
-                Add files from Drive
-              </button>
-            )}
           </div>
           <p class={`${HINT_STYLE} mt-2`}>You can also drop .json recipe files onto the page.</p>
-          <div class="mt-4 border-t border-stone-200 pt-3 dark:border-white/10">
-            <RecipeList
-              docs={docs}
-              selectedKey={selectedKey}
-              pendingLabel={inDrive ? "unsaved" : "not downloaded"}
-              onSelect={selectDoc}
-              onAction={onRecipeAction}
-            />
-          </div>
+          {inDrive && (
+            <button
+              type="button"
+              class={`${LINK_STYLE} mt-3`}
+              disabled={isBusy || !pickerConfigured()}
+              title={pickerConfigured() ? undefined : "The Google Picker is not configured in this build."}
+              onClick={addFromDrive}
+            >
+              Add untracked file from cloud storage
+            </button>
+          )}
           {!inDrive && docs.length > 0 && (
             <button type="button" class={`${BUTTON_STYLES.danger} mt-4 w-full`} disabled={isBusy} onClick={clearDrafts}>
               Delete all recipes in this browser
@@ -1034,7 +1022,7 @@ function Intro() {
       <div class="mt-3 space-y-3 text-sm text-stone-700 dark:text-stone-300">
         <p>
           A recipe is the list of goals your BrewberryPi works through on brew day: heat up, mash in, rests, iodine test,
-          lautering, cooking. Start a new recipe, begin from a sample, or open recipe files (.json) you already have.
+          lautering, cooking. Start a new recipe, or open recipe files (.json) you already have.
         </p>
         <p>
           To brew with a recipe, download its file and copy it into the <strong>app/recipes</strong> folder of your

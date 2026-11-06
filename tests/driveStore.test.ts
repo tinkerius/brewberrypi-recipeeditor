@@ -146,6 +146,12 @@ async function setup() {
 const recipe = { version: 2, name: "R", mashing_process: { goals: [{ type: "MashIn" }] } };
 
 describe("DriveStore", () => {
+  it("ACC-018 says when the folders were created just now (the first sign-in)", async () => {
+    const drive = new FakeDrive();
+    expect(await new DriveStore(new FakeAuth(), drive.fetch).init()).toEqual({ created: true });
+    expect(await new DriveStore(new FakeAuth(), drive.fetch).init()).toEqual({ created: false });
+  });
+
   it("ACC-030 creates BrewberryPi/recipes once and finds it again", async () => {
     const { drive, store } = await setup();
     const folders = drive.files.filter((f) => f.mimeType === "application/vnd.google-apps.folder");

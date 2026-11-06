@@ -1,7 +1,7 @@
 # 06 — Synchronisation (signed in)
 
 The same Drive folder can change while the editor is open: the editor in another tab or on another device,
-drive.google.com, Drive for desktop, later the BrewberryPi app (`QE-03`). Drive sends change notifications only to a
+drive.google.com, Drive for desktop. (The BrewberryPi app's Cloud Sync only reads the folder, `QE-03`.) Drive sends change notifications only to a
 server (a webhook); the editor has none (`SCO-003`), so it asks Drive.
 
 - `SYN-001` The recipe list is read after sign-in and kept current without any action of the user; there is no

@@ -42,10 +42,11 @@ At [console.cloud.google.com](https://console.cloud.google.com):
 2. APIs & Services → Library: enable **Google Drive API** and **Google Picker API**.
 3. **Google Auth Platform**:
    - **Branding**:
-     - App name `BrewberryPi Recipe Editor`, logo (`brewberrypi/brand/mark-512.png`), user support e-mail.
-     - App home page `https://recipes.brewberrypi.org`.
-     - Privacy policy `https://recipes.brewberrypi.org/privacy.html`.
-     - Terms of service `https://recipes.brewberrypi.org/terms.html`.
+     - App name `BrewberryPi` (Google shows it on the consent screen of the editor and of the device's Cloud Sync),
+       logo (`brewberrypi/brand/mark-512.png`), user support e-mail.
+     - App home page `https://brewberrypi.org`.
+     - Privacy policy `https://brewberrypi.org/privacy.html`.
+     - Terms of service `https://brewberrypi.org/terms.html`.
      - Authorized domain `brewberrypi.org`.
      - Developer contact e-mail.
    - **Audience**: User type **External**; then **Publish app** (status *In production*). While *Testing*, only listed
@@ -63,6 +64,12 @@ At [console.cloud.google.com](https://console.cloud.google.com):
    - Note the **key**.
 5. Project settings (☰ → IAM & Admin → Settings): note the **project number**. The Picker needs it so that picked
    files become available to the editor.
+
+### The BrewberryPi app's Cloud Sync
+
+The app reads the editor's Drive folder through its own OAuth client of type **TVs and Limited Input devices** in
+**this same project** (a `drive.file` grant reaches the files of the project, not of one client). Its setup is in
+brewberrypi-app `docs/deployment/cloud-sync-google.md`.
 
 ## 5. GitHub repository variables
 

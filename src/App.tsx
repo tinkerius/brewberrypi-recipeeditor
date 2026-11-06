@@ -996,9 +996,10 @@ function Intro() {
           lautering, cooking. Start a new recipe, or open recipe files (.json) you already have.
         </p>
         <p>
-          To brew with a recipe, download its file and copy it into the <strong>app/recipes</strong> folder of your
-          BrewberryPi's file share (<code>\\brewberrypi.local\config</code>, user <code>brewberry</code>). The
-          app shows it in its process list within a few seconds.
+          To brew with a recipe, turn on Cloud Sync in the BrewberryPi app as well: the device then copies the recipes of
+          your Google Drive folder <strong>BrewberryPi/recipes</strong> by itself. Without it, download the recipe's file
+          and copy it into the <strong>app/recipes</strong> folder of your BrewberryPi's file share
+          (<code>\\brewberrypi.local\config</code>, user <code>brewberry</code>); the app shows it within a few seconds.
         </p>
         <p>
           With Cloud Sync (Google Drive), your recipes are kept in your own Google Drive, folder <strong>BrewberryPi/recipes</strong>.

@@ -6,12 +6,12 @@
   storage at all (e.g. some private windows), drafts are kept only in the tab's memory.
 - `BRW-003` This storage is **not safe**, and the editor MUST say so in a banner that is always visible while signed
   out:
-  - storage available: "Not signed in — your recipes are only stored in this browser and can be lost: when browser
-    data is cleared, in a private window, or in Safari after 7 days without a visit. Download each recipe, or sign
-    in with Google to keep them in your Google Drive."
-  - memory only: "Not signed in, and this browser does not let the page store anything: your recipes are only kept
-    in this tab and are lost when you close or reload it. Download each recipe, or sign in with Google to keep them
-    in your Google Drive."
+  - storage available: "Cloud Sync is off — your recipes are only stored in this browser and can be lost: when
+    browser data is cleared, in a private window, or in Safari after 7 days without a visit. Download each recipe, or
+    turn on Cloud Sync (Sign in with Google) to keep them in your Google Drive."
+  - memory only: "Cloud Sync is off, and this browser does not let the page store anything: your recipes are only
+    kept in this tab and are lost when you close or reload it. Download each recipe, or turn on Cloud Sync (Sign in
+    with Google) to keep them in your Google Drive."
 - `BRW-004` A draft changed since its last download (or never downloaded) is marked **not downloaded** in the list
   and the editor ("Not downloaded yet" / "Changed since download"); after a download, "Downloaded".
 - `BRW-005` Leaving the page asks first while a draft has pending changes and the storage is memory only or failed.

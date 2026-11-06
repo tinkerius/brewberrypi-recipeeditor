@@ -71,6 +71,8 @@ a release that changes sign-in or Drive behaviour.
   free name.
 - `ACC-035` (DRV-002) An "unauthorised" answer renews the token once and repeats the request; other errors are
   reported.
+- `ACC-037` (QE-18, GUI-001, BRW-003) With Cloud Sync off, the top bar shows "Cloud Sync" next to **Sign in with
+  Google**, the banner starts with "Cloud Sync is off", and no text says "Drive" without "Google".
 - `ACC-036` (DRV-011, DRV-013) A valid stored token is used by a new tab without Google's window; a (nearly) expired
   or unreadable one is not; a token renewed by another tab is taken over; sign-out removes it; a token that no
   longer works is removed; without storage the token stays in the tab.

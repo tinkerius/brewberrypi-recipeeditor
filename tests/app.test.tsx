@@ -202,3 +202,14 @@ describe("App, a new workspace and the list layout", () => {
     expect(root.querySelector("select[aria-label='New recipe from a sample']")).toBeNull();
   });
 });
+
+describe("App, the name Cloud Sync (QE-18)", () => {
+  it("ACC-037 names the feature Cloud Sync and the provider Google Drive in full", async () => {
+    await show(new MemoryStore());
+    const header = root.querySelector("header")!;
+    expect(header.textContent).toContain("Cloud Sync");
+    expect(header.textContent).toContain("Sign in with Google");
+    expect(root.querySelector("[role=note]")?.textContent).toContain("Cloud Sync is off");
+    expect(root.textContent!.match(/(?<!Google )\bDrive\b/g) ?? []).toEqual([]);
+  });
+});

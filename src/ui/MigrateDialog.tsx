@@ -52,7 +52,7 @@ export function MigrateDialog(props: {
                 <span class="block truncate font-medium text-ink dark:text-ink-light">{titleOf(doc)}</span>
                 <span class="text-xs">
                   {doc.id ? `${doc.id}.json` : "no file name"}
-                  {incomplete ? " — incomplete, stays in this browser" : exists ? " — a file with this name is already in Drive" : ""}
+                  {incomplete ? " — incomplete, stays in this browser" : exists ? " — a file with this name is already in Google Drive" : ""}
                 </span>
               </span>
               <select
@@ -64,7 +64,7 @@ export function MigrateDialog(props: {
               >
                 {!incomplete && !exists && <option value="save">Save</option>}
                 {!incomplete && exists && <option value="copy">Save as a copy</option>}
-                {!incomplete && exists && <option value="overwrite">Overwrite the Drive file</option>}
+                {!incomplete && exists && <option value="overwrite">Overwrite the file in Google Drive</option>}
                 <option value="skip">Keep in this browser</option>
               </select>
             </li>

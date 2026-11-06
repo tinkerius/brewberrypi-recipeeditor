@@ -20,7 +20,7 @@
 | 02 | [Recipe Files](02-recipe-files.md) | How the editor reads, checks and writes the app's recipe files |
 | 03 | [Editing](03-editing.md) | Creating, opening, renaming, duplicating, deleting and editing recipes |
 | 04 | [Browser Drafts](04-browser-drafts.md) | Signed out: recipes kept in this browser, and the warning about it |
-| 05 | [Google Drive](05-google-drive.md) | Signed in: sign-in, folder layout, saving, conflicts, file picker, tabs |
+| 05 | [Cloud Sync: Google Drive](05-google-drive.md) | Signed in: sign-in, folder layout, saving, conflicts, file picker, tabs |
 | 06 | [Synchronisation](06-synchronisation.md) | Keeping the Drive recipe list current |
 | 07 | [User Interface](07-user-interface.md) | Layout, list and menu, dialogs, notices |
 | 08 | [Non-Functional Requirements](08-non-functional-requirements.md) | No backend, privacy, security, hosting, browsers, accessibility |
@@ -37,7 +37,7 @@
 | `FMT` | Recipe files | 02 |
 | `EDT` | Editing | 03 |
 | `BRW` | Browser drafts | 04 |
-| `DRV` | Google Drive | 05 |
+| `DRV` | Cloud Sync (Google Drive) | 05 |
 | `SYN` | Synchronisation | 06 |
 | `GUI` | User interface | 07 |
 | `NFR` | Non-functional | 08 |

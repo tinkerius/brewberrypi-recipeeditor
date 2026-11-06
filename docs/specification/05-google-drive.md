@@ -1,4 +1,8 @@
-# 05 — Google Drive (signed in)
+# 05 — Cloud Sync: Google Drive (signed in)
+
+**Cloud Sync** is the feature that keeps the user's recipes in their own cloud storage; today the only provider is
+**Google Drive** (`QE-02`, `QE-18`). The UI calls it "Cloud Sync" and names the provider "Google Drive" in full,
+never "Drive" alone.
 
 ## 5.1 Sign-in and access
 
@@ -22,7 +26,7 @@
 
 - `DRV-005` The list shows the `.json` files in `BrewberryPi/recipes` that the editor may see (`DRV-002`), not
   trashed. A recipe's content is read when it is first opened.
-- `DRV-006` Saving is explicit (**Save to Drive**), only for complete recipes with pending changes (`FMT-010`). A new
+- `DRV-006` Saving is explicit (**Save to Google Drive**), only for complete recipes with pending changes (`FMT-010`). A new
   recipe is created as `<id>.json`; a file name already used in the folder is refused with a message.
 - `DRV-007` Before overwriting, the editor checks that the file did not change in Drive since it was opened. If it
   did, it asks: **Overwrite**, **Save as a copy** (next free name, `EDT-004`; the original then shows Drive's
@@ -33,7 +37,7 @@
   files in the recipes folder are listed; files picked elsewhere are copied into it under a free name. This is how
   recipe files put into the folder some other way (drive.google.com, Drive for desktop) become visible to the
   editor (`DRV-002`).
-- `DRV-010` A Drive recipe with pending changes is marked **unsaved**; the editor shows "Not saved to Drive yet",
+- `DRV-010` A Drive recipe with pending changes is marked **unsaved**; the editor shows "Not saved to Google Drive yet",
   "Unsaved changes" or "Saved in Google Drive". Leaving the page asks first while there are unsaved changes.
 
 ## 5.3 Session
@@ -43,7 +47,7 @@
   2026-11-06). A stored token that no longer works is dropped without a message. Without local storage the token
   stays in the tab.
 - `DRV-012` After an interactive sign-in, if the browser holds drafts, the editor offers to save them to Drive: per
-  draft "Save", or for a name already in Drive "Save as a copy" / "Overwrite the Drive file", or "Keep in this
+  draft "Save", or for a name already in Drive "Save as a copy" / "Overwrite the file in Google Drive", or "Keep in this
   browser"; incomplete drafts stay in the browser. Saved drafts are removed from the browser. A tab that signs in
   with a stored token (`DRV-011`) does not offer this again.
 - `DRV-013` **Sign out** asks first if there are unsaved changes, then signs out in **every** tab: the token is

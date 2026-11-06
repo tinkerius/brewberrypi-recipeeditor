@@ -21,14 +21,15 @@ a release that changes sign-in or Drive behaviour.
 - `ACC-007` (FMT-005) A file with an `id` field and a goal field the type does not take is opened with both kept and
   both reported as problems.
 - `ACC-008` (FMT-007) The samples are exactly `BENIWEISS` and `WaterBoil`, and both are valid.
-- `ACC-009` (FMT-001, FMT-010, GUI-041) A complete recipe without goals is valid and can be downloaded; the editor
-  shows that the app lists it but can't brew it.
+- `ACC-009` (FMT-001, FMT-010, GUI-041) A complete recipe without goals is valid and can be downloaded from its
+  menu; the editor shows that the app lists it but can't brew it.
 
 ## 9.2 Editing
 
 - `ACC-010` (EDT-001, EDT-003, GUI-030) **New recipe** asks for the file name; after `Weizen` the recipe
-  `Weizen.json` is open, empty and incomplete ("The recipe needs a name."), cannot be downloaded, is "Not downloaded
-  yet", and the editor has no file name field.
+  `Weizen.json` is open, empty and incomplete ("The recipe needs a name."), cannot be downloaded (Download in its
+  menu says to fix it first), is "Not downloaded yet", and the editor has no file name field and no Download or
+  Delete button (`GUI-031`).
 - `ACC-011` (EDT-003) The name dialog refuses a name used by another recipe ("There already is a recipe …") and an
   invalid one, and creates nothing.
 - `ACC-012` (EDT-006) Rename… of `Kept` to `Renamed` renames the draft in the list and in the browser storage. In

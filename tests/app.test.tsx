@@ -92,8 +92,11 @@ describe("App, signed out", () => {
     expect(root.querySelector("[aria-label=Recipe] input")?.getAttribute("placeholder")).not.toBe("e.g. Weizen"); // no file name field
     expect(root.textContent).toContain("Incomplete");
     expect(root.textContent).toContain("The recipe needs a name.");
-    expect(button("Download Weizen.json").disabled).toBe(true);
     expect(root.textContent).toContain("Not downloaded yet");
+    const actions = [...root.querySelectorAll("[aria-label=Recipe] button")].map((b) => b.textContent);
+    expect(actions.filter((t) => /Download|Delete/.test(t ?? ""))).toEqual([]); // only in the menu (GUI-031)
+    await menu("Weizen", "Download"); // listed by its file name while it has no name
+    expect(root.querySelector("[role=alert]")?.textContent).toContain("Weizen.json is incomplete; fix it before downloading.");
   });
 
   it("ACC-011 refuses a file name that is invalid or taken", async () => {
@@ -124,7 +127,20 @@ describe("App, a recipe without goals (app Q-34)", () => {
     await store.put(newDoc("Draft", { version: 2, name: "Draft", mashing_process: { goals: [] } }));
     await show(store);
     expect(root.textContent).toContain("It has no goals yet, so BrewberryPi lists it but can't brew it.");
-    expect(button("Download Draft.json").disabled).toBe(false);
+    // jsdom has no object URLs: count the downloads instead.
+    let downloads = 0;
+    Object.assign(URL, { createObjectURL: () => "blob:x", revokeObjectURL: () => undefined });
+    const click = HTMLAnchorElement.prototype.click;
+    HTMLAnchorElement.prototype.click = function (this: HTMLAnchorElement) {
+      if (this.download === "Draft.json") {
+        downloads++;
+      }
+    };
+    await menu("Draft", "Download");
+    HTMLAnchorElement.prototype.click = click;
+    expect(downloads).toBe(1);
+    expect(root.querySelector("[role=alert]")).toBeNull();
+    expect(root.textContent).toContain("Downloaded");
   });
 });
 

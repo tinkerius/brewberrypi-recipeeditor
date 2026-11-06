@@ -862,8 +862,7 @@ export function App(props: { openDrafts?: () => Promise<DraftStore>; auth?: Goog
               status={status(selected)}
               onChange={(recipe) => change(selected, recipe)}
               actions={
-                <>
-                  {inDrive && (
+                inDrive && (
                     <button
                       type="button"
                       class={BUTTON_STYLES.primary}
@@ -872,19 +871,7 @@ export function App(props: { openDrafts?: () => Promise<DraftStore>; auth?: Goog
                     >
                       Save to Google Drive
                     </button>
-                  )}
-                  <button
-                    type="button"
-                    class={inDrive ? BUTTON_STYLES.secondary : BUTTON_STYLES.primary}
-                    disabled={isBusy || problemsOf(selected).length > 0}
-                    onClick={() => download(selected)}
-                  >
-                    Download {selected.id ? `${selected.id}.json` : "file"}
-                  </button>
-                  <button type="button" class={`${BUTTON_STYLES.danger} sm:ml-auto`} disabled={isBusy} onClick={() => remove(selected)}>
-                    Delete
-                  </button>
-                </>
+                )
               }
             />
           ) : selected ? (

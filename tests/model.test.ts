@@ -6,7 +6,7 @@ import { validateRecipe } from "../src/validate";
 const RECIPE_FILES = import.meta.glob<string>("../src/data/recipes/*.json", { query: "?raw", import: "default", eager: true });
 
 describe("serializeRecipe", () => {
-  it("writes the sample recipes as they are, without $schema", () => {
+  it("ACC-003 writes the sample recipes as they are, without $schema", () => {
     expect(Object.keys(RECIPE_FILES)).toHaveLength(2);
     for (const [file, text] of Object.entries(RECIPE_FILES)) {
       const expected = text.replace(/^ {2}"\$schema": .*\n/m, "");
@@ -14,11 +14,11 @@ describe("serializeRecipe", () => {
     }
   });
 
-  it("writes an empty recipe", () => {
+  it("ACC-003 writes an empty recipe", () => {
     expect(serializeRecipe(emptyRecipe())).toBe('{\n  "version": 2,\n  "name": "",\n  "mashing_process": {\n    "goals": []\n  }\n}\n');
   });
 
-  it("round-trips", () => {
+  it("ACC-003 round-trips", () => {
     const recipe = {
       version: 2,
       name: "Ä \"quoted\"",
@@ -31,7 +31,7 @@ describe("serializeRecipe", () => {
 });
 
 describe("readRecipe", () => {
-  it("keeps unknown fields so the validator can report them", () => {
+  it("ACC-007 keeps unknown fields so the validator can report them", () => {
     const recipe = toRecipe({ id: "X", version: 2, name: "N", mashing_process: { goals: [{ type: "HeatUp", temperature: 50, extra: 1 }] } });
     expect(recipe.id).toBe("X");
     expect(validateRecipe(recipe).map((p) => p.path)).toEqual(["id", "mashing_process.goals[0].extra"]);
@@ -46,18 +46,18 @@ describe("readRecipe", () => {
     });
   });
 
-  it("writes a file without version or in version 1 as version 2, unchanged otherwise", () => {
+  it("ACC-004 writes a file without version or in version 1 as version 2, unchanged otherwise", () => {
     const expected = { recipe: { version: 2, name: "N", mashing_process: { goals: [{ type: "MashIn" }] } }, converted: undefined };
     expect(readRecipe({ name: "N", mashing_process: { goals: [{ type: "MashIn" }] } })).toEqual(expected);
     expect(readRecipe({ version: 1, name: "N", mashing_process: { goals: [{ type: "MashIn" }] } })).toEqual(expected);
   });
 
-  it("accepts a recipe without goals (app Q-34)", () => {
+  it("ACC-009 accepts a recipe without goals (app Q-34)", () => {
     const read = readRecipe({ version: 2, name: "Draft", mashing_process: { goals: [] } });
     expect(validateRecipe(read.recipe)).toEqual([]);
   });
 
-  it("converts the old format with goals at the top level", () => {
+  it("ACC-005 converts the old format with goals at the top level", () => {
     const read = readRecipe({ $schema: "../recipe.schema.json", name: "Old", goals: [{ type: "HeatUp", temperature: 62 }] });
     expect(read.recipe).toEqual({ version: 2, name: "Old", mashing_process: { goals: [{ type: "HeatUp", temperature: 62 }] } });
     expect(read.converted).toContain('moved into "mashing_process"');
@@ -70,7 +70,7 @@ describe("readRecipe", () => {
     expect(read.converted).toContain("not valid");
   });
 
-  it("refuses a newer format version instead of losing what it doesn't know", () => {
+  it("ACC-006 refuses a newer format version instead of losing what it doesn't know", () => {
     const read = readRecipe({ version: 3, name: "N", mashing_process: { goals: [] }, hops: [] });
     expect(read.recipe).toBeUndefined();
     expect(read.error).toContain("format version 3");
@@ -83,14 +83,14 @@ describe("readRecipe", () => {
 });
 
 describe("goals", () => {
-  it("presets valid values where it can", () => {
+  it("ACC-016 presets valid values where it can", () => {
     for (const type of GOAL_TYPES) {
       const problems = validateRecipe({ name: "x", mashing_process: { goals: [newGoal(type)] } });
       expect(problems.length, type).toBe(type === "CookWater" ? 2 : 0);
     }
   });
 
-  it("keeps shared values when the type changes", () => {
+  it("ACC-016 keeps shared values when the type changes", () => {
     expect(changeGoalType({ type: "Rest", temperature: 70, minutes: 5, name: "R", description: "D" }, "IodineTest")).toEqual({
       type: "IodineTest",
       temperature: 70,
@@ -99,7 +99,7 @@ describe("goals", () => {
     expect(changeGoalType({ type: "HeatUp", temperature: 70 }, "MashIn")).toEqual({ type: "MashIn" });
   });
 
-  it("lists the fields in file order", () => {
+  it("ACC-016 lists the fields in file order", () => {
     expect(goalFields("Rest")).toEqual(["temperature", "minutes", "name", "description"]);
     expect(goalFields("CookWater")).toEqual(["minutes", "name", "description"]);
     expect(goalFields("nope")).toEqual([]);
@@ -107,7 +107,7 @@ describe("goals", () => {
 });
 
 describe("docs", () => {
-  it("has pending changes until downloaded or saved", () => {
+  it("ACC-017 has pending changes until downloaded or saved", () => {
     const doc = newDoc("", emptyRecipe());
     expect(hasPendingChanges(doc)).toBe(true);
     doc.id = "A";
@@ -121,7 +121,7 @@ describe("docs", () => {
     expect(problemsOf(newDoc("", emptyRecipe())).map((p) => p.path)).toEqual(["id", "name"]);
   });
 
-  it("finds a free file name", () => {
+  it("ACC-013 finds a free file name", () => {
     expect(freeId("A", ["B"])).toBe("A");
     expect(freeId("A", ["A", "A-2"])).toBe("A-3");
   });

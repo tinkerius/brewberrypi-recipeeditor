@@ -2,8 +2,9 @@
 
 Static web editor for BrewberryPi recipe files, published with GitHub Pages at https://recipes.brewberrypi.org. There is
 no backend. Signed-out users keep drafts in the browser (IndexedDB) and download files. Signed-in users (Google) keep
-recipes in their Google Drive, `BrewberryPi/recipes/<id>.json`, with scope `drive.file`. `README.md` describes the
-layout and commands; `docs/google-setup.md` the one-time setup.
+recipes in their Google Drive, `BrewberryPi/recipes/<id>.json`, with scope `drive.file`. The behaviour is specified in
+`docs/specification/` (`00-index.md` first); technology and architecture decisions are in `docs/adr/` (ADR-0001);
+`README.md` describes the layout and commands; `docs/google-setup.md` the one-time setup.
 
 ## Related repositories
 
@@ -25,9 +26,20 @@ layout and commands; `docs/google-setup.md` the one-time setup.
 - Test: `npm test` (Vitest)
 - Build: `npm run build` (type-check + Vite into `dist/`); `npm run preview` serves it with the CSP
 - Upstream copies: `scripts/sync-upstream.sh [--check] ../brewberrypi-app ../brewberrypi`
+- Skills: `/spec-question` (record a specification question), `/verify-spec [prefix]` (coverage report),
+  `/follow-app-format [app commit]` (after the app changed its recipe format or shipped recipes)
 
 ## Rules
 
+- The specification (`docs/specification/`) is the single source of truth for what the editor does; for the recipe
+  file format it is brewberrypi-app's specification. If a request changes specified behaviour, or the
+  specification is ambiguous or seems wrong, record it with `/spec-question` and get the product owner's answer
+  before changing code; then change the specification, the acceptance criteria and the tests together.
+- A new technology or architecture decision (library, storage, provider, Google permission, hosting) gets an ADR in
+  `docs/adr/` (copy `0000-template.md`) before the code.
+- Every acceptance criterion (`09-acceptance-criteria.md`, `ACC-nnn`) gets a test whose name starts with its ID,
+  unless it is marked *manual* (`tests/spec.test.ts` checks this). Commit messages reference the requirement or
+  ACC IDs they implement.
 - Recipe files must load in the app unchanged: validate with `src/validate.ts` before any save or download. It must
   agree with the schema (`tests/validate.test.ts` checks this against Ajv). Never save or download an invalid recipe.
 - `src/data/` and the brand files in `public/` are copies: change them upstream and run the sync script, never by hand.
@@ -36,7 +48,8 @@ layout and commands; `docs/google-setup.md` the one-time setup.
   app `Q-32`) to this repository, not even in tests.
 - The editor writes the app's latest recipe format version (`FORMAT_VERSION` in `src/model.ts`), converts older
   files when it reads them (and says so), and refuses newer versions instead of dropping what it doesn't know. When
-  the app raises the version (`RCP-011`), follow it in the same way.
+  the app raises the version (`RCP-011`), follow it with `/follow-app-format`, and merge only after the app release
+  that reads it (`NFR-022`).
 - Privacy: no backend, no analytics, no third-party storage. The only localStorage entries are the Google access
   token (until it expires, about an hour, or sign-out; shared by the editor's tabs, product owner's decision) and
   the sign-in hint (e-mail). Update `public/privacy.html` and brewberrypi's `site/privacy.html` when what the

@@ -146,7 +146,7 @@ async function setup() {
 const recipe = { version: 2, name: "R", mashing_process: { goals: [{ type: "MashIn" }] } };
 
 describe("DriveStore", () => {
-  it("creates BrewberryPi/recipes once and finds it again", async () => {
+  it("ACC-030 creates BrewberryPi/recipes once and finds it again", async () => {
     const { drive, store } = await setup();
     const folders = drive.files.filter((f) => f.mimeType === "application/vnd.google-apps.folder");
     expect(folders.map((f) => [f.name, f.appProperties?.brewberrypi])).toEqual([
@@ -160,7 +160,7 @@ describe("DriveStore", () => {
     expect(again.recipesFolderId).toBe(store.recipesFolderId);
   });
 
-  it("saves, lists and reads recipe files", async () => {
+  it("ACC-031 saves, lists and reads recipe files", async () => {
     const { drive, store } = await setup();
     const created = await store.create("Weizen", recipe);
     expect(created.id).toBe("Weizen");
@@ -171,13 +171,13 @@ describe("DriveStore", () => {
     expect(JSON.parse(text)).toEqual(recipe);
   });
 
-  it("refuses a second file with the same name", async () => {
+  it("ACC-032 refuses a second file with the same name", async () => {
     const { store } = await setup();
     await store.create("A", recipe);
     await expect(store.create("A", recipe)).rejects.toBeInstanceOf(NameTakenError);
   });
 
-  it("refuses to overwrite a file changed since it was loaded", async () => {
+  it("ACC-033 refuses to overwrite a file changed since it was loaded", async () => {
     const { drive, store } = await setup();
     const created = await store.create("A", recipe);
     drive.files.find((f) => f.id === created.fileId)!.version = 5;
@@ -186,7 +186,7 @@ describe("DriveStore", () => {
     expect(saved.version).toBe("6");
   });
 
-  it("renames on save, but not onto another file", async () => {
+  it("ACC-032 renames on save, but not onto another file", async () => {
     const { store } = await setup();
     const a = await store.create("A", recipe);
     await store.create("B", recipe);
@@ -195,7 +195,7 @@ describe("DriveStore", () => {
     await expect(store.update(a.fileId, "B", recipe, renamed.version)).rejects.toBeInstanceOf(NameTakenError);
   });
 
-  it("renames a file without changing its content, and says whether it was still current", async () => {
+  it("ACC-012 renames a file without changing its content, and says whether it was still current", async () => {
     const { drive, store } = await setup();
     const a = await store.create("A", recipe);
     await store.create("B", recipe);
@@ -208,7 +208,7 @@ describe("DriveStore", () => {
     expect((await store.rename(a.fileId, "D", renamed.file.version)).current).toBe(false);
   });
 
-  it("moves deleted recipes to the trash", async () => {
+  it("ACC-014 moves deleted recipes to the trash", async () => {
     const { drive, store } = await setup();
     const a = await store.create("A", recipe);
     await store.trash(a.fileId);
@@ -216,7 +216,7 @@ describe("DriveStore", () => {
     expect(await store.list()).toEqual([]);
   });
 
-  it("adopts picked files: in the folder as they are, from elsewhere as a copy", async () => {
+  it("ACC-034 adopts picked files: in the folder as they are, from elsewhere as a copy", async () => {
     const { drive, store } = await setup();
     await store.create("X", recipe);
     const inFolder = drive.add({ name: "Mine.json", parents: [store.recipesFolderId], content: "{}" });
@@ -227,21 +227,21 @@ describe("DriveStore", () => {
     expect(adopted[1].fileId).not.toBe(elsewhere.id);
   });
 
-  it("renews the token once on 401", async () => {
+  it("ACC-035 renews the token once on 401", async () => {
     const { drive, auth, store } = await setup();
     drive.validTokens = new Set(["t2"]);
     expect(await store.about()).toEqual({ name: "Brewer", email: "brewer@example.com" });
     expect(auth.renewals).toBe(1);
   });
 
-  it("reports Drive errors", async () => {
+  it("ACC-035 reports Drive errors", async () => {
     const { store } = await setup();
     await expect(store.read("missing")).rejects.toThrow("Google Drive answered 404.");
   });
 });
 
 describe("DriveStore changes feed", () => {
-  it("reports changes in the recipes folder since the last call, across pages", async () => {
+  it("ACC-040 reports changes in the recipes folder since the last call, across pages", async () => {
     const { drive, store } = await setup();
     await store.startChanges();
     expect(await store.changedSince(new Set())).toBe(false);
@@ -255,7 +255,7 @@ describe("DriveStore changes feed", () => {
     expect(await store.changedSince(new Set())).toBe(false); // seen
   });
 
-  it("reports edits, renames and trashing of listed recipes", async () => {
+  it("ACC-040 reports edits, renames and trashing of listed recipes", async () => {
     const { drive, store } = await setup();
     const created = await store.create("A", recipe);
     await store.startChanges();
@@ -266,7 +266,7 @@ describe("DriveStore changes feed", () => {
     expect(await store.changedSince(listed)).toBe(true);
   });
 
-  it("starts again after an invalid position, and counts that as a change", async () => {
+  it("ACC-040 starts again after an invalid position, and counts that as a change", async () => {
     const { drive, store } = await setup();
     await store.startChanges();
     drive.changeLog.length = 0; // the position is now ahead of the feed: Drive refuses it
@@ -274,7 +274,7 @@ describe("DriveStore changes feed", () => {
     expect(await store.changedSince(new Set())).toBe(false);
   });
 
-  it("without a start position, starts and counts it as a change", async () => {
+  it("ACC-040 without a start position, starts and counts it as a change", async () => {
     const { store } = await setup();
     expect(await store.changedSince(new Set())).toBe(true);
   });
@@ -289,7 +289,7 @@ describe("isRelevantChange", () => {
     ["a new file in the folder", { fileId: "new", file: { parents: ["folder"] } }, true],
     ["a file elsewhere", { fileId: "x", file: { parents: ["other"] } }, false],
     ["an unknown removed file", { fileId: "x", removed: true }, false],
-  ])("%s", (_label, change, expected) => {
+  ])("ACC-040 %s", (_label, change, expected) => {
     expect(isRelevantChange(change, "folder", listed)).toBe(expected);
   });
 });

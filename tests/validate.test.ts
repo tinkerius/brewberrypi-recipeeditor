@@ -72,11 +72,11 @@ const CASES: [string, unknown][] = [
 ];
 
 describe("validateRecipe", () => {
-  it.each(CASES)("agrees with the schema: %s", (_label, recipe) => {
+  it.each(CASES)("ACC-001 agrees with the schema: %s", (_label, recipe) => {
     expectSameVerdict(recipe);
   });
 
-  it("accepts the app's shipped recipes, and only those are the samples", () => {
+  it("ACC-008 accepts the app's shipped recipes, and only those are the samples", () => {
     expect(SAMPLES.map((s) => s.id)).toEqual(["BENIWEISS", "WaterBoil"]);
     for (const sample of SAMPLES) {
       expect(expectSameVerdict(sample.recipe), sample.id).toEqual([]);
@@ -88,14 +88,14 @@ describe("validateRecipe", () => {
     expect([...GOAL_TYPES].sort()).toEqual([...branches].sort());
   });
 
-  it("points at the goal field", () => {
+  it("ACC-001 points at the goal field", () => {
     expect(validateRecipe(r([{ type: "HeatUp" }, { type: "HeatUp", temperature: 200 }]))).toEqual([
       { path: "mashing_process.goals[0].temperature", message: "A HeatUp goal needs a temperature." },
       { path: "mashing_process.goals[1].temperature", message: "Temperature must be between 0 and 110 °C." },
     ]);
   });
 
-  it("explains the old format", () => {
+  it("ACC-001 explains the old format", () => {
     expect(validateRecipe({ name: "x", goals: [] }).map((p) => p.message)).toContain(
       'Old recipe format: the goals belong into "mashing_process".',
     );
@@ -103,10 +103,10 @@ describe("validateRecipe", () => {
 });
 
 describe("validateId", () => {
-  it.each(["BENIWEISS", "WaterBoil", "my-recipe_2"])("accepts %s", (id) => {
+  it.each(["BENIWEISS", "WaterBoil", "my-recipe_2"])("ACC-002 accepts %s", (id) => {
     expect(validateId(id)).toEqual([]);
   });
-  it.each(["", "with space", "umlaut-ä", "dot.json", "../x"])("rejects %j", (id) => {
+  it.each(["", "with space", "umlaut-ä", "dot.json", "../x"])("ACC-002 rejects %j", (id) => {
     expect(validateId(id)).toHaveLength(1);
   });
 });

@@ -36,7 +36,9 @@ export function ProblemList(props: { doc: Doc }) {
   if (problems.length === 0) {
     return (
       <p class="rounded-lg bg-leaf/10 p-3 text-sm text-leaf dark:bg-leaf-light/10 dark:text-leaf-light">
-        ✓ Complete: BrewberryPi can load this recipe.
+        {goalsOf(props.doc.recipe).length === 0
+          ? "✓ Valid recipe file. It has no goals yet, so BrewberryPi lists it but can't brew it."
+          : "✓ Complete: BrewberryPi can load this recipe."}
       </p>
     );
   }
@@ -102,7 +104,7 @@ export function RecipeEditor(props: { doc: Doc; onChange: (id: string, recipe: R
 
       <h3 class="mt-6 text-sm font-semibold text-ink dark:text-ink-light">Mashing process: goals in brewing order</h3>
       {goals.length === 0 ? (
-        <p class={`${HINT_STYLE} mt-2`}>No goals yet. A recipe needs at least one; add them below.</p>
+        <p class={`${HINT_STYLE} mt-2`}>No goals yet. Add them below; until then the BrewberryPi app lists this recipe but can't brew it.</p>
       ) : (
         <ol class="mt-2 space-y-2">
           {goals.map((goal, i) => (

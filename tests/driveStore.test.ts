@@ -119,7 +119,7 @@ async function setup() {
   return { drive, auth, store };
 }
 
-const recipe = { version: 1, name: "R", mashing_process: { goals: [{ type: "MashIn" }] } };
+const recipe = { version: 2, name: "R", mashing_process: { goals: [{ type: "MashIn" }] } };
 
 describe("DriveStore", () => {
   it("creates BrewberryPi/recipes once and finds it again", async () => {

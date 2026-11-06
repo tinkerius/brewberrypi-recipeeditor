@@ -9,7 +9,8 @@ layout and commands; `docs/google-setup.md` the one-time setup.
 
 - `tinkerius/brewberrypi-app`: the application. Its specification is the source of truth for the recipe format:
   `docs/specification/07-recipes.md` (file name = recipe id `[A-Za-z0-9_-]+`, one recipe per file; format
-  `{"version": 1, "name", "mashing_process": {"goals"}}`, version and migration `RCP-007..011`),
+  `{"version": 2, "name", "mashing_process": {"goals"}}`, goals possibly empty `Q-34`, version and migration
+  `RCP-007..011`),
   `04-goal-types.md`, and `data/recipe.schema.json`. The samples are exactly the app's shipped recipes (`RCP-002`).
 - `tinkerius/brewberrypi`: the website brewberrypi.org and the brand (`brand/README.md`: colours, logo, font).
 - `tinkerius/brewberrypi-os`: the OS image; recipes reach the device through its file share

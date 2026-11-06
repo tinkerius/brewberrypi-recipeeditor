@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { newDoc } from "../src/doc";
 import { openDraftStore } from "../src/store/BrowserStore";
 
-const recipe = { version: 1, name: "R", mashing_process: { goals: [{ type: "MashIn" }] } };
+const recipe = { version: 2, name: "R", mashing_process: { goals: [{ type: "MashIn" }] } };
 
 function storage(persist: boolean): StorageManager {
   return { persisted: async () => false, persist: async () => persist } as unknown as StorageManager;

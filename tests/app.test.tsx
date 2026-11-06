@@ -54,17 +54,26 @@ describe("App, signed out", () => {
     await act(async () => button("New recipe").click());
     expect(root.textContent).toContain("Incomplete");
     expect(root.textContent).toContain("The recipe needs a name.");
-    expect(root.textContent).toContain("The recipe needs at least one goal.");
     expect(button("Download file").disabled).toBe(true);
     expect(root.textContent).toContain("Not downloaded yet");
   });
 
   it("shows the drafts kept in the browser, marked when not downloaded", async () => {
     const store = new MemoryStore();
-    await store.put(newDoc("Kept", { version: 1, name: "Kept recipe", mashing_process: { goals: [{ type: "MashIn" }] } }));
+    await store.put(newDoc("Kept", { version: 2, name: "Kept recipe", mashing_process: { goals: [{ type: "MashIn" }] } }));
     await show(store);
     expect(root.querySelector("[aria-label=Recipes]")?.textContent).toContain("Kept recipe");
     expect(root.querySelector("[aria-label=Recipes]")?.textContent).toContain("not downloaded");
     expect(root.textContent).toContain("Complete: BrewberryPi can load this recipe.");
+  });
+});
+
+describe("App, a recipe without goals (app Q-34)", () => {
+  it("is valid and can be downloaded, with a note that the app can't brew it yet", async () => {
+    const store = new MemoryStore();
+    await store.put(newDoc("Draft", { version: 2, name: "Draft", mashing_process: { goals: [] } }));
+    await show(store);
+    expect(root.textContent).toContain("It has no goals yet, so BrewberryPi lists it but can't brew it.");
+    expect(button("Download Draft.json").disabled).toBe(false);
   });
 });

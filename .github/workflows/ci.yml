@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches-ignore: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - id: upstream
+        run: |
+          echo "app=$(jq -r '."brewberrypi-app"' upstream.json)" >> "$GITHUB_OUTPUT"
+          echo "brand=$(jq -r '.brewberrypi' upstream.json)" >> "$GITHUB_OUTPUT"
+      # The copied schema, sample recipes and brand files must match the recorded upstream commits.
+      # UPSTREAM_TOKEN (optional secret) is only needed if those repositories are private.
+      - uses: actions/checkout@v5
+        with:
+          repository: tinkerius/brewberrypi-app
+          ref: ${{ steps.upstream.outputs.app }}
+          path: .upstream/brewberrypi-app
+          token: ${{ secrets.UPSTREAM_TOKEN || github.token }}
+      - uses: actions/checkout@v5
+        with:
+          repository: tinkerius/brewberrypi
+          ref: ${{ steps.upstream.outputs.brand }}
+          path: .upstream/brewberrypi
+          token: ${{ secrets.UPSTREAM_TOKEN || github.token }}
+      - run: scripts/sync-upstream.sh --check .upstream/brewberrypi-app .upstream/brewberrypi
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npm run build

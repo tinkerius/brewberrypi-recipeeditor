@@ -1,0 +1,60 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One deployment at a time; a newer push waits, a running deployment is not cancelled.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v5
+      - id: upstream
+        run: |
+          echo "app=$(jq -r '."brewberrypi-app"' upstream.json)" >> "$GITHUB_OUTPUT"
+          echo "brand=$(jq -r '.brewberrypi' upstream.json)" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@v5
+        with:
+          repository: tinkerius/brewberrypi-app
+          ref: ${{ steps.upstream.outputs.app }}
+          path: .upstream/brewberrypi-app
+          token: ${{ secrets.UPSTREAM_TOKEN || github.token }}
+      - uses: actions/checkout@v5
+        with:
+          repository: tinkerius/brewberrypi
+          ref: ${{ steps.upstream.outputs.brand }}
+          path: .upstream/brewberrypi
+          token: ${{ secrets.UPSTREAM_TOKEN || github.token }}
+      - run: scripts/sync-upstream.sh --check .upstream/brewberrypi-app .upstream/brewberrypi
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      # Public values (repository variables): they identify the app to Google, they grant nothing.
+      - run: npm run build
+        env:
+          VITE_GOOGLE_CLIENT_ID: ${{ vars.GOOGLE_CLIENT_ID }}
+          VITE_GOOGLE_API_KEY: ${{ vars.GOOGLE_API_KEY }}
+          VITE_GOOGLE_APP_ID: ${{ vars.GOOGLE_APP_ID }}
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: dist
+      - id: deployment
+        uses: actions/deploy-pages@v4

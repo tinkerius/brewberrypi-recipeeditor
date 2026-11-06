@@ -1,0 +1,48 @@
+/* Privacy and terms pages: the brand colours and typeface of the editor, no build step. */
+@font-face {
+  font-family: "Zilla Slab";
+  font-weight: 500;
+  font-display: swap;
+  src: url("/fonts/zilla-slab-medium.woff2") format("woff2");
+}
+:root {
+  color-scheme: light dark;
+  --ink: #2a1d22;
+  --paper: #fbf8f6;
+  --berry: #8a2a4a;
+  --muted: #57534e;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ink: #f1e8eb;
+    --paper: #1c1719;
+    --berry: #e0789a;
+    --muted: #d6d3d1;
+  }
+}
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font: 16px/1.6 system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+main {
+  max-width: 44rem;
+  margin: 0 auto;
+  padding: 2rem 1rem 4rem;
+}
+h1,
+h2 {
+  font-family: "Zilla Slab", Rockwell, Georgia, serif;
+  font-weight: 500;
+}
+a {
+  color: var(--berry);
+}
+.logo {
+  height: 2.5rem;
+}
+.muted {
+  color: var(--muted);
+  font-size: 0.875rem;
+}

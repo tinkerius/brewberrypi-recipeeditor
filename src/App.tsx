@@ -15,6 +15,7 @@ import { SAMPLES } from "./samples";
 import { openDraftStore, type DraftStore } from "./store/BrowserStore";
 import { DriveError, DriveStore, NameTakenError, VersionConflictError, type DriveFile } from "./store/DriveStore";
 import { ErrorBanner, InfoBanner, StorageBanner } from "./ui/Banners";
+import { GoogleSignInButton } from "./ui/GoogleButton";
 import { MigrateDialog, type MigrateChoice } from "./ui/MigrateDialog";
 import { Modal } from "./ui/Modal";
 import { RecipeEditor } from "./ui/RecipeEditor";
@@ -733,15 +734,11 @@ export function App(props: { openDrafts?: () => Promise<DraftStore>; auth?: Goog
               </button>
             </>
           ) : (
-            <button
-              type="button"
-              class={BUTTON_STYLES.primary}
+            <GoogleSignInButton
               disabled={isBusy || !googleConfigured()}
               title={googleConfigured() ? undefined : "Google sign-in is not configured in this build."}
               onClick={() => signIn()}
-            >
-              Sign in with Google
-            </button>
+            />
           )}
         </div>
       </header>

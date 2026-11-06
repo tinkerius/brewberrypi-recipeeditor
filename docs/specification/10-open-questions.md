@@ -28,3 +28,4 @@ answered). Record answers here and update the affected sections; do not change b
 | `QE-20` | How are goals reordered? | **2026-11-06:** by drag and drop (mouse and touch) with a handle on each goal, and the arrow keys on the handle for the keyboard; the move-up/move-down arrow buttons are removed. | `EDT-012` |
 | `QE-21` | Where is the recipe name edited? | **2026-11-06:** in the title (click the name or the pencil next to it), not in a second field below it. | `EDT-010`, `GUI-030` |
 | `QE-22` | Download and Delete buttons below the recipe, besides the menu? | **2026-11-06:** no, removed; both are in the recipe's menu. Signed in, Save to Google Drive stays. | `GUI-031` |
+| `QE-23` | How is a goal's type chosen? | **2026-11-06:** in a dialog: when a goal is added ("+ Add goal" asks for the type) and with a pencil next to the type of each goal, like the recipe name; no type dropdowns in the goal list. | `EDT-011`, `EDT-012`, `EDT-014`, `EDT-017` |

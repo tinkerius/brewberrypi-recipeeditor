@@ -244,7 +244,7 @@ describe("App, reordering goals by drag and drop (EDT-012)", () => {
   }
 
   const goalTypes = () =>
-    [...root.querySelectorAll<HTMLSelectElement>("[aria-label=Recipe] li select")].map((s) => s.value);
+    [...root.querySelectorAll<HTMLElement>("[aria-label=Recipe] [data-goal-type]")].map((b) => b.dataset.goalType);
   const handles = () => [...root.querySelectorAll<HTMLButtonElement>("[data-drag-handle]")];
 
   /** Gives the goal cards a layout (jsdom has none): card i spans y = 100·i … 100·i + 80. */
@@ -345,5 +345,37 @@ describe("App, editing the recipe name in the title (EDT-010)", () => {
     await nameAs("Weizen", "Create");
     expect(nameInput()).not.toBeNull();
     expect(document.activeElement).toBe(nameInput());
+  });
+});
+
+describe("App, choosing a goal's type in a dialog (QE-23)", () => {
+  const goalTypes = () =>
+    [...root.querySelectorAll<HTMLElement>("[aria-label=Recipe] [data-goal-type]")].map((b) => b.dataset.goalType);
+  const dialogChoice = (type: string) =>
+    [...root.querySelectorAll<HTMLButtonElement>("[role=dialog] [aria-label='Goal types'] button")].find((b) =>
+      b.textContent?.includes(`(${type})`),
+    )!;
+
+  it("ACC-043 asks for the type when a goal is added and when the pencil is used; no type dropdowns", async () => {
+    const store = new MemoryStore();
+    await store.put(newDoc("Kept", { version: 2, name: "Kept", mashing_process: { goals: [{ type: "HeatUp", temperature: 40 }] } }));
+    await show(store);
+    expect(root.querySelectorAll("[aria-label=Recipe] select")).toHaveLength(0);
+
+    await act(async () => button("+ Add goal").click());
+    expect(root.querySelector("[role=dialog]")?.textContent).toContain("Add a goal");
+    await act(async () => button("Cancel").click());
+    expect(goalTypes()).toEqual(["HeatUp"]);
+    await act(async () => button("+ Add goal").click());
+    await act(async () => dialogChoice("Rest").click());
+    expect(goalTypes()).toEqual(["HeatUp", "Rest"]);
+
+    const pencil = root.querySelector<HTMLButtonElement>("[aria-label^='Change the type of goal 1']")!;
+    await act(async () => pencil.click());
+    expect(dialogChoice("HeatUp").getAttribute("aria-current")).toBe("true");
+    await act(async () => dialogChoice("Rest").click());
+    expect(goalTypes()).toEqual(["Rest", "Rest"]);
+    const temperature = root.querySelector<HTMLInputElement>("[aria-label=Recipe] ol > li input")!;
+    expect(temperature.value).toBe("40"); // kept (EDT-014)
   });
 });

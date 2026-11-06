@@ -3,12 +3,13 @@
 import type { ComponentChildren } from "preact";
 import { useEffect, useRef, useState } from "preact/hooks";
 import { problemsOf, type Doc } from "../doc";
-import { GOAL_INFO, GOAL_TYPES, goalsOf, newGoal, withGoals, type Goal, type GoalType, type Recipe } from "../model";
+import { goalsOf, newGoal, withGoals, type Goal, type Recipe } from "../model";
 import { GOALS_PATH } from "../validate";
 import { GoalEditor } from "./GoalEditor";
+import { GoalTypeDialog } from "./GoalTypeDialog";
 import { RecipeTitle } from "./RecipeTitle";
 import { dropSlot, moveItem, targetIndex } from "./reorder";
-import { BUTTON_STYLES, CARD_STYLE, HINT_STYLE, SELECT_STYLE } from "./styles";
+import { BUTTON_STYLES, CARD_STYLE, HINT_STYLE } from "./styles";
 
 const PATH_LABELS: Record<string, string> = {
   id: "File name",
@@ -62,7 +63,7 @@ export function ProblemList(props: { doc: Doc }) {
 export function RecipeEditor(props: { doc: Doc; onChange: (recipe: Recipe) => void; actions?: ComponentChildren; status?: ComponentChildren }) {
   const { doc } = props;
   const problems = problemsOf(doc);
-  const [addType, setAddType] = useState<GoalType>("HeatUp");
+  const [adding, setAdding] = useState(false);
   const setRecipe = (recipe: Recipe) => props.onChange(recipe);
   const setGoals = (goals: Goal[]) => setRecipe(withGoals(doc.recipe, goals));
   const goals = goalsOf(doc.recipe);
@@ -172,18 +173,21 @@ export function RecipeEditor(props: { doc: Doc; onChange: (recipe: Recipe) => vo
           ))}
         </ol>
       )}
-      <div class="mt-3 flex flex-wrap items-center gap-2">
-        <select class={`${SELECT_STYLE} min-w-0 flex-1 sm:flex-none`} aria-label="Type of the new goal" value={addType} onChange={(e) => setAddType(e.currentTarget.value as GoalType)}>
-          {GOAL_TYPES.map((type) => (
-            <option key={type} value={type}>
-              {GOAL_INFO[type].label} ({type})
-            </option>
-          ))}
-        </select>
-        <button type="button" class={BUTTON_STYLES.secondary} onClick={() => setGoals([...goals, newGoal(addType)])}>
+      <div class="mt-3">
+        <button type="button" class={BUTTON_STYLES.secondary} onClick={() => setAdding(true)}>
           + Add goal
         </button>
       </div>
+      {adding && (
+        <GoalTypeDialog
+          title="Add a goal"
+          onCancel={() => setAdding(false)}
+          onChoose={(type) => {
+            setAdding(false);
+            setGoals([...goals, newGoal(type)]);
+          }}
+        />
+      )}
 
       <div class="mt-6 space-y-2">
         {doc.notice && (

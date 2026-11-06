@@ -16,8 +16,9 @@ recipes in their Google Drive, `BrewberryPi/recipes/<id>.json`, with scope `driv
 - `tinkerius/brewberrypi`: the website brewberrypi.org and the brand (`brand/README.md`: colours, logo, font).
 - `tinkerius/brewberrypi-os`: the OS image; recipes reach the device through its file share
   (`\\<hostname>.local\config\app\recipes`).
-- Device sync with Google Drive is future work in brewberrypi-app. Keep the Drive layout (`BrewberryPi/recipes`, the
-  folders' `appProperties.brewberrypi` = `root`/`recipes`, file format as written by `serializeRecipe`) stable for it.
+- The app's Cloud Sync (its spec 14, ADR-0003) reads the Drive folder the editor writes, one way, with its own device
+  client in the same Google Cloud project. Keep the Drive layout (`BrewberryPi/recipes`, the folders'
+  `appProperties.brewberrypi` = `root`/`recipes`, file format as written by `serializeRecipe`) stable for it.
 
 ## Commands
 

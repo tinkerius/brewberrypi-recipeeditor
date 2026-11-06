@@ -15,9 +15,11 @@
 - `SCO-010` Editing recipes inside the BrewberryPi app (app `Q-09`: answered no).
 - `SCO-011` Storage providers other than Google Drive (Microsoft OneDrive, Dropbox: possible later, `QE-02`).
   iCloud is not possible: it has no public API for iCloud Drive.
-- `SCO-012` Transferring recipes to a BrewberryPi device. Until the app syncs with Google Drive itself (future work
-  in brewberrypi-app, `QE-03`), the brewer copies the downloaded file into the device's recipe folder
-  (`\\<hostname>.local\config\app\recipes`, BrewberryPi OS file share).
+- `SCO-012` Transferring recipes to a BrewberryPi device; the editor never talks to a device. The device gets them
+  either through the **app's Cloud Sync** (app spec 14, from app 0.1.0-alpha.13, `QE-03`): it copies the recipes of
+  the Google Drive folder `BrewberryPi/recipes` that the editor writes, one way, from Google Drive to the device;
+  or the brewer copies a downloaded file into the device's recipe folder (`\\<hostname>.local\config\app\recipes`,
+  BrewberryPi OS file share).
 - `SCO-013` Checking whether a recipe is a good or safe way to brew. The editor checks only the file format.
 
 ## 1.3 Actors and context
@@ -26,7 +28,7 @@
 |---|---|
 | Brewer | Uses the editor in a browser, signed out or signed in with Google |
 | Google | Sign-in (Google Identity Services), Google Drive (files), Google Picker (choosing files) |
-| BrewberryPi app | Reads the recipe files the editor writes (not connected to the editor) |
+| BrewberryPi app | Reads the recipe files the editor writes, through its Cloud Sync from Google Drive or as copied files (not connected to the editor) |
 | GitHub Pages | Serves the editor's files |
 
 ## 1.4 Glossary

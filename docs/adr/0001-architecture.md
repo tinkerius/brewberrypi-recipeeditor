@@ -55,7 +55,7 @@ made on 2026-11-06 while the editor was built; this record collects them with th
 - **Options:** Drive's hidden `appDataFolder`; a visible folder; a dot folder `.brewberrypi`.
 - **Decision:** visible `BrewberryPi/recipes` (product owner): users see and back up their files. A dot folder is not
   hidden in Drive (only by Drive for desktop on macOS/Linux). The folders are found by `appProperties` markers,
-  not by name (`DRV-003`). The layout stays stable for the app's future Drive sync (`QE-03`).
+  not by name (`DRV-003`). The layout stays stable for the app's Cloud Sync, which reads this folder (`QE-03`).
 
 ### 7. Signed-out drafts in IndexedDB
 
@@ -82,5 +82,5 @@ made on 2026-11-06 while the editor was built; this record collects them with th
 - Positive: no server to run or secure; recipes stay with the user; the editor deploys with a merge.
 - Negative / risks: sign-in lasts about an hour (then a click); signed-out drafts can be lost (warned); Drive
   changes appear with up to 10 s delay; Google's consent screen must be configured and published (`QE-05`).
-- Follow-ups: other providers (`QE-02`); the app's Drive sync (`QE-03`). A new technology or architecture decision
+- Follow-ups: other providers (`QE-02`). The app's Cloud Sync reads the Drive folder (`QE-03`, app ADR-0003). A new technology or architecture decision
   gets its own ADR (copy `0000-template.md`).

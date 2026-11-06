@@ -46,7 +46,7 @@ export function GoalTypeDialog(props: {
                 onClick={() => props.onChoose(type)}
               >
                 <span class="block text-sm font-semibold text-ink dark:text-ink-light">
-                  {GOAL_INFO[type].label} <span class="font-normal text-stone-500 dark:text-stone-400">({type})</span>
+                  {GOAL_INFO[type].label}
                 </span>
                 <span class="mt-1 block text-xs text-stone-600 dark:text-stone-300">{GOAL_INFO[type].summary}</span>
               </button>

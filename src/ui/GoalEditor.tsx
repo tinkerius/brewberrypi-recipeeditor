@@ -99,8 +99,7 @@ export function GoalEditor(props: {
           <span class={`truncate text-sm font-semibold ${known ? "text-ink dark:text-ink-light" : "text-red-600 dark:text-red-400"}`}>
             {known ? (
               <>
-                {GOAL_INFO[goal.type as GoalType].label}{" "}
-                <span class="font-normal text-stone-500 dark:text-stone-400">({goal.type})</span>
+                {GOAL_INFO[goal.type as GoalType].label}
               </>
             ) : goal.type ? (
               `Unknown: ${goal.type}`

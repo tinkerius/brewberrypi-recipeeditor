@@ -45,8 +45,8 @@ Applies signed out (drafts, §4) and signed in (Drive recipes, §5) alike, unles
 - `EDT-010` The recipe name is edited **in the title** (`QE-21`): clicking the name, or the pencil next to it, turns it
   into a text field; Enter or leaving the field keeps the change, Escape restores the name it had before. A recipe
   without a name (a new one) starts with the field open. There is no separate name field.
-- `EDT-011` Goals are listed in brewing order. Each goal shows its type as text (display name and type, all goal
-  types of app spec 04) with a pencil to change it (`EDT-014`), a one-line explanation, and the fields its type takes (app `RCP` §7.3 table): temperature,
+- `EDT-011` Goals are listed in brewing order. Each goal shows its type by its display name only (all goal
+  types of app spec 04; the type names of the file, e.g. `HeatUp`, are not shown, `QE-24`) with a pencil to change it (`EDT-014`), a one-line explanation, and the fields its type takes (app `RCP` §7.3 table): temperature,
   minutes, and for Rest optionally both name and description (one switch adds or removes both); CookWater always
   has name and description.
 - `EDT-012` **+ Add goal** asks for the type first (`EDT-017`) and adds a goal of that type at the end. Goals can be
@@ -59,7 +59,7 @@ Applies signed out (drafts, §4) and signed in (Drive recipes, §5) alike, unles
 - `EDT-014` The pencil next to a goal's type asks for the new type (`EDT-017`, the current one marked). Changing it
   keeps the values the new type also takes and drops the others. A goal of an unknown type (`FMT-004`) shows
   "Unknown: <type>" with the same pencil.
-- `EDT-017` The goal type is chosen in a dialog that lists every goal type with its display name, its type and its
+- `EDT-017` The goal type is chosen in a dialog that lists every goal type with its display name and its
   one-line explanation (`EDT-011`); choosing one confirms, Escape or Cancel changes nothing. There is no type
   dropdown in the goal list (`QE-23`).
 - `EDT-015` Number fields keep what is typed even while it is not a number yet (e.g. `62.`); a value that is not a

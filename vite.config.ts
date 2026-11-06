@@ -39,5 +39,6 @@ export default defineConfig({
   server: { host: "localhost", port: 5173, strictPort: true },
   preview: { host: "localhost", port: 5173, strictPort: true },
   // Only this repository's tests (CI checks out the upstream repositories in .upstream/).
-  test: { environment: "node", include: ["tests/**/*.test.{ts,tsx}"] },
+  // Google is "configured" in the tests (a fake client id), so the signed-in paths can be tested.
+  test: { environment: "node", include: ["tests/**/*.test.{ts,tsx}"], env: { VITE_GOOGLE_CLIENT_ID: "test-client" } },
 });

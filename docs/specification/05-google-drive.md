@@ -28,6 +28,9 @@ never "Drive" alone.
   trashed. A recipe's content is read when it is first opened.
 - `DRV-006` Saving is explicit (**Save to Google Drive**), only for complete recipes with pending changes (`FMT-010`). A new
   recipe is created as `<id>.json`; a file name already used in the folder is refused with a message.
+  **Discard changes** (`QE-25`) is its counterpart: for a recipe already saved in Drive with pending changes it asks
+  "Discard your changes to <id>.json and show the version saved in Google Drive?" and then reads the file again;
+  the file in Drive is not changed. A recipe not saved yet has nothing to go back to (Delete in its menu removes it).
 - `DRV-007` Before overwriting, the editor checks that the file did not change in Drive since it was opened. If it
   did, it asks: **Overwrite**, **Save as a copy** (next free name, `EDT-004`; the original then shows Drive's
   version), **Discard my changes** (reload from Drive), or cancel.

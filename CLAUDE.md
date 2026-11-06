@@ -2,8 +2,9 @@
 
 Static web editor for BrewberryPi recipe files, published with GitHub Pages at https://recipes.brewberrypi.org. There is
 no backend. Signed-out users keep drafts in the browser (IndexedDB) and download files. Signed-in users (Google) keep
-recipes in their Google Drive, `BrewberryPi/recipes/<id>.json`, with scope `drive.file`. `README.md` describes the
-layout and commands; `docs/google-setup.md` the one-time setup.
+recipes in their Google Drive, `BrewberryPi/recipes/<id>.json`, with scope `drive.file`. The behaviour is specified in
+`docs/specification/` (`00-index.md` first); `README.md` describes the layout and commands; `docs/google-setup.md`
+the one-time setup.
 
 ## Related repositories
 
@@ -28,6 +29,13 @@ layout and commands; `docs/google-setup.md` the one-time setup.
 
 ## Rules
 
+- The specification (`docs/specification/`) is the single source of truth for what the editor does; for the recipe
+  file format it is brewberrypi-app's specification. If a request changes specified behaviour, or the
+  specification is ambiguous or seems wrong, record it with `/spec-question` and get the product owner's answer
+  before changing code; then change the specification, the acceptance criteria and the tests together.
+- Every acceptance criterion (`09-acceptance-criteria.md`, `ACC-nnn`) gets a test whose name starts with its ID,
+  unless it is marked *manual* (`tests/spec.test.ts` checks this). Commit messages reference the requirement or
+  ACC IDs they implement.
 - Recipe files must load in the app unchanged: validate with `src/validate.ts` before any save or download. It must
   agree with the schema (`tests/validate.test.ts` checks this against Ajv). Never save or download an invalid recipe.
 - `src/data/` and the brand files in `public/` are copies: change them upstream and run the sync script, never by hand.

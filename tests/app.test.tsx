@@ -72,19 +72,19 @@ function button(label: string): HTMLButtonElement {
 }
 
 describe("App, signed out", () => {
-  it("warns that recipes live only in this tab without browser storage", async () => {
+  it("ACC-021 warns that recipes live only in this tab without browser storage", async () => {
     await show(new MemoryStore());
     expect(root.textContent).toContain(MEMORY_STORAGE_WARNING);
   });
 
-  it("warns that browser storage can be lost", async () => {
+  it("ACC-021 warns that browser storage can be lost", async () => {
     const store = new MemoryStore();
     Object.defineProperty(store, "kind", { value: "best-effort" });
     await show(store);
     expect(root.textContent).toContain(BROWSER_STORAGE_WARNING);
   });
 
-  it("asks for the file name, then starts a new recipe empty and incomplete; it can't be downloaded yet", async () => {
+  it("ACC-010 asks for the file name, then starts a new recipe empty and incomplete; it can't be downloaded yet", async () => {
     await show(new MemoryStore());
     await act(async () => button("New recipe").click());
     await nameAs("Weizen", "Create");
@@ -96,7 +96,7 @@ describe("App, signed out", () => {
     expect(root.textContent).toContain("Not downloaded yet");
   });
 
-  it("refuses a file name that is invalid or taken", async () => {
+  it("ACC-011 refuses a file name that is invalid or taken", async () => {
     const store = new MemoryStore();
     await store.put(newDoc("Kept", { version: 2, name: "Kept", mashing_process: { goals: [] } }));
     await show(store);
@@ -108,7 +108,7 @@ describe("App, signed out", () => {
     expect(root.querySelectorAll("[aria-label=Recipes] li")).toHaveLength(1);
   });
 
-  it("shows the drafts kept in the browser, marked when not downloaded", async () => {
+  it("ACC-023 shows the drafts kept in the browser, marked when not downloaded", async () => {
     const store = new MemoryStore();
     await store.put(newDoc("Kept", { version: 2, name: "Kept recipe", mashing_process: { goals: [{ type: "MashIn" }] } }));
     await show(store);
@@ -119,7 +119,7 @@ describe("App, signed out", () => {
 });
 
 describe("App, a recipe without goals (app Q-34)", () => {
-  it("is valid and can be downloaded, with a note that the app can't brew it yet", async () => {
+  it("ACC-009 is valid and can be downloaded, with a note that the app can't brew it yet", async () => {
     const store = new MemoryStore();
     await store.put(newDoc("Draft", { version: 2, name: "Draft", mashing_process: { goals: [] } }));
     await show(store);
@@ -136,7 +136,7 @@ describe("App, the recipe menu", () => {
     return store;
   }
 
-  it("renames a recipe, asking for the new file name", async () => {
+  it("ACC-012 renames a recipe, asking for the new file name", async () => {
     const store = await withKept();
     await menu("Kept recipe", "Rename…");
     expect(dialogText()).toContain("Rename Kept.json");
@@ -146,7 +146,7 @@ describe("App, the recipe menu", () => {
     expect((await store.all()).map((d) => d.id)).toEqual(["Renamed"]);
   });
 
-  it("duplicates a recipe under a new file name", async () => {
+  it("ACC-013 duplicates a recipe under a new file name", async () => {
     await withKept();
     await menu("Kept recipe", "Duplicate…");
     expect(root.querySelector<HTMLInputElement>("[role=dialog] input")?.value).toBe("Kept-2");
@@ -155,7 +155,7 @@ describe("App, the recipe menu", () => {
     expect(root.querySelector("[aria-label=Recipe]")?.textContent).toContain("Kept-2.json");
   });
 
-  it("deletes a recipe after asking", async () => {
+  it("ACC-014 deletes a recipe after asking", async () => {
     await withKept();
     await menu("Kept recipe", "Delete…");
     expect(dialogText()).toContain("Delete this recipe");
@@ -166,7 +166,7 @@ describe("App, the recipe menu", () => {
     expect(listText()).toEqual([]);
   });
 
-  it("opens with a right click too", async () => {
+  it("ACC-015 opens with a right click too", async () => {
     await withKept();
     await act(async () => {
       root.querySelector("[aria-label=Recipes] li")?.dispatchEvent(new MouseEvent("contextmenu", { bubbles: true, cancelable: true }));

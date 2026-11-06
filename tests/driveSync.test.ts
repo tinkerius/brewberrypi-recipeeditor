@@ -17,7 +17,7 @@ function opened(f: DriveFile, changed = false): Doc {
 }
 
 describe("mergeDriveList", () => {
-  it("adds files that are new in Drive", () => {
+  it("ACC-041 adds files that are new in Drive", () => {
     const merge = mergeDriveList([], [file("a", "A", "1"), file("b", "B", "1")]);
     expect(merge.docs.map((d) => [d.key, d.id, d.loaded])).toEqual([
       ["a", "A", false],
@@ -25,14 +25,14 @@ describe("mergeDriveList", () => {
     ]);
   });
 
-  it("keeps unchanged recipes as they are", () => {
+  it("ACC-041 keeps unchanged recipes as they are", () => {
     const doc = opened(file("a", "A", "1"));
     const merge = mergeDriveList([doc], [file("a", "A", "1")]);
     expect(merge.docs).toEqual([doc]);
     expect(merge.reload).toEqual([]);
   });
 
-  it("drops recipes deleted in Drive, but keeps unsaved changes as a new recipe", () => {
+  it("ACC-041 drops recipes deleted in Drive, but keeps unsaved changes as a new recipe", () => {
     const gone = opened(file("a", "A", "1"));
     const goneUnopened = driveDoc(file("b", "B", "1"));
     const edited = opened(file("c", "C", "1"), true);
@@ -44,7 +44,7 @@ describe("mergeDriveList", () => {
     expect(merge.docs[0].notice).toContain("deleted or moved in Google Drive");
   });
 
-  it("follows renames and changes: unopened ones at once, opened ones are read again", () => {
+  it("ACC-041 follows renames and changes: unopened ones at once, opened ones are read again", () => {
     const unopened = driveDoc(file("a", "A", "1"));
     const open = opened(file("b", "B", "1"));
     const merge = mergeDriveList([unopened, open], [file("a", "A2", "2"), file("b", "B2", "5")]);
@@ -55,14 +55,14 @@ describe("mergeDriveList", () => {
     expect(merge.reload).toEqual(["b"]);
   });
 
-  it("leaves recipes with unsaved changes alone when they changed in Drive (the save check decides)", () => {
+  it("ACC-041 leaves recipes with unsaved changes alone when they changed in Drive (the save check decides)", () => {
     const edited = opened(file("a", "A", "1"), true);
     const merge = mergeDriveList([edited], [file("a", "A", "2")]);
     expect(merge.docs).toEqual([edited]);
     expect(merge.reload).toEqual([]);
   });
 
-  it("keeps recipes not saved to Drive yet", () => {
+  it("ACC-041 keeps recipes not saved to Drive yet", () => {
     const draft = newDoc("New", recipe);
     expect(mergeDriveList([draft], []).docs).toEqual([draft]);
   });

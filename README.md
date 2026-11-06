@@ -39,6 +39,7 @@ within seconds.
 
 | Path | Content |
 |---|---|
+| `docs/specification/` | **What the editor does**: requirements (`FMT`, `EDT`, `BRW`, `DRV`, `SYN`, `GUI`, `NFR`), acceptance criteria (`ACC`), open questions (`QE`). Start with `00-index.md` |
 | `index.html`, `src/main.tsx`, `src/App.tsx` | The editor page (Vite, Preact, TypeScript, Tailwind CSS v4, the same stack and look as the app's web UI) |
 | `src/model.ts`, `src/validate.ts` | The recipe format: goal types, file formatting, validation without a JSON-schema library (strict Content-Security-Policy, no `eval`) |
 | `src/doc.ts` | An open recipe: file name, content, saved/downloaded state |
@@ -49,7 +50,7 @@ within seconds.
 | `public/` | `CNAME`, privacy and terms pages, and **copies** of the brand logo, favicons and font from brewberrypi |
 | `upstream.json` | The commits of brewberrypi-app and brewberrypi the copies come from |
 | `scripts/sync-upstream.sh` | Copies those files again; `--check` (CI) fails if they differ |
-| `tests/` | Vitest: validator (checked against Ajv and the schema), stores (fake IndexedDB, fake Drive), components |
+| `tests/` | Vitest, each test named after the acceptance criterion it checks (`ACC-nnn ...`): validator (checked against Ajv and the schema), stores (fake IndexedDB, fake Drive), sync, components; `spec.test.ts` fails when an automated criterion has no test |
 | `docs/google-setup.md` | One-time setup: Google Cloud, domain, DNS, GitHub Pages, repository variables |
 
 ## Development

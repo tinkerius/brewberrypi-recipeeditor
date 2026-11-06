@@ -1,7 +1,7 @@
 /** One goal of a recipe: its type and the fields that type takes (spec 04, 07 §7.2). */
 
 import { FIELD_LABELS, GOAL_INFO, GOAL_TYPES, changeGoalType, goalFields, isGoalType, type Goal } from "../model";
-import type { Problem } from "../validate";
+import { GOALS_PATH, type Problem } from "../validate";
 import { NumberField, TextField } from "./fields";
 import { BUTTON_STYLES, HINT_STYLE, SELECT_STYLE } from "./styles";
 
@@ -15,7 +15,7 @@ export function GoalEditor(props: {
   onRemove: () => void;
 }) {
   const { goal, index } = props;
-  const at = `goals[${index}]`;
+  const at = `${GOALS_PATH}[${index}]`;
   const problemsAt = (field: string) => props.problems.filter((p) => p.path === `${at}.${field}`);
   const known = isGoalType(goal.type);
   const fields = goalFields(goal.type);

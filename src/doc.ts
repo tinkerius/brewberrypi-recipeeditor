@@ -19,8 +19,10 @@ export interface Doc {
   version?: string;
   /** Drive only: false while only the file name is known and the content still has to be read. */
   loaded: boolean;
-  /** Drive only: why the file's content could not be used (not JSON); the recipe is then empty. */
+  /** Drive only: why the file's content could not be used (not JSON, newer format); the recipe is then empty. */
   loadError?: string;
+  /** What the editor changed when it read the file (old format converted); shown until saved or downloaded. */
+  notice?: string;
   /** Time of the last change (ms since 1970), for the list order. */
   updatedAt: number;
 }
@@ -46,7 +48,7 @@ export function newDoc(id: string, recipe: Recipe): Doc {
   return { key: randomKey(), id, recipe, loaded: true, updatedAt: Date.now() };
 }
 
-/** A file name that is not taken yet: "HIPA" -> "HIPA-2", "HIPA-3", ... */
+/** A file name that is not taken yet: "Weizen" -> "Weizen-2", "Weizen-3", ... */
 export function freeId(id: string, taken: Iterable<string>): string {
   const used = new Set(taken);
   if (!used.has(id)) {

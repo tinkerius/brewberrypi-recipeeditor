@@ -1,4 +1,4 @@
-/** The 8 sample recipes shipped with the app (copied by scripts/sync-upstream.sh). */
+/** The recipes shipped with the app (RCP-002), offered as samples (copied by scripts/sync-upstream.sh). */
 
 import { idFromFileName, toRecipe, type Recipe } from "./model";
 

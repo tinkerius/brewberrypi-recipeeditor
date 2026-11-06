@@ -15,50 +15,59 @@ function expectSameVerdict(recipe: unknown) {
   return ours;
 }
 
-const valid = { name: "Test", goals: [{ type: "HeatUp", temperature: 62 }] };
+/** A recipe with these goals. */
+const r = (goals: unknown, extra: object = {}) => ({ version: 1, name: "x", mashing_process: { goals }, ...extra });
+
+const valid = r([{ type: "HeatUp", temperature: 62 }]);
 
 const CASES: [string, unknown][] = [
   ["valid", valid],
-  ["with $schema", { ...valid, $schema: "../recipe.schema.json" }],
-  ["all goal types", {
-    name: "All",
-    goals: [
-      { type: "PourInBrewingWater" },
-      { type: "HeatUp", temperature: 0 },
-      { type: "MashIn" },
-      { type: "Rest", temperature: 110, minutes: 0 },
-      { type: "Rest", temperature: 62.5, minutes: 30, name: "R", description: "D" },
-      { type: "IodineTest", temperature: 68, minutes: 10 },
-      { type: "Lautering" },
-      { type: "HeatUpForHopsCooking" },
-      { type: "CookWater", name: "Cook", description: "Cook 60", minutes: 60 },
-    ],
-  }],
+  ["without version (version 1)", { name: "x", mashing_process: { goals: [{ type: "MashIn" }] } }],
+  ["with $schema", { $schema: "../recipe.schema.json", ...valid }],
+  ["all goal types", r([
+    { type: "PourInBrewingWater" },
+    { type: "HeatUp", temperature: 0 },
+    { type: "MashIn" },
+    { type: "Rest", temperature: 110, minutes: 0 },
+    { type: "Rest", temperature: 62.5, minutes: 30, name: "R", description: "D" },
+    { type: "IodineTest", temperature: 68, minutes: 10 },
+    { type: "Lautering" },
+    { type: "HeatUpForHopsCooking" },
+    { type: "CookWater", name: "Cook", description: "Cook 60", minutes: 60 },
+  ])],
   ["not an object", []],
   ["string", "x"],
-  ["no name", { goals: valid.goals }],
-  ["empty name", { name: "", goals: valid.goals }],
-  ["name not a string", { name: 3, goals: valid.goals }],
-  ["no goals", { name: "x" }],
-  ["empty goals", { name: "x", goals: [] }],
-  ["goals not an array", { name: "x", goals: {} }],
-  ["extra top-level field", { ...valid, id: "x" }],
+  ["version 2", { ...valid, version: 2 }],
+  ["version 0", { ...valid, version: 0 }],
+  ["version as string", { ...valid, version: "1" }],
+  ["old flat format", { name: "x", goals: [{ type: "MashIn" }] }],
+  ["old goals next to mashing_process", { ...valid, goals: [{ type: "MashIn" }] }],
+  ["no name", { version: 1, mashing_process: valid.mashing_process }],
+  ["empty name", { ...valid, name: "" }],
+  ["name not a string", { ...valid, name: 3 }],
+  ["no mashing_process", { version: 1, name: "x" }],
+  ["mashing_process not an object", { version: 1, name: "x", mashing_process: [] }],
+  ["mashing_process without goals", { version: 1, name: "x", mashing_process: {} }],
+  ["extra field in mashing_process", { version: 1, name: "x", mashing_process: { goals: [{ type: "MashIn" }], hops: [] } }],
+  ["empty goals", r([])],
+  ["goals not an array", r({})],
+  ["extra top-level field", { ...valid, grain_bill: {} }],
   ["$schema not a string", { ...valid, $schema: 1 }],
-  ["goal not an object", { name: "x", goals: [1] }],
-  ["goal without type", { name: "x", goals: [{}] }],
-  ["unknown goal type", { name: "x", goals: [{ type: "Boil" }] }],
-  ["HeatUp without temperature", { name: "x", goals: [{ type: "HeatUp" }] }],
-  ["temperature too high", { name: "x", goals: [{ type: "HeatUp", temperature: 110.5 }] }],
-  ["temperature negative", { name: "x", goals: [{ type: "HeatUp", temperature: -1 }] }],
-  ["temperature a string", { name: "x", goals: [{ type: "HeatUp", temperature: "62" }] }],
-  ["minutes fractional", { name: "x", goals: [{ type: "Rest", temperature: 62, minutes: 1.5 }] }],
-  ["minutes negative", { name: "x", goals: [{ type: "Rest", temperature: 62, minutes: -1 }] }],
-  ["Rest with name only", { name: "x", goals: [{ type: "Rest", temperature: 62, minutes: 1, name: "R" }] }],
-  ["Rest with description only", { name: "x", goals: [{ type: "Rest", temperature: 62, minutes: 1, description: "D" }] }],
-  ["Rest with empty name", { name: "x", goals: [{ type: "Rest", temperature: 62, minutes: 1, name: "", description: "D" }] }],
-  ["field not allowed for the type", { name: "x", goals: [{ type: "MashIn", temperature: 50 }] }],
-  ["IodineTest with a name", { name: "x", goals: [{ type: "IodineTest", temperature: 68, minutes: 10, name: "I" }] }],
-  ["CookWater without description", { name: "x", goals: [{ type: "CookWater", name: "C", minutes: 10 }] }],
+  ["goal not an object", r([1])],
+  ["goal without type", r([{}])],
+  ["unknown goal type", r([{ type: "Boil" }])],
+  ["HeatUp without temperature", r([{ type: "HeatUp" }])],
+  ["temperature too high", r([{ type: "HeatUp", temperature: 110.5 }])],
+  ["temperature negative", r([{ type: "HeatUp", temperature: -1 }])],
+  ["temperature a string", r([{ type: "HeatUp", temperature: "62" }])],
+  ["minutes fractional", r([{ type: "Rest", temperature: 62, minutes: 1.5 }])],
+  ["minutes negative", r([{ type: "Rest", temperature: 62, minutes: -1 }])],
+  ["Rest with name only", r([{ type: "Rest", temperature: 62, minutes: 1, name: "R" }])],
+  ["Rest with description only", r([{ type: "Rest", temperature: 62, minutes: 1, description: "D" }])],
+  ["Rest with empty name", r([{ type: "Rest", temperature: 62, minutes: 1, name: "", description: "D" }])],
+  ["field not allowed for the type", r([{ type: "MashIn", temperature: 50 }])],
+  ["IodineTest with a name", r([{ type: "IodineTest", temperature: 68, minutes: 10, name: "I" }])],
+  ["CookWater without description", r([{ type: "CookWater", name: "C", minutes: 10 }])],
 ];
 
 describe("validateRecipe", () => {
@@ -66,8 +75,8 @@ describe("validateRecipe", () => {
     expectSameVerdict(recipe);
   });
 
-  it("accepts every sample recipe", () => {
-    expect(SAMPLES.length).toBe(8);
+  it("accepts the app's shipped recipes, and only those are the samples", () => {
+    expect(SAMPLES.map((s) => s.id)).toEqual(["BENIWEISS", "WaterBoil"]);
     for (const sample of SAMPLES) {
       expect(expectSameVerdict(sample.recipe), sample.id).toEqual([]);
     }
@@ -79,15 +88,21 @@ describe("validateRecipe", () => {
   });
 
   it("points at the goal field", () => {
-    expect(validateRecipe({ name: "x", goals: [{ type: "HeatUp" }, { type: "HeatUp", temperature: 200 }] })).toEqual([
-      { path: "goals[0].temperature", message: "A HeatUp goal needs a temperature." },
-      { path: "goals[1].temperature", message: "Temperature must be between 0 and 110 °C." },
+    expect(validateRecipe(r([{ type: "HeatUp" }, { type: "HeatUp", temperature: 200 }]))).toEqual([
+      { path: "mashing_process.goals[0].temperature", message: "A HeatUp goal needs a temperature." },
+      { path: "mashing_process.goals[1].temperature", message: "Temperature must be between 0 and 110 °C." },
     ]);
+  });
+
+  it("explains the old format", () => {
+    expect(validateRecipe({ name: "x", goals: [] }).map((p) => p.message)).toContain(
+      'Old recipe format: the goals belong into "mashing_process".',
+    );
   });
 });
 
 describe("validateId", () => {
-  it.each(["HIPA", "WaterBoil", "my-recipe_2"])("accepts %s", (id) => {
+  it.each(["BENIWEISS", "WaterBoil", "my-recipe_2"])("accepts %s", (id) => {
     expect(validateId(id)).toEqual([]);
   });
   it.each(["", "with space", "umlaut-ä", "dot.json", "../x"])("rejects %j", (id) => {

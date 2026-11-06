@@ -119,7 +119,7 @@ async function setup() {
   return { drive, auth, store };
 }
 
-const recipe = { name: "R", goals: [{ type: "MashIn" }] };
+const recipe = { version: 1, name: "R", mashing_process: { goals: [{ type: "MashIn" }] } };
 
 describe("DriveStore", () => {
   it("creates BrewberryPi/recipes once and finds it again", async () => {
@@ -138,10 +138,10 @@ describe("DriveStore", () => {
 
   it("saves, lists and reads recipe files", async () => {
     const { drive, store } = await setup();
-    const created = await store.create("HIPA", recipe);
-    expect(created.id).toBe("HIPA");
+    const created = await store.create("Weizen", recipe);
+    expect(created.id).toBe("Weizen");
     drive.add({ name: "notes.txt", parents: [store.recipesFolderId] });
-    expect((await store.list()).map((f) => f.id)).toEqual(["HIPA"]);
+    expect((await store.list()).map((f) => f.id)).toEqual(["Weizen"]);
     const { file, text } = await store.read(created.fileId);
     expect(file.version).toBe("1");
     expect(JSON.parse(text)).toEqual(recipe);

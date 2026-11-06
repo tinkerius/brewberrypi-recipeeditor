@@ -3,10 +3,13 @@
 Web editor for BrewberryPi brewing recipes: **https://recipes.brewberrypi.org**
 
 BrewberryPi is a Raspberry Pi controller for a home-brewing mash kettle. It brews from recipes: JSON files, one per
-recipe, in its recipe folder. This editor creates and edits those files in the browser. It is a static site on GitHub
+recipe, in its recipe folder (`{"version": 1, "name": …, "mashing_process": {"goals": […]}}`). The editor writes the
+app's current format version. Files in the old format (goals at the top level) are converted when opened; files of a
+newer format version are refused. This editor creates and edits those files in the browser. It is a static site on GitHub
 Pages, with no backend.
 
-- **Signed out:** create new recipes (they start empty), start from one of the sample recipes, or upload recipe files.
+- **Signed out:** create new recipes (they start empty), start from one of the app's shipped recipes (`BENIWEISS`,
+  `WaterBoil`), or upload recipe files.
   You download each recipe as a file. Drafts are kept in the browser's storage (IndexedDB) until then. That storage is
   not safe: it is lost when browser data is cleared, in a private window, or in Safari after 7 days without a visit.
   The page says so in a banner.
@@ -36,7 +39,7 @@ within seconds.
 | `src/store/BrowserStore.ts` | Signed-out drafts in IndexedDB (memory if the browser refuses) |
 | `src/store/DriveStore.ts`, `src/auth/google.ts`, `src/drive/picker.ts` | Google Drive (v3 REST), sign-in (Google Identity Services token model), Google Picker |
 | `src/ui/` | Components |
-| `src/data/` | **Copies** of the recipe schema and the 8 sample recipes from brewberrypi-app |
+| `src/data/` | **Copies** of the recipe schema and the app's shipped recipes (the samples) from brewberrypi-app |
 | `public/` | `CNAME`, privacy and terms pages, and **copies** of the brand logo, favicons and font from brewberrypi |
 | `upstream.json` | The commits of brewberrypi-app and brewberrypi the copies come from |
 | `scripts/sync-upstream.sh` | Copies those files again; `--check` (CI) fails if they differ |
@@ -91,7 +94,9 @@ scripts/sync-upstream.sh ../brewberrypi-app ../brewberrypi
 ```
 
 The script copies the files and records the commits in `upstream.json`. A new goal type also needs `src/model.ts` and
-`src/validate.ts`; the tests compare the goal types with the schema.
+`src/validate.ts`; the tests compare the goal types with the schema. A new recipe file format version (app spec
+`RCP-011`) needs `FORMAT_VERSION`, `readRecipe` (convert older versions like the app's migrators), `serializeRecipe`
+and the validator.
 
 ## Publishing
 

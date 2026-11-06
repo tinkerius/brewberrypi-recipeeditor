@@ -61,7 +61,7 @@ describe("App, signed out", () => {
 
   it("shows the drafts kept in the browser, marked when not downloaded", async () => {
     const store = new MemoryStore();
-    await store.put(newDoc("Kept", { name: "Kept recipe", goals: [{ type: "MashIn" }] }));
+    await store.put(newDoc("Kept", { version: 1, name: "Kept recipe", mashing_process: { goals: [{ type: "MashIn" }] } }));
     await show(store);
     expect(root.querySelector("[aria-label=Recipes]")?.textContent).toContain("Kept recipe");
     expect(root.querySelector("[aria-label=Recipes]")?.textContent).toContain("not downloaded");

@@ -3,15 +3,16 @@
  * under a strict Content-Security-Policy (no eval). tests/validate.test.ts compares the results with Ajv.
  */
 
-import { GOAL_TYPES, ID_PATTERN, isGoalType, type GoalField } from "./model";
+import { FORMAT_VERSION, GOAL_TYPES, ID_PATTERN, isGoalType, type GoalField } from "./model";
 
 export interface Problem {
-  /** Where: "" for the whole recipe, "name", "goals", or "goals[2].minutes". */
+  /** Where: "" for the whole recipe, "name", "mashing_process.goals", or "mashing_process.goals[2].minutes". */
   path: string;
   message: string;
 }
 
-const TOP_LEVEL = new Set(["$schema", "name", "goals"]);
+const TOP_LEVEL = new Set(["$schema", "version", "name", "mashing_process"]);
+export const GOALS_PATH = "mashing_process.goals";
 
 /** Which goal fields are allowed and required, per goal type (the schema's allOf branches). */
 const GOAL_FIELDS: Record<string, { required: GoalField[]; allowed: GoalField[] }> = {
@@ -55,7 +56,7 @@ function checkField(field: GoalField, value: unknown, path: string, problems: Pr
 }
 
 function checkGoal(goal: unknown, index: number, problems: Problem[]) {
-  const at = `goals[${index}]`;
+  const at = `${GOALS_PATH}[${index}]`;
   if (!isObject(goal)) {
     problems.push({ path: at, message: "A goal must be an object." });
     return;
@@ -96,23 +97,38 @@ export function validateRecipe(recipe: unknown): Problem[] {
     return [{ path: "", message: "A recipe must be a JSON object." }];
   }
   for (const key of Object.keys(recipe)) {
-    if (!TOP_LEVEL.has(key)) {
+    if (key === "goals") {
+      problems.push({ path: key, message: 'Old recipe format: the goals belong into "mashing_process".' });
+    } else if (!TOP_LEVEL.has(key)) {
       problems.push({ path: key, message: `A recipe has no field "${key}".` });
     }
   }
   if ("$schema" in recipe && typeof recipe.$schema !== "string") {
     problems.push({ path: "$schema", message: "$schema must be a string." });
   }
+  if ("version" in recipe && recipe.version !== FORMAT_VERSION) {
+    problems.push({ path: "version", message: `The recipe file format version must be ${FORMAT_VERSION}.` });
+  }
   if (typeof recipe.name !== "string" || recipe.name.length === 0) {
     problems.push({ path: "name", message: "The recipe needs a name." });
   }
-  if (!Array.isArray(recipe.goals)) {
-    problems.push({ path: "goals", message: "The recipe needs a list of goals." });
-  } else {
-    if (recipe.goals.length === 0) {
-      problems.push({ path: "goals", message: "The recipe needs at least one goal." });
+  const process = recipe.mashing_process;
+  if (!isObject(process)) {
+    problems.push({ path: "mashing_process", message: "The recipe needs a mashing process with goals." });
+    return problems;
+  }
+  for (const key of Object.keys(process)) {
+    if (key !== "goals") {
+      problems.push({ path: `mashing_process.${key}`, message: `The mashing process has no field "${key}".` });
     }
-    recipe.goals.forEach((goal, i) => checkGoal(goal, i, problems));
+  }
+  if (!Array.isArray(process.goals)) {
+    problems.push({ path: GOALS_PATH, message: "The recipe needs a list of goals." });
+  } else {
+    if (process.goals.length === 0) {
+      problems.push({ path: GOALS_PATH, message: "The recipe needs at least one goal." });
+    }
+    process.goals.forEach((goal, i) => checkGoal(goal, i, problems));
   }
   return problems;
 }

@@ -1,4 +1,10 @@
-/** Recipe and goal types: the recipe file format of brewberrypi-app (data/recipe.schema.json, spec 04 and 07). */
+/**
+ * Recipe and goal types: the recipe file format of brewberrypi-app (data/recipe.schema.json, spec 04 and 07 §7.2):
+ * { "version": 1, "name": …, "mashing_process": { "goals": […] } }, one recipe per file, the file name is the id.
+ */
+
+/** The recipe file format version this editor reads and writes (RCP-008: the app's latest version). */
+export const FORMAT_VERSION = 1;
 
 export const GOAL_TYPES = [
   "PourInBrewingWater",
@@ -18,10 +24,24 @@ export type GoalField = "temperature" | "minutes" | "name" | "description";
 /** A goal as it is edited: known fields, plus whatever an uploaded file contained (reported by the validator). */
 export type Goal = { type: string } & Partial<Record<GoalField, unknown>> & Record<string, unknown>;
 
-export interface Recipe {
-  name: string;
+export interface MashingProcess {
   goals: Goal[];
   [key: string]: unknown;
+}
+
+export interface Recipe {
+  version?: unknown;
+  name: string;
+  mashing_process: MashingProcess;
+  [key: string]: unknown;
+}
+
+export function goalsOf(recipe: Recipe): Goal[] {
+  return recipe.mashing_process.goals;
+}
+
+export function withGoals(recipe: Recipe, goals: Goal[]): Recipe {
+  return { ...recipe, mashing_process: { ...recipe.mashing_process, goals } };
 }
 
 export interface GoalInfo {
@@ -118,57 +138,116 @@ export function changeGoalType(goal: Goal, type: GoalType): Goal {
 
 /** A new, empty recipe: the brewer fills in name and goals. */
 export function emptyRecipe(): Recipe {
-  return { name: "", goals: [] };
+  return { version: FORMAT_VERSION, name: "", mashing_process: { goals: [] } };
 }
 
 export const ID_PATTERN = /^[A-Za-z0-9_-]+$/;
 
-/** Turns an uploaded file name into a recipe id: "HIPA.json" -> "HIPA". */
+/** Turns an uploaded file name into a recipe id: "Weizen.json" -> "Weizen". */
 export function idFromFileName(fileName: string): string {
   return fileName.replace(/\.json$/i, "");
 }
 
-/** The recipe without "$schema", which the editor does not keep (the app ignores it). */
-export function withoutSchemaRef(recipe: Recipe): Recipe {
-  const { $schema: _ignored, ...rest } = recipe;
-  return rest as Recipe;
+function isObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function toGoal(value: unknown): Goal {
+  return isObject(value) ? ({ ...value, type: String(value.type ?? "") } as Goal) : ({ type: "" } as Goal);
+}
+
+export interface ReadRecipe {
+  /** The editable recipe; undefined when the file can't be edited here (newer format version). */
+  recipe?: Recipe;
+  /** What the editor changed to bring the file into the current format; saving or downloading writes it so. */
+  converted?: string;
+  /** Why the file can't be edited. */
+  error?: string;
 }
 
 /**
- * Makes an editable recipe from parsed JSON. Keeps everything the file had, so the validator can point at what is
- * wrong; only the shape the editor needs (a name string, a goals array of objects) is enforced.
+ * Makes an editable recipe of parsed JSON, in the current format version. Keeps everything else the file had, so the
+ * validator can point at what is wrong; only the shape the editor needs is enforced. Files in the old format (goals
+ * at the top level, before brewberrypi-app Q-31) are converted; files of a newer format version are refused, so
+ * nothing the editor doesn't know is lost.
  */
-export function toRecipe(json: unknown): Recipe {
-  const source = typeof json === "object" && json !== null && !Array.isArray(json) ? (json as Record<string, unknown>) : {};
-  const recipe: Recipe = { ...source, name: typeof source.name === "string" ? source.name : "", goals: [] };
-  if (Array.isArray(source.goals)) {
-    recipe.goals = source.goals.map((g) =>
-      typeof g === "object" && g !== null && !Array.isArray(g)
-        ? ({ ...(g as Record<string, unknown>), type: String((g as Record<string, unknown>).type ?? "") } as Goal)
-        : ({ type: "" } as Goal),
-    );
+export function readRecipe(json: unknown): ReadRecipe {
+  const source = isObject(json) ? json : {};
+  const changes: string[] = [];
+  const { $schema: _schema, version, goals: flatGoals, mashing_process: mashing, ...rest } = source;
+  if (typeof version === "number" && Number.isInteger(version) && version > FORMAT_VERSION) {
+    return {
+      error:
+        `This recipe file is in format version ${version}; this editor knows version ${FORMAT_VERSION}. ` +
+        "It was written for a newer BrewberryPi app. Reload the editor to get the latest version.",
+    };
   }
-  return withoutSchemaRef(recipe);
+  if (version !== undefined && version !== FORMAT_VERSION) {
+    changes.push(`its format version ${JSON.stringify(version)} is not valid; it is written as version ${FORMAT_VERSION}`);
+  }
+  let process: MashingProcess;
+  if (isObject(mashing)) {
+    process = { ...mashing, goals: Array.isArray(mashing.goals) ? mashing.goals.map(toGoal) : [] };
+    if (flatGoals !== undefined) {
+      rest.goals = flatGoals;
+    }
+  } else if (Array.isArray(flatGoals)) {
+    process = { goals: flatGoals.map(toGoal) };
+    changes.push('it was in the old format; its goals are moved into "mashing_process"');
+  } else {
+    process = { goals: [] };
+    if (flatGoals !== undefined) {
+      rest.goals = flatGoals;
+    }
+  }
+  const recipe: Recipe = {
+    version: FORMAT_VERSION,
+    ...rest,
+    name: typeof source.name === "string" ? source.name : "",
+    mashing_process: process,
+  };
+  return { recipe, converted: changes.length > 0 ? `Converted: ${changes.join("; ")}.` : undefined };
 }
 
-/** The file content, formatted like the sample recipes: one line per goal. */
+/** readRecipe for recipes known to be in the current format (samples, tests). */
+export function toRecipe(json: unknown): Recipe {
+  return readRecipe(json).recipe ?? emptyRecipe();
+}
+
+const indentGoal = (goal: Goal) =>
+  `{ ${Object.entries(goal)
+    .filter(([, v]) => v !== undefined)
+    .map(([k, v]) => `${JSON.stringify(k)}: ${JSON.stringify(v)}`)
+    .join(", ")} }`;
+
+/**
+ * The file content, formatted like the app's shipped recipes: "version" first (RCP-008), one line per goal. The
+ * editor does not write "$schema" (optional, ignored by the app).
+ */
 export function serializeRecipe(recipe: Recipe): string {
-  const { name, goals, ...rest } = withoutSchemaRef(recipe);
-  const lines = [`  "name": ${JSON.stringify(name)},`];
-  for (const [key, value] of Object.entries(rest)) {
-    lines.push(`  ${JSON.stringify(key)}: ${JSON.stringify(value)},`);
+  const { $schema: _schema, version, name, mashing_process: process, ...rest } = recipe;
+  const { goals, ...processRest } = process;
+  const lines: string[] = [];
+  if (version !== undefined) {
+    lines.push(`  "version": ${JSON.stringify(version)},`);
   }
+  lines.push(`  "name": ${JSON.stringify(name)},`);
+  const processLines: string[] = [];
   if (goals.length === 0) {
-    lines.push(`  "goals": []`);
+    processLines.push(`    "goals": []`);
   } else {
-    lines.push(`  "goals": [`);
-    goals.forEach((goal, i) => {
-      const fields = Object.entries(goal)
-        .filter(([, v]) => v !== undefined)
-        .map(([k, v]) => `${JSON.stringify(k)}: ${JSON.stringify(v)}`);
-      lines.push(`    { ${fields.join(", ")} }${i < goals.length - 1 ? "," : ""}`);
-    });
-    lines.push(`  ]`);
+    processLines.push(`    "goals": [`);
+    goals.forEach((goal, i) => processLines.push(`      ${indentGoal(goal)}${i < goals.length - 1 ? "," : ""}`));
+    processLines.push(`    ]`);
+  }
+  for (const [key, value] of Object.entries(processRest)) {
+    processLines[processLines.length - 1] += ",";
+    processLines.push(`    ${JSON.stringify(key)}: ${JSON.stringify(value)}`);
+  }
+  lines.push(`  "mashing_process": {`, ...processLines, `  }`);
+  for (const [key, value] of Object.entries(rest)) {
+    lines[lines.length - 1] += ",";
+    lines.push(`  ${JSON.stringify(key)}: ${JSON.stringify(value)}`);
   }
   return `{\n${lines.join("\n")}\n}\n`;
 }

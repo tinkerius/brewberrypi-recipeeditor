@@ -1,11 +1,13 @@
 /** Recipe files on the user's computer: upload (file input, drag and drop) and download. */
 
-import { idFromFileName, serializeRecipe, toRecipe, type Recipe } from "./model";
+import { idFromFileName, readRecipe, serializeRecipe, type Recipe } from "./model";
 
 export interface UploadedFile {
   fileName: string;
   id: string;
   recipe?: Recipe;
+  /** What was converted to the current format (old format). */
+  converted?: string;
   /** Why the file could not be read; the recipe is then undefined. */
   error?: string;
 }
@@ -21,11 +23,13 @@ export async function readRecipeFile(file: File): Promise<UploadedFile> {
   } catch {
     return { fileName: file.name, id, error: "The file could not be read." };
   }
+  let json: unknown;
   try {
-    return { fileName: file.name, id, recipe: toRecipe(JSON.parse(text)) };
+    json = JSON.parse(text);
   } catch (e) {
     return { fileName: file.name, id, error: `Not a JSON file: ${(e as Error).message}` };
   }
+  return { fileName: file.name, id, ...readRecipe(json) };
 }
 
 /** Saves "<id>.json" to the user's downloads. */

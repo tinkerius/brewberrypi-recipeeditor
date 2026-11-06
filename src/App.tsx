@@ -9,7 +9,7 @@ import { googleConfigured, pickerConfigured } from "./config";
 import { fingerprint, freeId, hasPendingChanges, newDoc, problemsOf, type Doc } from "./doc";
 import { pickRecipeFiles } from "./drive/picker";
 import { downloadRecipe, readRecipeFile } from "./file";
-import { emptyRecipe, toRecipe, type Recipe } from "./model";
+import { emptyRecipe, readRecipe, type Recipe } from "./model";
 import { SAMPLES } from "./samples";
 import { openDraftStore, type DraftStore } from "./store/BrowserStore";
 import { DriveStore, NameTakenError, VersionConflictError, type DriveFile } from "./store/DriveStore";
@@ -177,7 +177,7 @@ export function App(props: { openDrafts?: () => Promise<DraftStore>; auth?: Goog
         problems.push(`${read.fileName}: ${read.error}`);
         continue;
       }
-      const doc = newDoc(freeId(read.id, takenIds()), read.recipe);
+      const doc: Doc = { ...newDoc(freeId(read.id, takenIds()), read.recipe), notice: read.converted };
       if (doc.id !== read.id) {
         problems.push(`${read.fileName}: a recipe with this file name is already open; added as ${doc.id}.json.`);
       }
@@ -197,7 +197,7 @@ export function App(props: { openDrafts?: () => Promise<DraftStore>; auth?: Goog
   const download = (doc: Doc) => {
     downloadRecipe(doc.id, doc.recipe);
     if (placeRef.current.kind === "browser") {
-      putDoc({ ...doc, baseline: fingerprint(doc) });
+      putDoc({ ...doc, notice: undefined, baseline: fingerprint(doc) });
     }
   };
 
@@ -264,13 +264,18 @@ export function App(props: { openDrafts?: () => Promise<DraftStore>; auth?: Goog
       const { file, text } = await current.store.read(key);
       let recipe = emptyRecipe();
       let loadError: string | undefined;
+      let notice: string | undefined;
       try {
-        recipe = toRecipe(JSON.parse(text));
+        const read = readRecipe(JSON.parse(text));
+        recipe = read.recipe ?? recipe;
+        loadError = read.error;
+        notice = read.converted;
       } catch (e) {
         loadError = `${file.id}.json is not a JSON file (${message(e)}). Fix it in Drive, or replace it by saving this recipe.`;
       }
-      const doc: Doc = { key, id: file.id, recipe, loaded: true, loadError, fileId: file.fileId, version: file.version, updatedAt: Date.now() };
-      putDoc({ ...doc, baseline: fingerprint(doc) });
+      const doc: Doc = { key, id: file.id, recipe, loaded: true, loadError, notice, fileId: file.fileId, version: file.version, updatedAt: Date.now() };
+      // A converted file counts as changed, so saving writes it in the current format.
+      putDoc({ ...doc, baseline: notice ? undefined : fingerprint(doc) });
     });
   };
 
@@ -329,6 +334,10 @@ export function App(props: { openDrafts?: () => Promise<DraftStore>; auth?: Goog
     const leave = () =>
       void run("Signing out…", async () => {
         auth.current.signOut();
+        // Drop the Drive recipes before the page shows browser drafts again.
+        setDocs([]);
+        selectedRef.current = undefined;
+        setSelectedKey(undefined);
         placeRef.current = { kind: "browser" };
         setPlace(placeRef.current);
         const kept = sortDocs((await drafts?.all()) ?? []);
@@ -365,7 +374,7 @@ export function App(props: { openDrafts?: () => Promise<DraftStore>; auth?: Goog
         } else {
           file = await current.store.create(doc.id, doc.recipe);
         }
-        const saved: Doc = { ...doc, key: file.fileId, id, fileId: file.fileId, version: file.version, loadError: undefined, updatedAt: Date.now() };
+        const saved: Doc = { ...doc, key: file.fileId, id, fileId: file.fileId, version: file.version, loadError: undefined, notice: undefined, updatedAt: Date.now() };
         saved.baseline = fingerprint(saved);
         if (mode === "copy") {
           // Saved as a copy after a conflict: the original shows Drive's version again.

@@ -8,8 +8,9 @@ layout and commands; `docs/google-setup.md` the one-time setup.
 ## Related repositories
 
 - `tinkerius/brewberrypi-app`: the application. Its specification is the source of truth for the recipe format:
-  `docs/specification/07-recipes.md` (file name = recipe id `[A-Za-z0-9_-]+`, one recipe per file),
-  `04-goal-types.md`, and `data/recipe.schema.json`.
+  `docs/specification/07-recipes.md` (file name = recipe id `[A-Za-z0-9_-]+`, one recipe per file; format
+  `{"version": 1, "name", "mashing_process": {"goals"}}`, version and migration `RCP-007..011`),
+  `04-goal-types.md`, and `data/recipe.schema.json`. The samples are exactly the app's shipped recipes (`RCP-002`).
 - `tinkerius/brewberrypi`: the website brewberrypi.org and the brand (`brand/README.md`: colours, logo, font).
 - `tinkerius/brewberrypi-os`: the OS image; recipes reach the device through its file share
   (`\\<hostname>.local\config\app\recipes`).
@@ -30,6 +31,11 @@ layout and commands; `docs/google-setup.md` the one-time setup.
   agree with the schema (`tests/validate.test.ts` checks this against Ajv). Never save or download an invalid recipe.
 - `src/data/` and the brand files in `public/` are copies: change them upstream and run the sync script, never by hand.
 - Recipe texts are data: keep the samples' legacy spellings (app question `Q-07`).
+- Only the app's shipped recipes are samples. Never add other recipes (e.g. the product owner's personal ones,
+  app `Q-32`) to this repository, not even in tests.
+- The editor writes the app's latest recipe format version (`FORMAT_VERSION` in `src/model.ts`), converts older
+  files when it reads them (and says so), and refuses newer versions instead of dropping what it doesn't know. When
+  the app raises the version (`RCP-011`), follow it in the same way.
 - Privacy: no backend, no analytics, no third-party storage. The Google access token stays in memory; the only
   localStorage entry is the sign-in hint (e-mail). Update `public/privacy.html` when what the editor stores or sends
   changes.

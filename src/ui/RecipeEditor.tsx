@@ -3,14 +3,21 @@
 import type { ComponentChildren } from "preact";
 import { useState } from "preact/hooks";
 import { problemsOf, type Doc } from "../doc";
-import { GOAL_INFO, GOAL_TYPES, newGoal, type Goal, type GoalType, type Recipe } from "../model";
+import { GOAL_INFO, GOAL_TYPES, goalsOf, newGoal, withGoals, type Goal, type GoalType, type Recipe } from "../model";
+import { GOALS_PATH } from "../validate";
 import { GoalEditor } from "./GoalEditor";
 import { BUTTON_STYLES, CARD_STYLE, HINT_STYLE, INPUT_STYLE, INVALID_INPUT, LABEL_STYLE, SELECT_STYLE, TITLE_STYLE } from "./styles";
 
-const PATH_LABELS: Record<string, string> = { id: "File name", name: "Recipe name", goals: "Goals" };
+const PATH_LABELS: Record<string, string> = {
+  id: "File name",
+  name: "Recipe name",
+  version: "Format version",
+  mashing_process: "Mashing process",
+  [GOALS_PATH]: "Goals",
+};
 
 function describePath(path: string): string {
-  const goal = /^goals\[(\d+)\](?:\.(\w+))?$/.exec(path);
+  const goal = /^mashing_process\.goals\[(\d+)\](?:\.(\w+))?$/.exec(path);
   if (goal) {
     return `Goal ${Number(goal[1]) + 1}`;
   }
@@ -52,8 +59,8 @@ export function RecipeEditor(props: { doc: Doc; onChange: (id: string, recipe: R
   const problems = problemsOf(doc);
   const [addType, setAddType] = useState<GoalType>("HeatUp");
   const setRecipe = (recipe: Recipe) => props.onChange(doc.id, recipe);
-  const setGoals = (goals: Goal[]) => setRecipe({ ...doc.recipe, goals });
-  const goals = doc.recipe.goals;
+  const setGoals = (goals: Goal[]) => setRecipe(withGoals(doc.recipe, goals));
+  const goals = goalsOf(doc.recipe);
   const has = (path: string) => problems.some((p) => p.path === path);
 
   return (
@@ -71,7 +78,7 @@ export function RecipeEditor(props: { doc: Doc; onChange: (id: string, recipe: R
               type="text"
               class={`${INPUT_STYLE} ${has("id") ? INVALID_INPUT : ""}`}
               value={doc.id}
-              placeholder="e.g. HIPA"
+              placeholder="e.g. Weizen"
               spellcheck={false}
               autocomplete="off"
               onInput={(e) => props.onChange(e.currentTarget.value, doc.recipe)}
@@ -86,14 +93,14 @@ export function RecipeEditor(props: { doc: Doc; onChange: (id: string, recipe: R
             type="text"
             class={`${INPUT_STYLE} mt-1 ${has("name") ? INVALID_INPUT : ""}`}
             value={doc.recipe.name}
-            placeholder="e.g. München 12.6 - SUD4:HIPA"
+            placeholder="e.g. Hefeweizen 12.5 °P"
             onInput={(e) => setRecipe({ ...doc.recipe, name: e.currentTarget.value })}
           />
           <span class={`${HINT_STYLE} mt-1 block`}>Shown in the app's process list.</span>
         </label>
       </div>
 
-      <h3 class="mt-6 text-sm font-semibold text-ink dark:text-ink-light">Goals, in brewing order</h3>
+      <h3 class="mt-6 text-sm font-semibold text-ink dark:text-ink-light">Mashing process: goals in brewing order</h3>
       {goals.length === 0 ? (
         <p class={`${HINT_STYLE} mt-2`}>No goals yet. A recipe needs at least one; add them below.</p>
       ) : (
@@ -129,7 +136,12 @@ export function RecipeEditor(props: { doc: Doc; onChange: (id: string, recipe: R
         </button>
       </div>
 
-      <div class="mt-6">
+      <div class="mt-6 space-y-2">
+        {doc.notice && (
+          <p class="rounded-lg bg-stone-100 p-3 text-sm text-stone-700 dark:bg-white/5 dark:text-stone-300" role="note">
+            {doc.notice} Download or save it to write the file in the current format.
+          </p>
+        )}
         <ProblemList doc={doc} />
       </div>
       <div class="mt-4 flex flex-wrap gap-2">{props.actions}</div>

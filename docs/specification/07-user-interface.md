@@ -26,7 +26,7 @@ The look follows the BrewberryPi brand and the app's web UI (brand colours, Zill
 
 - `GUI-020` Title **My Recipes** (signed in and out, `QE-17`); the recipes; **below** them the buttons **New recipe**
   and **Upload recipe**, the hint that recipe files can be dropped onto the page, signed in the link
-  **Add untracked file from cloud storage** (`GUI-023`), signed out **Delete all recipes in this browser**.
+  **Add untracked file from cloud storage** (`GUI-023`).
 - `GUI-021` Each recipe shows its name (or file name, or "Untitled recipe"), `<id>.json`, and the markers
   **incomplete** and **not downloaded** / **unsaved**.
 - `GUI-022` Each recipe has a **menu** (`EDT-006`..`EDT-009`): Rename…, Duplicate…, Download, Delete…. It opens with

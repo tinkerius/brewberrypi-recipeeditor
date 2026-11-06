@@ -375,21 +375,6 @@ export function App(props: { openDrafts?: () => Promise<DraftStore>; auth?: Goog
     });
   };
 
-  const clearDrafts = () =>
-    setConfirmation({
-      title: "Delete all recipes in this browser",
-      message: `Delete all ${docs.length} recipes stored in this browser? Downloaded files are not affected.`,
-      confirmLabel: "Delete all",
-      onConfirm: () =>
-        void run("Deleting…", async () => {
-          saveTimers.current.forEach((t) => clearTimeout(t));
-          saveTimers.current.clear();
-          await drafts?.clear();
-          setDocs([]);
-          setSelectedKey(undefined);
-        }),
-    });
-
   // ---- Google Drive ----
 
   /** Reads a Drive recipe's content; quiet: in the background, without the busy note (sync). */
@@ -866,11 +851,6 @@ export function App(props: { openDrafts?: () => Promise<DraftStore>; auth?: Goog
               onClick={addFromDrive}
             >
               Add untracked file from cloud storage
-            </button>
-          )}
-          {!inDrive && docs.length > 0 && (
-            <button type="button" class={`${BUTTON_STYLES.danger} mt-4 w-full`} disabled={isBusy} onClick={clearDrafts}>
-              Delete all recipes in this browser
             </button>
           )}
         </aside>

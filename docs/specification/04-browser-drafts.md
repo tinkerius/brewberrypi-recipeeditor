@@ -15,8 +15,8 @@
 - `BRW-004` A draft changed since its last download (or never downloaded) is marked **not downloaded** in the list
   and the editor ("Not downloaded yet" / "Changed since download"); after a download, "Downloaded".
 - `BRW-005` Leaving the page asks first while a draft has pending changes and the storage is memory only or failed.
-- `BRW-006` **Delete all recipes in this browser** deletes every draft after asking; downloaded files are not
-  affected.
+- `BRW-006` *(removed 2026-11-06, `QE-19`: no "delete all"; single recipes are deleted from their menu,
+  `EDT-008`.)*
 - `BRW-007` If storing a draft fails, the editor says so and asks to download the recipe.
 - `BRW-008` Drafts stay in the browser while signed in (not shown) and are shown again after sign-out, except those
   saved to Drive (`DRV-012`).

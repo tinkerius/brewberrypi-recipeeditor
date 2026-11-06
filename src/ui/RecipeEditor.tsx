@@ -6,8 +6,9 @@ import { problemsOf, type Doc } from "../doc";
 import { GOAL_INFO, GOAL_TYPES, goalsOf, newGoal, withGoals, type Goal, type GoalType, type Recipe } from "../model";
 import { GOALS_PATH } from "../validate";
 import { GoalEditor } from "./GoalEditor";
+import { RecipeTitle } from "./RecipeTitle";
 import { dropSlot, moveItem, targetIndex } from "./reorder";
-import { BUTTON_STYLES, CARD_STYLE, HINT_STYLE, INPUT_STYLE, INVALID_INPUT, LABEL_STYLE, SELECT_STYLE, TITLE_STYLE } from "./styles";
+import { BUTTON_STYLES, CARD_STYLE, HINT_STYLE, SELECT_STYLE } from "./styles";
 
 const PATH_LABELS: Record<string, string> = {
   id: "File name",
@@ -128,28 +129,20 @@ export function RecipeEditor(props: { doc: Doc; onChange: (recipe: Recipe) => vo
   return (
     <section class={CARD_STYLE} aria-label="Recipe">
       <div class="flex flex-wrap items-start justify-between gap-3">
-        <div class="min-w-0">
-          <h2 class={TITLE_STYLE}>{doc.recipe.name.trim() || "Untitled recipe"}</h2>
-          <p class={`${HINT_STYLE} mt-0.5 truncate`} title="Rename it in the recipe's menu in the list">
+        <div class="min-w-0 flex-1">
+          <RecipeTitle
+            docKey={doc.key}
+            name={doc.recipe.name}
+            invalid={has("name")}
+            onChange={(name) => setRecipe({ ...doc.recipe, name })}
+          />
+          <p class={`${HINT_STYLE} mt-0.5 truncate`} title="Rename the file in the recipe's menu in the list">
             {doc.id}.json
           </p>
         </div>
         {props.status}
       </div>
 
-      <div class="mt-4">
-        <label class="block">
-          <span class={LABEL_STYLE}>Recipe name</span>
-          <input
-            type="text"
-            class={`${INPUT_STYLE} mt-1 ${has("name") ? INVALID_INPUT : ""}`}
-            value={doc.recipe.name}
-            placeholder="e.g. Hefeweizen 12.5 °P"
-            onInput={(e) => setRecipe({ ...doc.recipe, name: e.currentTarget.value })}
-          />
-          <span class={`${HINT_STYLE} mt-1 block`}>Shown in the app's process list.</span>
-        </label>
-      </div>
 
       <h3 class="mt-6 text-sm font-semibold text-ink dark:text-ink-light">Mashing process: goals in brewing order</h3>
       {goals.length === 0 ? (

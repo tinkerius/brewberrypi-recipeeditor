@@ -38,5 +38,6 @@ export default defineConfig({
   // The Google OAuth client allows the origin http://localhost:5173 for development.
   server: { host: "localhost", port: 5173, strictPort: true },
   preview: { host: "localhost", port: 5173, strictPort: true },
-  test: { environment: "node" },
+  // Only this repository's tests (CI checks out the upstream repositories in .upstream/).
+  test: { environment: "node", include: ["tests/**/*.test.{ts,tsx}"] },
 });

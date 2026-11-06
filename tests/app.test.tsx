@@ -5,6 +5,9 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { App } from "../src/App";
 import { newDoc } from "../src/doc";
 import { MemoryStore, type DraftStore } from "../src/store/BrowserStore";
+import { GoogleAuth, TOKEN_KEY } from "../src/auth/google";
+import { DriveStore } from "../src/store/DriveStore";
+import { FakeAuth, FakeDrive } from "./fakeDrive";
 import { BROWSER_STORAGE_WARNING, MEMORY_STORAGE_WARNING } from "../src/ui/Banners";
 
 let root: HTMLElement;
@@ -402,5 +405,96 @@ describe("App, no technical goal type names (QE-24)", () => {
     await act(async () => button("+ Add goal").click());
     expect(root.querySelector("[role=dialog]")?.textContent).toContain("Heat Up (hops cooking)");
     expect(root.textContent).not.toMatch(TECHNICAL);
+  });
+});
+
+describe("App, signed in: Discard changes (QE-25)", () => {
+  const recipe = { version: 2, name: "Kept recipe", mashing_process: { goals: [{ type: "MashIn" }] } };
+
+  /** A Google Drive holding Kept.json, and a browser that is still signed in (DRV-011). */
+  async function signedIn() {
+    const drive = new FakeDrive();
+    drive.validTokens = new Set(["t1", "tok"]);
+    const store = new DriveStore(new FakeAuth(), drive.fetch);
+    await store.init();
+    await store.create("Kept", recipe);
+    const storage = new Map([[TOKEN_KEY, JSON.stringify({ token: "tok", expiresAt: Date.now() + 3_600_000 })]]);
+    const auth = new GoogleAuth("test-client", {
+      getItem: (k: string) => storage.get(k) ?? null,
+      setItem: (k: string, v: string) => void storage.set(k, v),
+      removeItem: (k: string) => void storage.delete(k),
+    } as unknown as Storage);
+    const fetchBefore = globalThis.fetch;
+    globalThis.fetch = drive.fetch;
+    const drafts = new MemoryStore();
+    Object.defineProperty(drafts, "firstUse", { value: false });
+    await act(async () => {
+      render(<App openDrafts={async () => drafts} auth={auth} />, root);
+    });
+    for (let i = 0; i < 10 && !root.textContent?.includes("Saved in Google Drive"); i++) {
+      await act(async () => new Promise((r) => setTimeout(r, 0)));
+    }
+    return { drive, restore: () => (globalThis.fetch = fetchBefore) };
+  }
+
+  const discard = () => button("Discard changes");
+  const titleText = () => root.querySelector("[aria-label=Recipe] button[aria-label^='Edit recipe name']")?.textContent;
+
+  async function rename(name: string) {
+    await act(async () => root.querySelector<HTMLButtonElement>("[aria-label=Recipe] button[aria-label^='Edit recipe name']")!.click());
+    const input = root.querySelector<HTMLInputElement>("[aria-label=Recipe] input[aria-label='Recipe name']")!;
+    await act(async () => {
+      input.value = name;
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+      input.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+    });
+  }
+
+  async function inDialog(label: string) {
+    await act(async () => {
+      [...root.querySelectorAll<HTMLButtonElement>("[role=dialog] button")].find((b) => b.textContent === label)!.click();
+    });
+    for (let i = 0; i < 5; i++) {
+      await act(async () => new Promise((r) => setTimeout(r, 0)));
+    }
+  }
+
+  it("ACC-045 discards unsaved changes after asking, and shows the version saved in Google Drive", async () => {
+    const { drive, restore } = await signedIn();
+    try {
+      expect(root.textContent).toContain("Saved in Google Drive");
+      expect(discard().disabled).toBe(true);
+
+      await rename("Changed here");
+      expect(root.textContent).toContain("Unsaved changes");
+      expect(discard().disabled).toBe(false);
+
+      await act(async () => discard().click());
+      expect(root.querySelector("[role=dialog]")?.textContent).toContain("Discard your changes to Kept.json");
+      await inDialog("Cancel");
+      expect(titleText()).toContain("Changed here");
+
+      await act(async () => discard().click());
+      await inDialog("Discard changes");
+      expect(titleText()).toContain("Kept recipe");
+      expect(root.textContent).toContain("Saved in Google Drive");
+      const file = drive.files.find((f) => f.name === "Kept.json")!;
+      expect(JSON.parse(file.content).name).toBe("Kept recipe");
+      expect(file.version).toBe(1); // not written
+    } finally {
+      restore();
+    }
+  });
+
+  it("ACC-045 is disabled for a recipe not saved to Google Drive yet", async () => {
+    const { restore } = await signedIn();
+    try {
+      await act(async () => button("New recipe").click());
+      await nameAs("Fresh", "Create");
+      expect(root.textContent).toContain("Not saved to Google Drive yet");
+      expect(discard().disabled).toBe(true);
+    } finally {
+      restore();
+    }
   });
 });

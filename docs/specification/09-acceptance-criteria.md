@@ -55,6 +55,10 @@ a release that changes sign-in or Drive behaviour.
   it a Rest of 40 °C. There is no type dropdown in the goal list.
 - `ACC-044` (QE-24, EDT-011, EDT-017, FMT-004) No goal's type name of the file (`PourInBrewingWater`, `HeatUp`, …) is
   shown: not in the goal list, not in the type dialog, not in the problems ("A Heat Up goal needs a temperature.").
+- `ACC-045` (DRV-006, GUI-031, QE-25) A Drive recipe without changes: Discard changes is disabled. After changing
+  its name it is enabled; Discard changes and Cancel keep the change; Discard changes and confirming show the name
+  saved in Drive again and "Saved in Google Drive", and the file in Drive is unchanged. A recipe not saved yet:
+  disabled.
 - `ACC-017` (BRW-004, DRV-010) A recipe has pending changes until it is downloaded (draft) or saved (Drive), and again
   after a change.
 - `ACC-018` (EDT-016) On the first visit (new browser storage) the list holds the draft `BENIWEISS`; on a later visit

@@ -41,8 +41,8 @@ The look follows the BrewberryPi brand and the app's web UI (brand colours, Zill
   `<id>.json` (not editable here, `EDT-003`); the state (`BRW-004`,
   `DRV-010`) at the right. Then the goals (`EDT-011`..`EDT-015`) and the problems
   (`EDT-020`).
-- `GUI-031` Action below: signed in **Save to Google Drive** (`DRV-006`). Download and Delete are only in the recipe's
-  menu (`GUI-022`, `QE-22`).
+- `GUI-031` Actions below, signed in: **Save to Google Drive** and **Discard changes** (`DRV-006`). Download and
+  Delete are only in the recipe's menu (`GUI-022`, `QE-22`).
 
 ## 7.5 States
 

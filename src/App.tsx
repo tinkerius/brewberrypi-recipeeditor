@@ -655,6 +655,15 @@ export function App(props: { openDrafts?: () => Promise<DraftStore>; auth?: Goog
     });
   };
 
+  /** Throws away the unsaved changes of a recipe saved in Drive and shows the saved version again (DRV-006). */
+  const discardChanges = (doc: Doc) =>
+    setConfirmation({
+      title: "Discard changes",
+      message: `Discard your changes to ${doc.id}.json and show the version saved in Google Drive?`,
+      confirmLabel: "Discard changes",
+      onConfirm: () => void loadDoc(doc.key),
+    });
+
   const addFromDrive = () => {
     const current = placeRef.current;
     if (current.kind !== "drive") {
@@ -863,6 +872,7 @@ export function App(props: { openDrafts?: () => Promise<DraftStore>; auth?: Goog
               onChange={(recipe) => change(selected, recipe)}
               actions={
                 inDrive && (
+                  <>
                     <button
                       type="button"
                       class={BUTTON_STYLES.primary}
@@ -871,6 +881,15 @@ export function App(props: { openDrafts?: () => Promise<DraftStore>; auth?: Goog
                     >
                       Save to Google Drive
                     </button>
+                    <button
+                      type="button"
+                      class={BUTTON_STYLES.secondary}
+                      disabled={isBusy || !selected.fileId || !hasPendingChanges(selected)}
+                      onClick={() => discardChanges(selected)}
+                    >
+                      Discard changes
+                    </button>
+                  </>
                 )
               }
             />

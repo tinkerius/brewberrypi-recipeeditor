@@ -1,11 +1,12 @@
 /** The selected recipe: file name, name, goals, problems and the actions. */
 
 import type { ComponentChildren } from "preact";
-import { useState } from "preact/hooks";
+import { useEffect, useRef, useState } from "preact/hooks";
 import { problemsOf, type Doc } from "../doc";
 import { GOAL_INFO, GOAL_TYPES, goalsOf, newGoal, withGoals, type Goal, type GoalType, type Recipe } from "../model";
 import { GOALS_PATH } from "../validate";
 import { GoalEditor } from "./GoalEditor";
+import { dropSlot, moveItem, targetIndex } from "./reorder";
 import { BUTTON_STYLES, CARD_STYLE, HINT_STYLE, INPUT_STYLE, INVALID_INPUT, LABEL_STYLE, SELECT_STYLE, TITLE_STYLE } from "./styles";
 
 const PATH_LABELS: Record<string, string> = {
@@ -65,6 +66,64 @@ export function RecipeEditor(props: { doc: Doc; onChange: (recipe: Recipe) => vo
   const setGoals = (goals: Goal[]) => setRecipe(withGoals(doc.recipe, goals));
   const goals = goalsOf(doc.recipe);
   const has = (path: string) => problems.some((p) => p.path === path);
+  const list = useRef<HTMLOListElement>(null);
+  const [drag, setDrag] = useState<{ from: number; slot: number }>();
+  const [focusHandle, setFocusHandle] = useState<number>();
+
+  // Keyboard reordering: the moved goal's handle keeps the focus.
+  useEffect(() => {
+    if (focusHandle !== undefined) {
+      list.current?.children[focusHandle]?.querySelector<HTMLButtonElement>("[data-drag-handle]")?.focus();
+      setFocusHandle(undefined);
+    }
+  }, [focusHandle]);
+
+  /** Drag and drop with the handle (EDT-012): pointer events, so mouse, pen and touch all work. */
+  const startDrag = (from: number, event: PointerEvent) => {
+    event.preventDefault();
+    const handle = event.currentTarget as HTMLElement;
+    handle.setPointerCapture?.(event.pointerId);
+    const midpoints = () =>
+      [...(list.current?.children ?? [])].map((item) => {
+        const r = item.getBoundingClientRect();
+        return r.top + r.height / 2;
+      });
+    setDrag({ from, slot: from });
+    const move = (e: PointerEvent) => {
+      if (e.clientY < 60) {
+        window.scrollBy(0, -16);
+      } else if (e.clientY > window.innerHeight - 60) {
+        window.scrollBy(0, 16);
+      }
+      setDrag({ from, slot: dropSlot(e.clientY, midpoints()) });
+    };
+    const finish = (e: PointerEvent) => {
+      handle.removeEventListener("pointermove", move);
+      handle.removeEventListener("pointerup", finish);
+      handle.removeEventListener("pointercancel", finish);
+      setDrag(undefined);
+      if (e.type === "pointerup") {
+        const to = targetIndex(from, dropSlot(e.clientY, midpoints()));
+        if (to !== from) {
+          setGoals(moveItem(goals, from, to));
+        }
+      }
+    };
+    handle.addEventListener("pointermove", move);
+    handle.addEventListener("pointerup", finish);
+    handle.addEventListener("pointercancel", finish);
+  };
+
+  /** Where the drop line goes: none while the goal would stay where it is. */
+  const dropLine = (i: number): "before" | "after" | undefined => {
+    if (!drag || targetIndex(drag.from, drag.slot) === drag.from) {
+      return undefined;
+    }
+    if (drag.slot === i) {
+      return "before";
+    }
+    return drag.slot === goals.length && i === goals.length - 1 ? "after" : undefined;
+  };
 
   return (
     <section class={CARD_STYLE} aria-label="Recipe">
@@ -96,7 +155,7 @@ export function RecipeEditor(props: { doc: Doc; onChange: (recipe: Recipe) => vo
       {goals.length === 0 ? (
         <p class={`${HINT_STYLE} mt-2`}>No goals yet. Add them below; until then the BrewberryPi app lists this recipe but can't brew it.</p>
       ) : (
-        <ol class="mt-2 space-y-2">
+        <ol ref={list} class="mt-2 space-y-2">
           {goals.map((goal, i) => (
             <GoalEditor
               key={`${doc.key}-${i}`}
@@ -105,11 +164,16 @@ export function RecipeEditor(props: { doc: Doc; onChange: (recipe: Recipe) => vo
               count={goals.length}
               problems={problems}
               onChange={(g) => setGoals(goals.map((x, j) => (j === i ? g : x)))}
-              onMove={(delta) => {
-                const next = [...goals];
-                [next[i], next[i + delta]] = [next[i + delta], next[i]];
-                setGoals(next);
+              onDragStart={(e) => startDrag(i, e)}
+              onMoveKey={(delta) => {
+                const to = i + delta;
+                if (to >= 0 && to < goals.length) {
+                  setGoals(moveItem(goals, i, to));
+                  setFocusHandle(to);
+                }
               }}
+              dragging={drag?.from === i}
+              dropLine={dropLine(i)}
               onRemove={() => setGoals(goals.filter((_, j) => j !== i))}
             />
           ))}

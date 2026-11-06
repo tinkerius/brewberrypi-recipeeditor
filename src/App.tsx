@@ -375,21 +375,6 @@ export function App(props: { openDrafts?: () => Promise<DraftStore>; auth?: Goog
     });
   };
 
-  const clearDrafts = () =>
-    setConfirmation({
-      title: "Delete all recipes in this browser",
-      message: `Delete all ${docs.length} recipes stored in this browser? Downloaded files are not affected.`,
-      confirmLabel: "Delete all",
-      onConfirm: () =>
-        void run("Deleting…", async () => {
-          saveTimers.current.forEach((t) => clearTimeout(t));
-          saveTimers.current.clear();
-          await drafts?.clear();
-          setDocs([]);
-          setSelectedKey(undefined);
-        }),
-    });
-
   // ---- Google Drive ----
 
   /** Reads a Drive recipe's content; quiet: in the background, without the busy note (sync). */
@@ -408,7 +393,7 @@ export function App(props: { openDrafts?: () => Promise<DraftStore>; auth?: Goog
           const gone = docsRef.current.find((d) => d.key === key);
           if (gone) {
             removeFromList(gone);
-            setInfo(`${gone.id}.json is no longer in your Drive folder BrewberryPi/recipes (deleted or moved).`);
+            setInfo(`${gone.id}.json is no longer in your Google Drive folder BrewberryPi/recipes (deleted or moved).`);
           }
           return;
         }
@@ -424,7 +409,7 @@ export function App(props: { openDrafts?: () => Promise<DraftStore>; auth?: Goog
         loadError = read.error;
         notice = read.converted;
       } catch (e) {
-        loadError = `${file.id}.json is not a JSON file (${message(e)}). Fix it in Drive, or replace it by saving this recipe.`;
+        loadError = `${file.id}.json is not a JSON file (${message(e)}). Fix it in Google Drive, or replace it by saving this recipe.`;
       }
       const doc: Doc = { key, id: file.id, recipe, loaded: true, loadError, notice, fileId: file.fileId, version: file.version, updatedAt: Date.now() };
       const now = docsRef.current.find((d) => d.key === key);
@@ -734,7 +719,7 @@ export function App(props: { openDrafts?: () => Promise<DraftStore>; auth?: Goog
     const pending = hasPendingChanges(doc);
     const text = inDrive
       ? !doc.fileId
-        ? "Not saved to Drive yet"
+        ? "Not saved to Google Drive yet"
         : pending
           ? "Unsaved changes"
           : "Saved in Google Drive"
@@ -784,6 +769,7 @@ export function App(props: { openDrafts?: () => Promise<DraftStore>; auth?: Goog
           {place.kind === "drive" ? (
             <>
               <span class="text-sm text-stone-600 dark:text-stone-300" title={place.account.name}>
+                <span class="font-medium text-ink dark:text-ink-light">Cloud Sync: Google Drive</span> ·{" "}
                 {place.account.email || place.account.name}
               </span>
               <button type="button" class={BUTTON_STYLES.secondary} disabled={isBusy} onClick={signOut}>
@@ -791,11 +777,14 @@ export function App(props: { openDrafts?: () => Promise<DraftStore>; auth?: Goog
               </button>
             </>
           ) : (
-            <GoogleSignInButton
+            <>
+              <span class="text-sm font-medium text-stone-600 dark:text-stone-300">Cloud Sync</span>
+              <GoogleSignInButton
               disabled={isBusy || !googleConfigured()}
               title={googleConfigured() ? undefined : "Google sign-in is not configured in this build."}
               onClick={() => signIn()}
-            />
+              />
+            </>
           )}
         </div>
       </header>
@@ -804,8 +793,8 @@ export function App(props: { openDrafts?: () => Promise<DraftStore>; auth?: Goog
         {place.kind === "browser" && drafts && <StorageBanner kind={drafts.kind} />}
         {place.kind === "drive" && (
           <p class={HINT_STYLE}>
-            Your recipes are files in your Google Drive, folder <strong>BrewberryPi/recipes</strong>. Recipe files you put there
-            yourself appear here after you add them with “Add untracked file from cloud storage”.
+            Cloud Sync is on: your recipes are files in your Google Drive, folder <strong>BrewberryPi/recipes</strong>. Recipe
+            files you put there yourself appear here after you add them with “Add untracked file from cloud storage”.
           </p>
         )}
         {error && <ErrorBanner message={error} onClose={() => setError(undefined)} />}
@@ -864,11 +853,6 @@ export function App(props: { openDrafts?: () => Promise<DraftStore>; auth?: Goog
               Add untracked file from cloud storage
             </button>
           )}
-          {!inDrive && docs.length > 0 && (
-            <button type="button" class={`${BUTTON_STYLES.danger} mt-4 w-full`} disabled={isBusy} onClick={clearDrafts}>
-              Delete all recipes in this browser
-            </button>
-          )}
         </aside>
 
         <main class="min-w-0">
@@ -886,7 +870,7 @@ export function App(props: { openDrafts?: () => Promise<DraftStore>; auth?: Goog
                       disabled={isBusy || problemsOf(selected).length > 0 || !hasPendingChanges(selected)}
                       onClick={() => saveToDrive(selected)}
                     >
-                      Save to Drive
+                      Save to Google Drive
                     </button>
                   )}
                   <button
@@ -1001,7 +985,7 @@ export function App(props: { openDrafts?: () => Promise<DraftStore>; auth?: Goog
           <p>
             {conflict.file.id}.json was changed in your Google Drive after you opened it (in another tab, on another device, or by
             someone else). Overwrite it with your version, save yours as a copy, or discard your changes and load the
-            version from Drive.
+            version from Google Drive.
           </p>
         </Modal>
       )}
@@ -1030,7 +1014,7 @@ function Intro() {
           app shows it in its process list within a few seconds.
         </p>
         <p>
-          Signed in with Google, your recipes are kept in your own Google Drive, folder <strong>BrewberryPi/recipes</strong>.
+          With Cloud Sync (Google Drive), your recipes are kept in your own Google Drive, folder <strong>BrewberryPi/recipes</strong>.
           Nothing is stored on a BrewberryPi server.
         </p>
       </div>

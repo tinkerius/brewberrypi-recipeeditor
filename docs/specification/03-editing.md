@@ -47,7 +47,10 @@ Applies signed out (drafts, §4) and signed in (Drive recipes, §5) alike, unles
   display name), a one-line explanation, and the fields its type takes (app `RCP` §7.3 table): temperature,
   minutes, and for Rest optionally both name and description (one switch adds or removes both); CookWater always
   has name and description.
-- `EDT-012` Goals can be added (of a chosen type, at the end), removed, and moved up and down.
+- `EDT-012` Goals can be added (of a chosen type, at the end) and removed, and reordered by **drag and drop**
+  (`QE-20`): each goal has a drag handle; dragging it with the mouse or a finger moves the goal, a line shows where it
+  will be dropped, and releasing puts it there. With the keyboard, the arrow keys on the focused handle move the goal
+  one place up or down, and the handle keeps the focus. There are no move-up/move-down buttons.
 - `EDT-013` A new goal starts valid where possible: HeatUp 62 °C; Rest and IodineTest 62 °C, 10 min; CookWater
   60 min with empty name and description (to be filled in).
 - `EDT-014` Changing a goal's type keeps the values the new type also takes and drops the others.

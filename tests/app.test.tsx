@@ -202,3 +202,85 @@ describe("App, a new workspace and the list layout", () => {
     expect(root.querySelector("select[aria-label='New recipe from a sample']")).toBeNull();
   });
 });
+
+describe("App, the name Cloud Sync (QE-18)", () => {
+  it("ACC-037 names the feature Cloud Sync and the provider Google Drive in full", async () => {
+    await show(new MemoryStore());
+    const header = root.querySelector("header")!;
+    expect(header.textContent).toContain("Cloud Sync");
+    expect(header.textContent).toContain("Sign in with Google");
+    expect(root.querySelector("[role=note]")?.textContent).toContain("Cloud Sync is off");
+    expect(root.textContent!.match(/(?<!Google )\bDrive\b/g) ?? []).toEqual([]);
+  });
+});
+
+describe("App, reordering goals by drag and drop (EDT-012)", () => {
+  const goals = [
+    { type: "HeatUp", temperature: 40 },
+    { type: "MashIn" },
+    { type: "Lautering" },
+  ];
+
+  async function withThreeGoals() {
+    const store = new MemoryStore();
+    await store.put(newDoc("Kept", { version: 2, name: "Kept", mashing_process: { goals } }));
+    await show(store);
+  }
+
+  const goalTypes = () =>
+    [...root.querySelectorAll<HTMLSelectElement>("[aria-label=Recipe] li select")].map((s) => s.value);
+  const handles = () => [...root.querySelectorAll<HTMLButtonElement>("[data-drag-handle]")];
+
+  /** Gives the goal cards a layout (jsdom has none): card i spans y = 100·i … 100·i + 80. */
+  function layOut() {
+    root.querySelectorAll("[aria-label=Recipe] ol > li").forEach((li, i) => {
+      li.getBoundingClientRect = () => ({ top: i * 100, height: 80, bottom: i * 100 + 80, left: 0, right: 100, width: 100, x: 0, y: i * 100, toJSON: () => ({}) });
+    });
+  }
+
+  function pointer(target: Element, type: string, clientY: number) {
+    target.dispatchEvent(new MouseEvent(type, { bubbles: true, cancelable: true, clientY, button: 0 }));
+  }
+
+  it("ACC-038 drags goal 1 below goal 3, with a drop line while dragging; no arrow buttons", async () => {
+    await withThreeGoals();
+    expect(goalTypes()).toEqual(["HeatUp", "MashIn", "Lautering"]);
+    expect(root.querySelector("[aria-label='Move up'], [aria-label='Move down']")).toBeNull();
+    layOut();
+    const handle = handles()[0];
+    await act(async () => pointer(handle, "pointerdown", 40));
+    await act(async () => pointer(handle, "pointermove", 270));
+    expect(root.querySelectorAll("[data-drop-line]")).toHaveLength(1);
+    await act(async () => pointer(handle, "pointerup", 270));
+    expect(goalTypes()).toEqual(["MashIn", "Lautering", "HeatUp"]);
+    expect(root.querySelectorAll("[data-drop-line]")).toHaveLength(0);
+  });
+
+  it("ACC-038 changes nothing when dropped at its own place or cancelled", async () => {
+    await withThreeGoals();
+    layOut();
+    const handle = handles()[1];
+    await act(async () => pointer(handle, "pointerdown", 140));
+    await act(async () => pointer(handle, "pointermove", 160));
+    expect(root.querySelectorAll("[data-drop-line]")).toHaveLength(0);
+    await act(async () => pointer(handle, "pointerup", 160));
+    expect(goalTypes()).toEqual(["HeatUp", "MashIn", "Lautering"]);
+    await act(async () => pointer(handle, "pointerdown", 140));
+    await act(async () => pointer(handle, "pointermove", 70));
+    await act(async () => pointer(handle, "pointercancel", 70));
+    expect(goalTypes()).toEqual(["HeatUp", "MashIn", "Lautering"]);
+  });
+
+  it("ACC-039 moves a goal with the arrow keys on its handle, which keeps the focus", async () => {
+    await withThreeGoals();
+    await act(async () => {
+      handles()[1].dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowUp", bubbles: true }));
+    });
+    expect(goalTypes()).toEqual(["MashIn", "HeatUp", "Lautering"]);
+    expect(document.activeElement).toBe(handles()[0]);
+    await act(async () => {
+      handles()[0].dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowUp", bubbles: true }));
+    });
+    expect(goalTypes()).toEqual(["MashIn", "HeatUp", "Lautering"]);
+  });
+});

@@ -41,6 +41,11 @@ a release that changes sign-in or Drive behaviour.
 - `ACC-015` (GUI-022) The recipe menu opens from the ⋯ button and with a right click on the row.
 - `ACC-016` (EDT-013, EDT-014, EDT-011) New goals are valid where possible (CookWater needs its texts); a type change
   keeps the shared values; fields are in file order.
+- `ACC-038` (EDT-012) Dragging the handle of goal 1 of 3 below goal 3 and releasing gives the order 2, 3, 1; while
+  dragging, a drop line is shown; releasing at its own place or cancelling changes nothing. There are no move-up or
+  move-down buttons.
+- `ACC-039` (EDT-012) On the focused handle of goal 2, ArrowUp makes it goal 1 and the handle of the moved goal keeps
+  the focus; ArrowUp on goal 1 changes nothing.
 - `ACC-017` (BRW-004, DRV-010) A recipe has pending changes until it is downloaded (draft) or saved (Drive), and again
   after a change.
 - `ACC-018` (EDT-016) On the first visit (new browser storage) the list holds the draft `BENIWEISS`; on a later visit
@@ -71,6 +76,8 @@ a release that changes sign-in or Drive behaviour.
   free name.
 - `ACC-035` (DRV-002) An "unauthorised" answer renews the token once and repeats the request; other errors are
   reported.
+- `ACC-037` (QE-18, GUI-001, BRW-003) With Cloud Sync off, the top bar shows "Cloud Sync" next to **Sign in with
+  Google**, the banner starts with "Cloud Sync is off", and no text says "Drive" without "Google".
 - `ACC-036` (DRV-011, DRV-013) A valid stored token is used by a new tab without Google's window; a (nearly) expired
   or unreadable one is not; a token renewed by another tab is taken over; sign-out removes it; a token that no
   longer works is removed; without storage the token stays in the tab.

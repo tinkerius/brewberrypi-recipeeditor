@@ -11,8 +11,14 @@ export function GoalEditor(props: {
   count: number;
   problems: Problem[];
   onChange: (goal: Goal) => void;
-  onMove: (delta: -1 | 1) => void;
+  /** The drag handle was pressed (drag and drop, EDT-012). */
+  onDragStart: (event: PointerEvent) => void;
+  /** The arrow keys on the focused handle (keyboard reordering). */
+  onMoveKey: (delta: -1 | 1) => void;
   onRemove: () => void;
+  dragging?: boolean;
+  /** Show the drop line above (before) or below (after) this goal. */
+  dropLine?: "before" | "after";
 }) {
   const { goal, index } = props;
   const at = `${GOALS_PATH}[${index}]`;
@@ -32,8 +38,52 @@ export function GoalEditor(props: {
   const customTexts = goal.type === "Rest" && (goal.name !== undefined || goal.description !== undefined);
 
   return (
-    <li class="rounded-lg p-3 ring-1 ring-stone-200 sm:p-4 dark:ring-white/10">
+    <li
+      class={
+        "relative rounded-lg bg-white p-3 ring-1 sm:p-4 dark:bg-surface-dark " +
+        (props.dragging ? "opacity-60 ring-2 ring-berry dark:ring-berry-light" : "ring-stone-200 dark:ring-white/10")
+      }
+    >
+      {props.dropLine && (
+        <span
+          aria-hidden="true"
+          data-drop-line
+          class={`absolute right-0 left-0 h-1 rounded-full bg-berry dark:bg-berry-light ${props.dropLine === "before" ? "-top-1.5" : "-bottom-1.5"}`}
+        />
+      )}
       <div class="flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          data-drag-handle
+          aria-label={`Move goal ${index + 1}`}
+          title="Drag to move the goal (or use the arrow keys)"
+          disabled={props.count < 2}
+          class={
+            "-ml-1 flex h-8 w-6 cursor-grab touch-none items-center justify-center rounded-md text-stone-400 " +
+            "hover:enabled:bg-stone-100 hover:enabled:text-stone-600 active:cursor-grabbing disabled:cursor-default disabled:opacity-30 " +
+            "focus-visible:outline-2 focus-visible:outline-berry dark:hover:enabled:bg-white/10 dark:hover:enabled:text-stone-200"
+          }
+          onPointerDown={(e) => {
+            if (e.button === 0 && props.count > 1) {
+              props.onDragStart(e);
+            }
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+              e.preventDefault();
+              props.onMoveKey(e.key === "ArrowUp" ? -1 : 1);
+            }
+          }}
+        >
+          <svg viewBox="0 0 12 20" aria-hidden="true" class="h-4 w-3 fill-current">
+            <circle cx="3" cy="4" r="1.5" />
+            <circle cx="9" cy="4" r="1.5" />
+            <circle cx="3" cy="10" r="1.5" />
+            <circle cx="9" cy="10" r="1.5" />
+            <circle cx="3" cy="16" r="1.5" />
+            <circle cx="9" cy="16" r="1.5" />
+          </svg>
+        </button>
         <span class="w-6 text-sm font-semibold text-stone-500 tabular-nums dark:text-stone-400">{index + 1}.</span>
         <select
           class={`${SELECT_STYLE} min-w-0 flex-1 sm:flex-none`}
@@ -49,19 +99,6 @@ export function GoalEditor(props: {
           ))}
         </select>
         <div class="ml-auto flex gap-1">
-          <button type="button" class={BUTTON_STYLES.small} title="Move up" aria-label="Move up" disabled={index === 0} onClick={() => props.onMove(-1)}>
-            ↑
-          </button>
-          <button
-            type="button"
-            class={BUTTON_STYLES.small}
-            title="Move down"
-            aria-label="Move down"
-            disabled={index === props.count - 1}
-            onClick={() => props.onMove(1)}
-          >
-            ↓
-          </button>
           <button type="button" class={BUTTON_STYLES.small} title="Remove goal" aria-label="Remove goal" onClick={props.onRemove}>
             ✕
           </button>

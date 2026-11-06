@@ -4,11 +4,11 @@ The look follows the BrewberryPi brand and the app's web UI (brand colours, Zill
 
 ## 7.1 Page
 
-- `GUI-001` Top bar: the BrewberryPi logo, "Recipe Editor", and on the right either **Sign in with Google** or the
-  account's e-mail address with **Sign out**.
-- `GUI-002` Below it the notices: the storage banner (`BRW-003`) signed out, or a line saying where the recipes are
-  (Drive folder `BrewberryPi/recipes`, and how to add files put there yourself) signed in; errors and information
-  notices, each closable.
+- `GUI-001` Top bar: the BrewberryPi logo, "Recipe Editor", and on the right "Cloud Sync" with **Sign in with
+  Google** (Cloud Sync off), or "Cloud Sync: Google Drive · <e-mail address>" with **Sign out** (Cloud Sync on).
+- `GUI-002` Below it the notices: the storage banner (`BRW-003`) with Cloud Sync off, or with Cloud Sync on the line
+  "Cloud Sync is on: your recipes are files in your Google Drive, folder **BrewberryPi/recipes**. …" (and how to add
+  files put there yourself); errors and information notices, each closable.
 - `GUI-003` Two columns on wide screens (list left, recipe right), one column on phones; no horizontal scrolling at
   390 px width.
 - `GUI-004` Footer: links to the privacy policy, the terms of use and the source code.
@@ -26,7 +26,7 @@ The look follows the BrewberryPi brand and the app's web UI (brand colours, Zill
 
 - `GUI-020` Title **My Recipes** (signed in and out, `QE-17`); the recipes; **below** them the buttons **New recipe**
   and **Upload recipe**, the hint that recipe files can be dropped onto the page, signed in the link
-  **Add untracked file from cloud storage** (`GUI-023`), signed out **Delete all recipes in this browser**.
+  **Add untracked file from cloud storage** (`GUI-023`).
 - `GUI-021` Each recipe shows its name (or file name, or "Untitled recipe"), `<id>.json`, and the markers
   **incomplete** and **not downloaded** / **unsaved**.
 - `GUI-022` Each recipe has a **menu** (`EDT-006`..`EDT-009`): Rename…, Duplicate…, Download, Delete…. It opens with
@@ -40,7 +40,7 @@ The look follows the BrewberryPi brand and the app's web UI (brand colours, Zill
 - `GUI-030` Title: the recipe name; below it `<id>.json` (not editable here, `EDT-003`); the state (`BRW-004`,
   `DRV-010`) at the right. Then the recipe name field, the goals (`EDT-011`..`EDT-015`) and the problems
   (`EDT-020`).
-- `GUI-031` Actions below: signed in **Save to Drive**; **Download `<id>.json`**; **Delete**.
+- `GUI-031` Actions below: signed in **Save to Google Drive**; **Download `<id>.json`**; **Delete**.
 
 ## 7.5 States
 

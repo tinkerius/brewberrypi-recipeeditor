@@ -6,7 +6,7 @@
   existing recipe files, edit the goals of the mashing process, and get files the BrewberryPi app loads unchanged
   (app `RCP-001`, `RCP-007`).
 - `SCO-002` It is public, free and needs no account. Signed out, recipes are kept in the browser and downloaded as
-  files (§4). Signed in with Google, they are files in the user's own Google Drive (§5).
+  files (§4). With **Cloud Sync** (signed in with Google), they are files in the user's own Google Drive (§5).
 - `SCO-003` It is a static web page: there is no BrewberryPi server, no backend and no BrewberryPi account
   (`NFR-001`). Everything runs in the user's browser; the only other party is Google, and only when the user signs in.
 
@@ -37,7 +37,8 @@
 | Recipe id, file name | The file name without `.json`; letters, digits, `_` and `-` (app `RCP-001`) |
 | Goal | One step of the mashing process (app spec 04), e.g. HeatUp, Rest |
 | Draft | A recipe kept in the browser while signed out (§4) |
-| Drive recipe | A recipe file in the user's Drive folder `BrewberryPi/recipes` (§5) |
+| Cloud Sync | Keeping the recipes in the user's own cloud storage (§5); provider today: Google Drive |
+| Drive recipe | A recipe file in the user's Google Drive folder `BrewberryPi/recipes` (§5) |
 | Sample | One of the recipes the app ships (app `RCP-002`); `BENIWEISS` is given to a new workspace (`EDT-016`) |
 | Complete | Valid in the app's format, so the app lists it (it may still have no goals, app `Q-34`) |
 | Pending changes | Changes not downloaded (draft) or not saved to Drive (Drive recipe) yet |

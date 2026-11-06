@@ -3,14 +3,14 @@
 import type { BrowserStorageKind } from "../store/BrowserStore";
 
 export const BROWSER_STORAGE_WARNING =
-  "Not signed in — your recipes are only stored in this browser and can be lost: when browser data is cleared, " +
-  "in a private window, or in Safari after 7 days without a visit. Download each recipe, or sign in with Google " +
-  "to keep them in your Google Drive.";
+  "Cloud Sync is off — your recipes are only stored in this browser and can be lost: when browser data is cleared, " +
+  "in a private window, or in Safari after 7 days without a visit. Download each recipe, or turn on Cloud Sync " +
+  "(Sign in with Google) to keep them in your Google Drive.";
 
 export const MEMORY_STORAGE_WARNING =
-  "Not signed in, and this browser does not let the page store anything: your recipes are only kept in this tab " +
-  "and are lost when you close or reload it. Download each recipe, or sign in with Google to keep them in your " +
-  "Google Drive.";
+  "Cloud Sync is off, and this browser does not let the page store anything: your recipes are only kept in this tab " +
+  "and are lost when you close or reload it. Download each recipe, or turn on Cloud Sync (Sign in with Google) to " +
+  "keep them in your Google Drive.";
 
 export function StorageBanner(props: { kind: BrowserStorageKind }) {
   return (

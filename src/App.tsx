@@ -4,7 +4,7 @@
  */
 
 import { useEffect, useRef, useState } from "preact/hooks";
-import { GoogleAuth, SignInError, rememberHint } from "./auth/google";
+import { GoogleAuth, SignInError, TOKEN_KEY, rememberHint } from "./auth/google";
 import { googleConfigured, pickerConfigured } from "./config";
 import { fingerprint, freeId, hasPendingChanges, newDoc, problemsOf, type Doc } from "./doc";
 import { pickRecipeFiles } from "./drive/picker";
@@ -79,6 +79,8 @@ export function App(props: { openDrafts?: () => Promise<DraftStore>; auth?: Goog
   docsRef.current = docs;
   const placeRef = useRef(place);
   placeRef.current = place;
+  const draftsRef = useRef(drafts);
+  draftsRef.current = drafts;
   const selectedRef = useRef(selectedKey);
   selectedRef.current = selectedKey;
 
@@ -137,6 +139,7 @@ export function App(props: { openDrafts?: () => Promise<DraftStore>; auth?: Goog
   useEffect(() => {
     void (async () => {
       const store = await (props.openDrafts ?? openDraftStore)();
+      draftsRef.current = store;
       setDrafts(store);
       try {
         const kept = sortDocs(await store.all());
@@ -145,7 +148,44 @@ export function App(props: { openDrafts?: () => Promise<DraftStore>; auth?: Goog
       } catch (e) {
         setError(`Could not read the recipes stored in this browser: ${message(e)}`);
       }
+      // Still signed in from another tab or an earlier visit (the token lasts about an hour).
+      if (googleConfigured() && auth.current.hasValidToken()) {
+        await restoreDrive();
+      }
     })();
+  }, []);
+
+  /** Signs in with the stored token, without Google's window; a token that no longer works is dropped quietly. */
+  const restoreDrive = async () => {
+    setBusy("Signing in with Google…");
+    try {
+      await enterDrive(false);
+    } catch {
+      auth.current.forget(true);
+      if (placeRef.current.kind === "drive") {
+        await leaveDrive();
+      }
+    } finally {
+      setBusy(undefined);
+    }
+  };
+
+  // Signed out in another tab: sign out here too (unsaved changes stay until this tab signs in again or leaves).
+  useEffect(() => {
+    const onStorage = (e: StorageEvent) => {
+      if (e.key !== TOKEN_KEY || e.newValue !== null || placeRef.current.kind !== "drive") {
+        return;
+      }
+      auth.current.forget();
+      if (docsRef.current.some(hasPendingChanges)) {
+        setInfo("You signed out in another tab. Sign in again to save your changes to Google Drive.");
+      } else {
+        setInfo("You signed out in another tab.");
+        void leaveDrive();
+      }
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
   }, []);
 
   // Leaving the page with work that would be lost.
@@ -528,37 +568,49 @@ export function App(props: { openDrafts?: () => Promise<DraftStore>; auth?: Goog
         }
         throw e;
       }
-      const store = new DriveStore(auth.current);
-      await store.init();
-      await store.startChanges();
-      const account = await store.about();
-      rememberHint(account.email);
-      // Leave the browser drafts (they stay stored) and show the Drive recipes.
-      saveTimers.current.forEach((t) => clearTimeout(t));
-      saveTimers.current.clear();
-      const browserDrafts = (await drafts?.all()) ?? docsRef.current;
-      setDocs([]);
-      placeRef.current = { kind: "drive", store, account };
-      setPlace(placeRef.current);
-      await showDrive(store);
-      if (browserDrafts.length > 0) {
-        setMigration({ drafts: sortDocs(browserDrafts), driveIds: new Set(docsRef.current.map((d) => d.id)) });
-      }
+      await enterDrive(true);
     });
+
+  /**
+   * Shows the signed-in user's Drive recipes (the token is there already). After an interactive sign-in it offers
+   * to save the browser drafts to Drive; a tab that takes over the stored token of another tab doesn't ask again.
+   */
+  const enterDrive = async (offerDrafts: boolean) => {
+    const store = new DriveStore(auth.current);
+    await store.init();
+    await store.startChanges();
+    const account = await store.about();
+    rememberHint(account.email);
+    // Leave the browser drafts (they stay stored) and show the Drive recipes.
+    saveTimers.current.forEach((t) => clearTimeout(t));
+    saveTimers.current.clear();
+    const browserDrafts = offerDrafts ? ((await draftsRef.current?.all()) ?? docsRef.current) : [];
+    setDocs([]);
+    placeRef.current = { kind: "drive", store, account };
+    setPlace(placeRef.current);
+    await showDrive(store);
+    if (browserDrafts.length > 0) {
+      setMigration({ drafts: sortDocs(browserDrafts), driveIds: new Set(docsRef.current.map((d) => d.id)) });
+    }
+  };
+
+  /** Back to the browser drafts (signed out here or in another tab). */
+  const leaveDrive = async () => {
+    setDocs([]);
+    selectedRef.current = undefined;
+    setSelectedKey(undefined);
+    placeRef.current = { kind: "browser" };
+    setPlace(placeRef.current);
+    const kept = sortDocs((await draftsRef.current?.all()) ?? []);
+    setDocs(kept);
+    setSelectedKey(kept[0]?.key);
+  };
 
   const signOut = () => {
     const leave = () =>
       void run("Signing out…", async () => {
-        auth.current.signOut();
-        // Drop the Drive recipes before the page shows browser drafts again.
-        setDocs([]);
-        selectedRef.current = undefined;
-        setSelectedKey(undefined);
-        placeRef.current = { kind: "browser" };
-        setPlace(placeRef.current);
-        const kept = sortDocs((await drafts?.all()) ?? []);
-        setDocs(kept);
-        setSelectedKey(kept[0]?.key);
+        auth.current.signOut(); // in every tab
+        await leaveDrive();
       });
     if (docsRef.current.some(hasPendingChanges)) {
       setConfirmation({

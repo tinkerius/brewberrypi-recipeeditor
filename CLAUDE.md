@@ -37,9 +37,10 @@ layout and commands; `docs/google-setup.md` the one-time setup.
 - The editor writes the app's latest recipe format version (`FORMAT_VERSION` in `src/model.ts`), converts older
   files when it reads them (and says so), and refuses newer versions instead of dropping what it doesn't know. When
   the app raises the version (`RCP-011`), follow it in the same way.
-- Privacy: no backend, no analytics, no third-party storage. The Google access token stays in memory; the only
-  localStorage entry is the sign-in hint (e-mail). Update `public/privacy.html` when what the editor stores or sends
-  changes.
+- Privacy: no backend, no analytics, no third-party storage. The only localStorage entries are the Google access
+  token (until it expires, about an hour, or sign-out; shared by the editor's tabs, product owner's decision) and
+  the sign-in hint (e-mail). Update `public/privacy.html` and brewberrypi's `site/privacy.html` when what the
+  editor stores or sends changes.
 - Content-Security-Policy (`vite.config.ts`): only the page itself and Google. No `eval`, no new third-party origins.
 - Scope stays `drive.file` (non-sensitive). Broader Drive scopes need Google's restricted-scope verification.
 - Warn about data that can be lost: the signed-out banner, the "not downloaded"/"unsaved" markers and the

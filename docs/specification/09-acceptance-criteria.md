@@ -41,6 +41,11 @@ a release that changes sign-in or Drive behaviour.
 - `ACC-015` (GUI-022) The recipe menu opens from the ⋯ button and with a right click on the row.
 - `ACC-016` (EDT-013, EDT-014, EDT-011) New goals are valid where possible (CookWater needs its texts); a type change
   keeps the shared values; fields are in file order.
+- `ACC-038` (EDT-012) Dragging the handle of goal 1 of 3 below goal 3 and releasing gives the order 2, 3, 1; while
+  dragging, a drop line is shown; releasing at its own place or cancelling changes nothing. There are no move-up or
+  move-down buttons.
+- `ACC-039` (EDT-012) On the focused handle of goal 2, ArrowUp makes it goal 1 and the handle of the moved goal keeps
+  the focus; ArrowUp on goal 1 changes nothing.
 - `ACC-017` (BRW-004, DRV-010) A recipe has pending changes until it is downloaded (draft) or saved (Drive), and again
   after a change.
 - `ACC-018` (EDT-016) On the first visit (new browser storage) the list holds the draft `BENIWEISS`; on a later visit

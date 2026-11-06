@@ -1,15 +1,32 @@
 /**
- * Keeps the recipe list of a signed-in user in step with Google Drive: the list is read after sign-in and then
- * again regularly (App), because the same folder can change elsewhere: the editor in another tab or on another
- * device, or drive.google.com (rename, delete). Changes the user has not saved are never thrown away.
+ * Keeps the recipe list of a signed-in user in step with Google Drive: the list is read after sign-in and again
+ * whenever the folder changed elsewhere (the editor in another tab or on another device, drive.google.com). Drive
+ * can push change notifications only to a server (a webhook), and this editor has none, so it asks Drive's changes
+ * feed every few seconds instead: an answer without changes is small, and only a relevant change reads the list
+ * again. Changes the user has not saved are never thrown away.
  */
 
 import { hasPendingChanges, type Doc } from "./doc";
 import { emptyRecipe } from "./model";
 import type { DriveFile } from "./store/DriveStore";
 
-/** How often the list is read again while the page is visible. */
-export const SYNC_INTERVAL_MS = 30_000;
+/** How often Drive's changes feed is asked while the page is visible. */
+export const CHANGE_POLL_MS = 10_000;
+
+/** How often the whole list is read anyway, in case a change was missed. */
+export const FULL_SYNC_MS = 300_000;
+
+/** One entry of Drive's changes feed (changes.list). */
+export interface DriveChange {
+  fileId: string;
+  removed?: boolean;
+  file?: { parents?: string[]; trashed?: boolean };
+}
+
+/** A change matters if it concerns a listed recipe (edited, renamed, trashed, moved away) or a file in the folder. */
+export function isRelevantChange(change: DriveChange, recipesFolderId: string, listedFileIds: ReadonlySet<string>): boolean {
+  return listedFileIds.has(change.fileId) || (change.file?.parents?.includes(recipesFolderId) ?? false);
+}
 
 /** A Drive file whose content is read only when it is opened. */
 export function driveDoc(file: DriveFile): Doc {

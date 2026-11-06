@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { TokenSource } from "../src/auth/google";
 import { DriveStore, NameTakenError, VersionConflictError } from "../src/store/DriveStore";
+import { isRelevantChange } from "../src/driveSync";
 
 interface FakeFile {
   id: string;
@@ -20,11 +21,20 @@ class FakeDrive {
   /** Tokens the fake accepts. */
   validTokens = new Set(["t1"]);
   private next = 1;
+  /** The changes feed: one entry per change, a page token is an index into it. */
+  changeLog: { fileId: string; file: { parents: string[]; trashed: boolean } }[] = [];
+  /** Page size of the changes feed, small to test paging. */
+  changePageSize = 2;
 
   add(file: Partial<FakeFile> & { name: string }): FakeFile {
     const full: FakeFile = { id: `f${this.next++}`, mimeType: "application/json", parents: [], version: 1, content: "", trashed: false, ...file };
     this.files.push(full);
+    this.changed(full);
     return full;
+  }
+
+  changed(file: FakeFile) {
+    this.changeLog.push({ fileId: file.id, file: { parents: [...file.parents], trashed: file.trashed } });
   }
 
   private meta(f: FakeFile) {
@@ -59,6 +69,18 @@ class FakeDrive {
     const ok = (body: unknown) => new Response(JSON.stringify(body), { status: 200 });
     const path = url.pathname;
     const fileMatch = /\/files\/([^/]+)(\/copy)?$/.exec(path);
+    if (method === "GET" && path.endsWith("/changes/startPageToken")) {
+      return ok({ startPageToken: String(this.changeLog.length) });
+    }
+    if (method === "GET" && path.endsWith("/changes")) {
+      const from = Number(url.searchParams.get("pageToken"));
+      if (!Number.isInteger(from) || from > this.changeLog.length) {
+        return new Response(JSON.stringify({ error: { message: "Invalid page token" } }), { status: 400 });
+      }
+      const to = Math.min(from + this.changePageSize, this.changeLog.length);
+      const changes = this.changeLog.slice(from, to);
+      return ok(to < this.changeLog.length ? { changes, nextPageToken: String(to) } : { changes, newStartPageToken: String(to) });
+    }
     if (method === "GET" && path.endsWith("/about")) {
       return ok({ user: { displayName: "Brewer", emailAddress: "brewer@example.com" } });
     }
@@ -88,10 +110,12 @@ class FakeDrive {
     if (method === "PATCH" && path.startsWith("/upload/")) {
       const { metadata, content } = this.parseMultipart(String(init?.body));
       Object.assign(file, { name: metadata.name ?? file.name, content, version: file.version + 1 });
+      this.changed(file);
       return ok(this.meta(file));
     }
     if (method === "PATCH") {
       Object.assign(file, JSON.parse(String(init?.body)), { version: file.version + 1 });
+      this.changed(file);
       return ok(this.meta(file));
     }
     return new Response("{}", { status: 400 });
@@ -200,5 +224,59 @@ describe("DriveStore", () => {
   it("reports Drive errors", async () => {
     const { store } = await setup();
     await expect(store.read("missing")).rejects.toThrow("Google Drive answered 404.");
+  });
+});
+
+describe("DriveStore changes feed", () => {
+  it("reports changes in the recipes folder since the last call, across pages", async () => {
+    const { drive, store } = await setup();
+    await store.startChanges();
+    expect(await store.changedSince(new Set())).toBe(false);
+    drive.add({ name: "Other.json", parents: ["elsewhere"] });
+    drive.add({ name: "Elsewhere2.json", parents: ["elsewhere"] });
+    expect(await store.changedSince(new Set())).toBe(false); // not in the folder
+    drive.add({ name: "Other3.json", parents: ["elsewhere"] });
+    drive.add({ name: "Other4.json", parents: ["elsewhere"] });
+    drive.add({ name: "New.json", parents: [store.recipesFolderId] }); // on the third page
+    expect(await store.changedSince(new Set())).toBe(true);
+    expect(await store.changedSince(new Set())).toBe(false); // seen
+  });
+
+  it("reports edits, renames and trashing of listed recipes", async () => {
+    const { drive, store } = await setup();
+    const created = await store.create("A", recipe);
+    await store.startChanges();
+    const listed = new Set([created.fileId]);
+    const file = drive.files.find((f) => f.id === created.fileId)!;
+    Object.assign(file, { trashed: true });
+    drive.changed(file);
+    expect(await store.changedSince(listed)).toBe(true);
+  });
+
+  it("starts again after an invalid position, and counts that as a change", async () => {
+    const { drive, store } = await setup();
+    await store.startChanges();
+    drive.changeLog.length = 0; // the position is now ahead of the feed: Drive refuses it
+    expect(await store.changedSince(new Set())).toBe(true);
+    expect(await store.changedSince(new Set())).toBe(false);
+  });
+
+  it("without a start position, starts and counts it as a change", async () => {
+    const { store } = await setup();
+    expect(await store.changedSince(new Set())).toBe(true);
+  });
+});
+
+describe("isRelevantChange", () => {
+  const listed = new Set(["listed"]);
+  it.each([
+    ["a listed recipe changed", { fileId: "listed", file: { parents: ["folder"] } }, true],
+    ["a listed recipe removed", { fileId: "listed", removed: true }, true],
+    ["a listed recipe moved away", { fileId: "listed", file: { parents: ["other"] } }, true],
+    ["a new file in the folder", { fileId: "new", file: { parents: ["folder"] } }, true],
+    ["a file elsewhere", { fileId: "x", file: { parents: ["other"] } }, false],
+    ["an unknown removed file", { fileId: "x", removed: true }, false],
+  ])("%s", (_label, change, expected) => {
+    expect(isRelevantChange(change, "folder", listed)).toBe(expected);
   });
 });

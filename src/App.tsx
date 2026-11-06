@@ -8,7 +8,7 @@ import { GoogleAuth, SignInError, rememberHint } from "./auth/google";
 import { googleConfigured, pickerConfigured } from "./config";
 import { fingerprint, freeId, hasPendingChanges, newDoc, problemsOf, type Doc } from "./doc";
 import { pickRecipeFiles } from "./drive/picker";
-import { SYNC_INTERVAL_MS, driveDoc, mergeDriveList } from "./driveSync";
+import { CHANGE_POLL_MS, FULL_SYNC_MS, driveDoc, mergeDriveList } from "./driveSync";
 import { downloadRecipe, readRecipeFile } from "./file";
 import { emptyRecipe, readRecipe, type Recipe } from "./model";
 import { SAMPLES } from "./samples";
@@ -375,21 +375,36 @@ export function App(props: { openDrafts?: () => Promise<DraftStore>; auth?: Goog
 
   const showDrive = (store: DriveStore) => syncDrive(store, false);
 
-  // Signed in: read the list again regularly and when the page comes back into view (another tab, device or
-  // drive.google.com may have changed the folder).
+  // Signed in: ask Drive's changes feed regularly and when the page comes back into view (another tab, device or
+  // drive.google.com may have changed the folder); read the list again when it changed, and anyway now and then.
   useEffect(() => {
     if (place.kind !== "drive") {
       return;
     }
     const store = place.store;
-    let last = Date.now();
-    const sync = (minGapMs: number) => {
-      if (document.visibilityState === "visible" && Date.now() - last >= minGapMs) {
-        last = Date.now();
-        void syncDrive(store, true);
+    let lastPoll = Date.now();
+    let lastFull = Date.now();
+    let polling = false;
+    const poll = async (minGapMs: number) => {
+      if (polling || document.visibilityState !== "visible" || Date.now() - lastPoll < minGapMs || !auth.current.hasValidToken()) {
+        return;
+      }
+      polling = true;
+      lastPoll = Date.now();
+      try {
+        const listed = new Set(docsRef.current.flatMap((d) => (d.fileId ? [d.fileId] : [])));
+        if ((await store.changedSince(listed)) || Date.now() - lastFull >= FULL_SYNC_MS) {
+          lastFull = Date.now();
+          await syncDrive(store, true);
+        }
+      } catch {
+        // offline or token expired: the next poll tries again
+      } finally {
+        polling = false;
       }
     };
-    const timer = setInterval(() => sync(0), SYNC_INTERVAL_MS);
+    const sync = (minGapMs: number) => void poll(minGapMs);
+    const timer = setInterval(() => sync(0), CHANGE_POLL_MS);
     const onVisible = () => sync(5_000);
     document.addEventListener("visibilitychange", onVisible);
     window.addEventListener("focus", onVisible);
@@ -413,6 +428,7 @@ export function App(props: { openDrafts?: () => Promise<DraftStore>; auth?: Goog
       }
       const store = new DriveStore(auth.current);
       await store.init();
+      await store.startChanges();
       const account = await store.about();
       rememberHint(account.email);
       // Leave the browser drafts (they stay stored) and show the Drive recipes.

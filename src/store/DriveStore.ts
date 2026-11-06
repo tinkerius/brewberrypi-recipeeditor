@@ -8,6 +8,7 @@
 
 import { idFromFileName, serializeRecipe, type Recipe } from "../model";
 import type { TokenSource } from "../auth/google";
+import { isRelevantChange, type DriveChange } from "../driveSync";
 
 export const ROOT_FOLDER_NAME = "BrewberryPi";
 export const RECIPES_FOLDER_NAME = "recipes";
@@ -70,6 +71,8 @@ function multipart(metadata: object, content: string): { body: string; contentTy
 export class DriveStore {
   private rootId: string | undefined;
   private recipesId: string | undefined;
+  /** Position in Drive's changes feed: changes after it are not seen yet. */
+  private changeToken: string | undefined;
 
   constructor(
     private readonly auth: TokenSource,
@@ -257,6 +260,60 @@ export class DriveStore {
       adopted.push(toDriveFile(copy));
     }
     return adopted;
+  }
+
+  /** Starts following Drive's changes feed from now on. */
+  async startChanges(options: { renew?: boolean } = {}): Promise<void> {
+    const start = await this.json<{ startPageToken: string }>(
+      "GET",
+      `${API}/changes/startPageToken`,
+      undefined,
+      options.renew ?? true,
+    );
+    this.changeToken = start.startPageToken;
+  }
+
+  /**
+   * Whether the recipes folder changed since the last call (or startChanges): a recipe in listedFileIds was edited,
+   * renamed, trashed or moved, or a file appeared in the folder. A position Drive no longer accepts starts the feed
+   * again and counts as a change, so the caller reads the whole list. Background use: never renews the token.
+   */
+  async changedSince(listedFileIds: ReadonlySet<string>): Promise<boolean> {
+    if (!this.changeToken) {
+      await this.startChanges({ renew: false });
+      return true;
+    }
+    let changed = false;
+    let pageToken: string | undefined = this.changeToken;
+    try {
+      while (pageToken) {
+        const params = new URLSearchParams({
+          pageToken,
+          spaces: "drive",
+          pageSize: "1000",
+          fields: "nextPageToken,newStartPageToken,changes(fileId,removed,file(parents,trashed))",
+        });
+        const page = await this.json<{ changes: DriveChange[]; nextPageToken?: string; newStartPageToken?: string }>(
+          "GET",
+          `${API}/changes?${params}`,
+          undefined,
+          false,
+        );
+        changed ||= page.changes.some((c) => isRelevantChange(c, this.recipesFolderId, listedFileIds));
+        if (page.newStartPageToken) {
+          this.changeToken = page.newStartPageToken;
+        }
+        pageToken = page.nextPageToken;
+      }
+    } catch (e) {
+      if (e instanceof DriveError && (e.status === 400 || e.status === 410)) {
+        this.changeToken = undefined; // expired or invalid position: start again
+        await this.startChanges({ renew: false });
+        return true;
+      }
+      throw e;
+    }
+    return changed;
   }
 
   /** The signed-in user's name and e-mail address. */

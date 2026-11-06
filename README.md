@@ -18,6 +18,11 @@ Pages, with no backend.
   uses Google's `drive.file` permission, so it sees only the files it created or that you picked in the Google Picker
   ("Add files from Drive"). On sign-in it offers to move the browser drafts to Drive.
 
+Signed in, the list follows changes made elsewhere (the editor in another tab or on another device,
+drive.google.com) within about 10 seconds. Drive's push notifications need a server (a webhook), so the editor asks
+Drive's changes feed instead, every 10 seconds while the page is visible; it reads the whole list again only when
+the folder changed, and every 5 minutes anyway (`src/driveSync.ts`).
+
 To brew with a recipe, copy its file into the `app/recipes` folder of the BrewberryPi's file share
 (`\\<hostname>.local\config`, see [brewberrypi-os](https://github.com/tinkerius/brewberrypi-os)). The app picks it up
 within seconds.

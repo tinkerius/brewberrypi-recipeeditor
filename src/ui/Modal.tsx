@@ -1,9 +1,31 @@
 /** A modal dialog in the app's look. */
 
 import type { ComponentChildren } from "preact";
+import { useEffect } from "preact/hooks";
 import { TITLE_STYLE } from "./styles";
 
-export function Modal(props: { title: string; children: ComponentChildren; buttons: ComponentChildren; wide?: boolean }) {
+export function Modal(props: {
+  title: string;
+  children: ComponentChildren;
+  buttons: ComponentChildren;
+  wide?: boolean;
+  /** Escape closes the dialog. */
+  onEscape?: () => void;
+}) {
+  const { onEscape } = props;
+  useEffect(() => {
+    if (!onEscape) {
+      return;
+    }
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        onEscape();
+      }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onEscape]);
   return (
     <div class="fixed inset-0 z-20 flex items-start justify-center overflow-y-auto bg-ink/50 p-4 pt-16 backdrop-blur-xs">
       <div

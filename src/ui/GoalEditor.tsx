@@ -1,9 +1,11 @@
 /** One goal of a recipe: its type and the fields that type takes (spec 04, 07 §7.2). */
 
-import { FIELD_LABELS, GOAL_INFO, GOAL_TYPES, changeGoalType, goalFields, isGoalType, type Goal } from "../model";
+import { useState } from "preact/hooks";
+import { FIELD_LABELS, GOAL_INFO, changeGoalType, goalFields, isGoalType, type Goal, type GoalType } from "../model";
 import { GOALS_PATH, type Problem } from "../validate";
 import { NumberField, TextField } from "./fields";
-import { BUTTON_STYLES, HINT_STYLE, SELECT_STYLE } from "./styles";
+import { GoalTypeDialog } from "./GoalTypeDialog";
+import { BUTTON_STYLES, HINT_STYLE } from "./styles";
 
 export function GoalEditor(props: {
   goal: Goal;
@@ -21,6 +23,7 @@ export function GoalEditor(props: {
   dropLine?: "before" | "after";
 }) {
   const { goal, index } = props;
+  const [choosing, setChoosing] = useState(false);
   const at = `${GOALS_PATH}[${index}]`;
   const problemsAt = (field: string) => props.problems.filter((p) => p.path === `${at}.${field}`);
   const known = isGoalType(goal.type);
@@ -85,19 +88,34 @@ export function GoalEditor(props: {
           </svg>
         </button>
         <span class="w-6 text-sm font-semibold text-stone-500 tabular-nums dark:text-stone-400">{index + 1}.</span>
-        <select
-          class={`${SELECT_STYLE} min-w-0 flex-1 sm:flex-none`}
-          aria-label={`Goal ${index + 1} type`}
-          value={known ? goal.type : ""}
-          onChange={(e) => props.onChange(changeGoalType(goal, e.currentTarget.value as (typeof GOAL_TYPES)[number]))}
+        <button
+          type="button"
+          data-goal-type={known ? goal.type : ""}
+          aria-label={`Change the type of goal ${index + 1}: ${known ? GOAL_INFO[goal.type as GoalType].label : "unknown"}`}
+          title="Change the goal type"
+          class="group flex min-w-0 items-center gap-2 rounded-md px-2 py-1 text-left hover:bg-stone-100 focus-visible:outline-2 focus-visible:outline-berry dark:hover:bg-white/5 dark:focus-visible:outline-berry-light"
+          onClick={() => setChoosing(true)}
         >
-          {!known && <option value="">{goal.type ? `Unknown: ${goal.type}` : "Choose a type"}</option>}
-          {GOAL_TYPES.map((type) => (
-            <option key={type} value={type}>
-              {GOAL_INFO[type].label} ({type})
-            </option>
-          ))}
-        </select>
+          <span class={`truncate text-sm font-semibold ${known ? "text-ink dark:text-ink-light" : "text-red-600 dark:text-red-400"}`}>
+            {known ? (
+              <>
+                {GOAL_INFO[goal.type as GoalType].label}{" "}
+                <span class="font-normal text-stone-500 dark:text-stone-400">({goal.type})</span>
+              </>
+            ) : goal.type ? (
+              `Unknown: ${goal.type}`
+            ) : (
+              "Choose a type"
+            )}
+          </span>
+          <svg
+            viewBox="0 0 20 20"
+            aria-hidden="true"
+            class="size-4 shrink-0 fill-none stroke-current stroke-[1.6] text-stone-400 group-hover:text-berry dark:group-hover:text-berry-light"
+          >
+            <path d="M13.5 3.5l3 3L7 16H4v-3l9.5-9.5z" stroke-linejoin="round" />
+          </svg>
+        </button>
         <div class="ml-auto flex gap-1">
           <button type="button" class={BUTTON_STYLES.small} title="Remove goal" aria-label="Remove goal" onClick={props.onRemove}>
             ✕
@@ -155,6 +173,20 @@ export function GoalEditor(props: {
             </>
           )}
         </div>
+      )}
+
+      {choosing && (
+        <GoalTypeDialog
+          title={`Type of goal ${index + 1}`}
+          current={known ? goal.type : undefined}
+          onCancel={() => setChoosing(false)}
+          onChoose={(type) => {
+            setChoosing(false);
+            if (type !== goal.type) {
+              props.onChange(changeGoalType(goal, type));
+            }
+          }}
+        />
       )}
 
       {unknownFields.length > 0 && (

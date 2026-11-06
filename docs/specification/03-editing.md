@@ -45,17 +45,23 @@ Applies signed out (drafts, §4) and signed in (Drive recipes, §5) alike, unles
 - `EDT-010` The recipe name is edited **in the title** (`QE-21`): clicking the name, or the pencil next to it, turns it
   into a text field; Enter or leaving the field keeps the change, Escape restores the name it had before. A recipe
   without a name (a new one) starts with the field open. There is no separate name field.
-- `EDT-011` Goals are listed in brewing order. Each goal has its type (all goal types of app spec 04, with their
-  display name), a one-line explanation, and the fields its type takes (app `RCP` §7.3 table): temperature,
+- `EDT-011` Goals are listed in brewing order. Each goal shows its type as text (display name and type, all goal
+  types of app spec 04) with a pencil to change it (`EDT-014`), a one-line explanation, and the fields its type takes (app `RCP` §7.3 table): temperature,
   minutes, and for Rest optionally both name and description (one switch adds or removes both); CookWater always
   has name and description.
-- `EDT-012` Goals can be added (of a chosen type, at the end) and removed, and reordered by **drag and drop**
+- `EDT-012` **+ Add goal** asks for the type first (`EDT-017`) and adds a goal of that type at the end. Goals can be
+  removed, and reordered by **drag and drop**
   (`QE-20`): each goal has a drag handle; dragging it with the mouse or a finger moves the goal, a line shows where it
   will be dropped, and releasing puts it there. With the keyboard, the arrow keys on the focused handle move the goal
   one place up or down, and the handle keeps the focus. There are no move-up/move-down buttons.
 - `EDT-013` A new goal starts valid where possible: HeatUp 62 °C; Rest and IodineTest 62 °C, 10 min; CookWater
   60 min with empty name and description (to be filled in).
-- `EDT-014` Changing a goal's type keeps the values the new type also takes and drops the others.
+- `EDT-014` The pencil next to a goal's type asks for the new type (`EDT-017`, the current one marked). Changing it
+  keeps the values the new type also takes and drops the others. A goal of an unknown type (`FMT-004`) shows
+  "Unknown: <type>" with the same pencil.
+- `EDT-017` The goal type is chosen in a dialog that lists every goal type with its display name, its type and its
+  one-line explanation (`EDT-011`); choosing one confirms, Escape or Cancel changes nothing. There is no type
+  dropdown in the goal list (`QE-23`).
 - `EDT-015` Number fields keep what is typed even while it is not a number yet (e.g. `62.`); a value that is not a
   number is reported as a problem (`FMT-004`), not silently dropped. A comma is accepted as decimal separator.
 

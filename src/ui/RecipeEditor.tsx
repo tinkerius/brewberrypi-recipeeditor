@@ -36,7 +36,9 @@ export function ProblemList(props: { doc: Doc }) {
   if (problems.length === 0) {
     return (
       <p class="rounded-lg bg-leaf/10 p-3 text-sm text-leaf dark:bg-leaf-light/10 dark:text-leaf-light">
-        ✓ Complete: BrewberryPi can load this recipe.
+        {goalsOf(props.doc.recipe).length === 0
+          ? "✓ Valid recipe file. It has no goals yet, so BrewberryPi lists it but can't brew it."
+          : "✓ Complete: BrewberryPi can load this recipe."}
       </p>
     );
   }
@@ -47,6 +49,7 @@ export function ProblemList(props: { doc: Doc }) {
         {problems.map((p, i) => (
           <li key={i}>
             <span class="font-medium">{describePath(p.path)}:</span> {p.message}
+            {p.path === "id" && " Rename it with the recipe's menu (⋯) in the list."}
           </li>
         ))}
       </ul>
@@ -54,11 +57,11 @@ export function ProblemList(props: { doc: Doc }) {
   );
 }
 
-export function RecipeEditor(props: { doc: Doc; onChange: (id: string, recipe: Recipe) => void; actions: ComponentChildren; status?: ComponentChildren }) {
+export function RecipeEditor(props: { doc: Doc; onChange: (recipe: Recipe) => void; actions: ComponentChildren; status?: ComponentChildren }) {
   const { doc } = props;
   const problems = problemsOf(doc);
   const [addType, setAddType] = useState<GoalType>("HeatUp");
-  const setRecipe = (recipe: Recipe) => props.onChange(doc.id, recipe);
+  const setRecipe = (recipe: Recipe) => props.onChange(recipe);
   const setGoals = (goals: Goal[]) => setRecipe(withGoals(doc.recipe, goals));
   const goals = goalsOf(doc.recipe);
   const has = (path: string) => problems.some((p) => p.path === path);
@@ -66,27 +69,16 @@ export function RecipeEditor(props: { doc: Doc; onChange: (id: string, recipe: R
   return (
     <section class={CARD_STYLE} aria-label="Recipe">
       <div class="flex flex-wrap items-start justify-between gap-3">
-        <h2 class={TITLE_STYLE}>{doc.recipe.name.trim() || "Untitled recipe"}</h2>
+        <div class="min-w-0">
+          <h2 class={TITLE_STYLE}>{doc.recipe.name.trim() || "Untitled recipe"}</h2>
+          <p class={`${HINT_STYLE} mt-0.5 truncate`} title="Rename it in the recipe's menu in the list">
+            {doc.id}.json
+          </p>
+        </div>
         {props.status}
       </div>
 
-      <div class="mt-4 grid gap-4 sm:grid-cols-2">
-        <label class="block">
-          <span class={LABEL_STYLE}>File name (recipe id)</span>
-          <div class="mt-1 flex items-center gap-1">
-            <input
-              type="text"
-              class={`${INPUT_STYLE} ${has("id") ? INVALID_INPUT : ""}`}
-              value={doc.id}
-              placeholder="e.g. Weizen"
-              spellcheck={false}
-              autocomplete="off"
-              onInput={(e) => props.onChange(e.currentTarget.value, doc.recipe)}
-            />
-            <span class="text-sm text-stone-500">.json</span>
-          </div>
-          <span class={`${HINT_STYLE} mt-1 block`}>Letters A–Z, digits, _ and -. The app lists recipes by this name.</span>
-        </label>
+      <div class="mt-4">
         <label class="block">
           <span class={LABEL_STYLE}>Recipe name</span>
           <input
@@ -102,7 +94,7 @@ export function RecipeEditor(props: { doc: Doc; onChange: (id: string, recipe: R
 
       <h3 class="mt-6 text-sm font-semibold text-ink dark:text-ink-light">Mashing process: goals in brewing order</h3>
       {goals.length === 0 ? (
-        <p class={`${HINT_STYLE} mt-2`}>No goals yet. A recipe needs at least one; add them below.</p>
+        <p class={`${HINT_STYLE} mt-2`}>No goals yet. Add them below; until then the BrewberryPi app lists this recipe but can't brew it.</p>
       ) : (
         <ol class="mt-2 space-y-2">
           {goals.map((goal, i) => (

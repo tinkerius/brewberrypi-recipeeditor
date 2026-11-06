@@ -9,7 +9,8 @@ layout and commands; `docs/google-setup.md` the one-time setup.
 
 - `tinkerius/brewberrypi-app`: the application. Its specification is the source of truth for the recipe format:
   `docs/specification/07-recipes.md` (file name = recipe id `[A-Za-z0-9_-]+`, one recipe per file; format
-  `{"version": 1, "name", "mashing_process": {"goals"}}`, version and migration `RCP-007..011`),
+  `{"version": 2, "name", "mashing_process": {"goals"}}`, goals possibly empty `Q-34`, version and migration
+  `RCP-007..011`),
   `04-goal-types.md`, and `data/recipe.schema.json`. The samples are exactly the app's shipped recipes (`RCP-002`).
 - `tinkerius/brewberrypi`: the website brewberrypi.org and the brand (`brand/README.md`: colours, logo, font).
 - `tinkerius/brewberrypi-os`: the OS image; recipes reach the device through its file share
@@ -36,9 +37,10 @@ layout and commands; `docs/google-setup.md` the one-time setup.
 - The editor writes the app's latest recipe format version (`FORMAT_VERSION` in `src/model.ts`), converts older
   files when it reads them (and says so), and refuses newer versions instead of dropping what it doesn't know. When
   the app raises the version (`RCP-011`), follow it in the same way.
-- Privacy: no backend, no analytics, no third-party storage. The Google access token stays in memory; the only
-  localStorage entry is the sign-in hint (e-mail). Update `public/privacy.html` when what the editor stores or sends
-  changes.
+- Privacy: no backend, no analytics, no third-party storage. The only localStorage entries are the Google access
+  token (until it expires, about an hour, or sign-out; shared by the editor's tabs, product owner's decision) and
+  the sign-in hint (e-mail). Update `public/privacy.html` and brewberrypi's `site/privacy.html` when what the
+  editor stores or sends changes.
 - Content-Security-Policy (`vite.config.ts`): only the page itself and Google. No `eval`, no new third-party origins.
 - Scope stays `drive.file` (non-sensitive). Broader Drive scopes need Google's restricted-scope verification.
 - Warn about data that can be lost: the signed-out banner, the "not downloaded"/"unsaved" markers and the

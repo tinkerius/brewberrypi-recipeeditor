@@ -15,24 +15,24 @@ describe("serializeRecipe", () => {
   });
 
   it("writes an empty recipe", () => {
-    expect(serializeRecipe(emptyRecipe())).toBe('{\n  "version": 1,\n  "name": "",\n  "mashing_process": {\n    "goals": []\n  }\n}\n');
+    expect(serializeRecipe(emptyRecipe())).toBe('{\n  "version": 2,\n  "name": "",\n  "mashing_process": {\n    "goals": []\n  }\n}\n');
   });
 
   it("round-trips", () => {
     const recipe = {
-      version: 1,
+      version: 2,
       name: "Ä \"quoted\"",
       mashing_process: { goals: [{ type: "Rest", temperature: 62.5, minutes: 30, name: "R", description: "D\nE" }] },
     };
     expect(JSON.parse(serializeRecipe(recipe))).toEqual(recipe);
-    const odd = { version: 1, name: "N", mashing_process: { goals: [], extra: 1 }, other: true };
+    const odd = { version: 2, name: "N", mashing_process: { goals: [], extra: 1 }, other: true };
     expect(JSON.parse(serializeRecipe(odd))).toEqual(odd);
   });
 });
 
 describe("readRecipe", () => {
   it("keeps unknown fields so the validator can report them", () => {
-    const recipe = toRecipe({ id: "X", version: 1, name: "N", mashing_process: { goals: [{ type: "HeatUp", temperature: 50, extra: 1 }] } });
+    const recipe = toRecipe({ id: "X", version: 2, name: "N", mashing_process: { goals: [{ type: "HeatUp", temperature: 50, extra: 1 }] } });
     expect(recipe.id).toBe("X");
     expect(validateRecipe(recipe).map((p) => p.path)).toEqual(["id", "mashing_process.goals[0].extra"]);
   });
@@ -40,34 +40,40 @@ describe("readRecipe", () => {
   it("makes something editable of anything", () => {
     expect(toRecipe(null)).toEqual(emptyRecipe());
     expect(toRecipe({ name: 5, mashing_process: { goals: [3, { temperature: 1 }] } })).toEqual({
-      version: 1,
+      version: 2,
       name: "",
       mashing_process: { goals: [{ type: "" }, { type: "", temperature: 1 }] },
     });
   });
 
-  it("adds the format version to a file without one, unchanged otherwise", () => {
-    const read = readRecipe({ name: "N", mashing_process: { goals: [{ type: "MashIn" }] } });
-    expect(read).toEqual({ recipe: { version: 1, name: "N", mashing_process: { goals: [{ type: "MashIn" }] } }, converted: undefined });
+  it("writes a file without version or in version 1 as version 2, unchanged otherwise", () => {
+    const expected = { recipe: { version: 2, name: "N", mashing_process: { goals: [{ type: "MashIn" }] } }, converted: undefined };
+    expect(readRecipe({ name: "N", mashing_process: { goals: [{ type: "MashIn" }] } })).toEqual(expected);
+    expect(readRecipe({ version: 1, name: "N", mashing_process: { goals: [{ type: "MashIn" }] } })).toEqual(expected);
+  });
+
+  it("accepts a recipe without goals (app Q-34)", () => {
+    const read = readRecipe({ version: 2, name: "Draft", mashing_process: { goals: [] } });
+    expect(validateRecipe(read.recipe)).toEqual([]);
   });
 
   it("converts the old format with goals at the top level", () => {
     const read = readRecipe({ $schema: "../recipe.schema.json", name: "Old", goals: [{ type: "HeatUp", temperature: 62 }] });
-    expect(read.recipe).toEqual({ version: 1, name: "Old", mashing_process: { goals: [{ type: "HeatUp", temperature: 62 }] } });
+    expect(read.recipe).toEqual({ version: 2, name: "Old", mashing_process: { goals: [{ type: "HeatUp", temperature: 62 }] } });
     expect(read.converted).toContain('moved into "mashing_process"');
     expect(validateRecipe(read.recipe)).toEqual([]);
   });
 
   it("writes an invalid format version as the current one, and says so", () => {
     const read = readRecipe({ version: "1", name: "N", mashing_process: { goals: [{ type: "MashIn" }] } });
-    expect(read.recipe?.version).toBe(1);
+    expect(read.recipe?.version).toBe(2);
     expect(read.converted).toContain("not valid");
   });
 
   it("refuses a newer format version instead of losing what it doesn't know", () => {
-    const read = readRecipe({ version: 2, name: "N", mashing_process: { goals: [] }, hops: [] });
+    const read = readRecipe({ version: 3, name: "N", mashing_process: { goals: [] }, hops: [] });
     expect(read.recipe).toBeUndefined();
-    expect(read.error).toContain("format version 2");
+    expect(read.error).toContain("format version 3");
   });
 
   it("keeps goals next to mashing_process for the validator", () => {
@@ -112,7 +118,7 @@ describe("docs", () => {
   });
 
   it("a new recipe is incomplete", () => {
-    expect(problemsOf(newDoc("", emptyRecipe())).map((p) => p.path)).toEqual(["id", "name", "mashing_process.goals"]);
+    expect(problemsOf(newDoc("", emptyRecipe())).map((p) => p.path)).toEqual(["id", "name"]);
   });
 
   it("finds a free file name", () => {

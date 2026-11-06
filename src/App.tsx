@@ -4,23 +4,33 @@
  */
 
 import { useEffect, useRef, useState } from "preact/hooks";
-import { GoogleAuth, SignInError, rememberHint } from "./auth/google";
+import { GoogleAuth, SignInError, TOKEN_KEY, rememberHint } from "./auth/google";
 import { googleConfigured, pickerConfigured } from "./config";
 import { fingerprint, freeId, hasPendingChanges, newDoc, problemsOf, type Doc } from "./doc";
 import { pickRecipeFiles } from "./drive/picker";
+import { CHANGE_POLL_MS, FULL_SYNC_MS, driveDoc, mergeDriveList } from "./driveSync";
 import { downloadRecipe, readRecipeFile } from "./file";
 import { emptyRecipe, readRecipe, type Recipe } from "./model";
 import { SAMPLES } from "./samples";
 import { openDraftStore, type DraftStore } from "./store/BrowserStore";
-import { DriveStore, NameTakenError, VersionConflictError, type DriveFile } from "./store/DriveStore";
-import { ErrorBanner, StorageBanner } from "./ui/Banners";
+import { DriveError, DriveStore, NameTakenError, VersionConflictError, type DriveFile } from "./store/DriveStore";
+import { ErrorBanner, InfoBanner, StorageBanner } from "./ui/Banners";
+import { GoogleSignInButton } from "./ui/GoogleButton";
 import { MigrateDialog, type MigrateChoice } from "./ui/MigrateDialog";
 import { Modal } from "./ui/Modal";
 import { RecipeEditor } from "./ui/RecipeEditor";
-import { RecipeList } from "./ui/RecipeList";
+import { NameDialog } from "./ui/NameDialog";
+import { RecipeList, type RecipeAction } from "./ui/RecipeList";
 import { BUTTON_STYLES, CARD_STYLE, HINT_STYLE, SELECT_STYLE, TITLE_STYLE } from "./ui/styles";
 
 export const APP_TITLE = "Recipe Editor";
+
+/** What the file-name dialog is for: the name is asked when a recipe is created, duplicated or renamed. */
+type NameRequest =
+  | { kind: "new" }
+  | { kind: "sample"; sampleId: string }
+  | { kind: "duplicate"; key: string }
+  | { kind: "rename"; key: string };
 const SAVE_DELAY_MS = 200;
 
 type Place =
@@ -46,21 +56,19 @@ function sortDocs(docs: Doc[]): Doc[] {
   });
 }
 
-function driveDoc(file: DriveFile): Doc {
-  return { key: file.fileId, id: file.id, recipe: emptyRecipe(), loaded: false, fileId: file.fileId, version: file.version, updatedAt: 0 };
-}
-
 export function App(props: { openDrafts?: () => Promise<DraftStore>; auth?: GoogleAuth }) {
   const [drafts, setDrafts] = useState<DraftStore>();
   const [place, setPlace] = useState<Place>({ kind: "browser" });
   const [docs, setDocsState] = useState<Doc[]>([]);
   const [selectedKey, setSelectedKey] = useState<string>();
   const [error, setError] = useState<string>();
+  const [info, setInfo] = useState<string>();
   const [busy, setBusy] = useState<string>();
   const [storageFailed, setStorageFailed] = useState(false);
   const [confirmation, setConfirmation] = useState<Confirmation>();
   const [conflict, setConflict] = useState<{ doc: Doc; file: DriveFile }>();
   const [migration, setMigration] = useState<{ drafts: Doc[]; driveIds: Set<string> }>();
+  const [nameRequest, setNameRequest] = useState<NameRequest>();
   const [dragging, setDragging] = useState(false);
   const auth = useRef(props.auth ?? new GoogleAuth());
   const uploadInput = useRef<HTMLInputElement>(null);
@@ -71,6 +79,8 @@ export function App(props: { openDrafts?: () => Promise<DraftStore>; auth?: Goog
   docsRef.current = docs;
   const placeRef = useRef(place);
   placeRef.current = place;
+  const draftsRef = useRef(drafts);
+  draftsRef.current = drafts;
   const selectedRef = useRef(selectedKey);
   selectedRef.current = selectedKey;
 
@@ -129,6 +139,7 @@ export function App(props: { openDrafts?: () => Promise<DraftStore>; auth?: Goog
   useEffect(() => {
     void (async () => {
       const store = await (props.openDrafts ?? openDraftStore)();
+      draftsRef.current = store;
       setDrafts(store);
       try {
         const kept = sortDocs(await store.all());
@@ -137,7 +148,44 @@ export function App(props: { openDrafts?: () => Promise<DraftStore>; auth?: Goog
       } catch (e) {
         setError(`Could not read the recipes stored in this browser: ${message(e)}`);
       }
+      // Still signed in from another tab or an earlier visit (the token lasts about an hour).
+      if (googleConfigured() && auth.current.hasValidToken()) {
+        await restoreDrive();
+      }
     })();
+  }, []);
+
+  /** Signs in with the stored token, without Google's window; a token that no longer works is dropped quietly. */
+  const restoreDrive = async () => {
+    setBusy("Signing in with Google…");
+    try {
+      await enterDrive(false);
+    } catch {
+      auth.current.forget(true);
+      if (placeRef.current.kind === "drive") {
+        await leaveDrive();
+      }
+    } finally {
+      setBusy(undefined);
+    }
+  };
+
+  // Signed out in another tab: sign out here too (unsaved changes stay until this tab signs in again or leaves).
+  useEffect(() => {
+    const onStorage = (e: StorageEvent) => {
+      if (e.key !== TOKEN_KEY || e.newValue !== null || placeRef.current.kind !== "drive") {
+        return;
+      }
+      auth.current.forget();
+      if (docsRef.current.some(hasPendingChanges)) {
+        setInfo("You signed out in another tab. Sign in again to save your changes to Google Drive.");
+      } else {
+        setInfo("You signed out in another tab.");
+        void leaveDrive();
+      }
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
   }, []);
 
   // Leaving the page with work that would be lost.
@@ -159,12 +207,11 @@ export function App(props: { openDrafts?: () => Promise<DraftStore>; auth?: Goog
 
   // ---- Recipes, both places ----
 
-  const newRecipe = () => putDoc(newDoc("", emptyRecipe()), true);
+  const newRecipe = () => setNameRequest({ kind: "new" });
 
-  const newFromSample = (id: string) => {
-    const sample = SAMPLES.find((s) => s.id === id);
-    if (sample) {
-      putDoc(newDoc(freeId(sample.id, takenIds()), structuredClone(sample.recipe)), true);
+  const newFromSample = (sampleId: string) => {
+    if (SAMPLES.some((s) => s.id === sampleId)) {
+      setNameRequest({ kind: "sample", sampleId });
     }
   };
 
@@ -192,7 +239,7 @@ export function App(props: { openDrafts?: () => Promise<DraftStore>; auth?: Goog
     }
   };
 
-  const change = (doc: Doc, id: string, recipe: Recipe) => putDoc({ ...doc, id, recipe, updatedAt: Date.now() });
+  const change = (doc: Doc, recipe: Recipe) => putDoc({ ...doc, recipe, updatedAt: Date.now() });
 
   const download = (doc: Doc) => {
     downloadRecipe(doc.id, doc.recipe);
@@ -201,7 +248,100 @@ export function App(props: { openDrafts?: () => Promise<DraftStore>; auth?: Goog
     }
   };
 
-  const duplicate = (doc: Doc) => putDoc(newDoc(freeId(doc.id || "recipe", takenIds()), structuredClone(doc.recipe)), true);
+  /** The doc with its content (Drive recipes are read when first needed). */
+  const ensureLoaded = async (key: string): Promise<Doc | undefined> => {
+    if (docsRef.current.find((d) => d.key === key)?.loaded === false) {
+      await loadDoc(key);
+    }
+    return docsRef.current.find((d) => d.key === key && d.loaded);
+  };
+
+  /** Renames a recipe's file: in Drive at once (content unchanged), else the next download uses the new name. */
+  const rename = (doc: Doc, id: string) => {
+    const current = placeRef.current;
+    if (current.kind !== "drive" || !doc.fileId) {
+      putDoc({ ...doc, id, updatedAt: Date.now() });
+      return;
+    }
+    const fileId = doc.fileId;
+    void run("Renaming…", async () => {
+      try {
+        const { file, current: wasCurrent } = await current.store.rename(fileId, id, doc.loaded ? doc.version : undefined);
+        const now = docsRef.current.find((d) => d.key === doc.key) ?? doc;
+        // The saved content stays the same under its new name.
+        const baseline = now.baseline === undefined ? undefined : `${file.id}${now.baseline.slice(now.baseline.indexOf("\n"))}`;
+        putDoc({ ...now, id: file.id, version: wasCurrent ? file.version : now.version, baseline, updatedAt: Date.now() });
+      } catch (e) {
+        if (e instanceof NameTakenError) {
+          setError(`${e.message} Choose another file name.`);
+          return;
+        }
+        throw e;
+      }
+    });
+  };
+
+  const onRecipeAction = (doc: Doc, action: RecipeAction) => {
+    switch (action) {
+      case "rename":
+      case "duplicate":
+        setNameRequest({ kind: action, key: doc.key });
+        break;
+      case "download":
+        void (async () => {
+          const loaded = await ensureLoaded(doc.key);
+          if (!loaded) {
+            return;
+          }
+          if (problemsOf(loaded).length > 0 || loaded.loadError) {
+            selectDoc(loaded.key);
+            setError(`${loaded.id}.json is incomplete; fix it before downloading.`);
+            return;
+          }
+          download(loaded);
+        })();
+        break;
+      case "delete":
+        remove(doc);
+        break;
+    }
+  };
+
+  /** The file-name dialog for nameRequest, or nothing. */
+  const nameDialog = (request: NameRequest) => {
+    const doc = "key" in request ? docsRef.current.find((d) => d.key === request.key) : undefined;
+    const others = new Set(docsRef.current.filter((d) => d !== doc || request.kind !== "rename").map((d) => d.id));
+    const sample = request.kind === "sample" ? SAMPLES.find((s) => s.id === request.sampleId) : undefined;
+    const close = () => setNameRequest(undefined);
+    const settings = {
+      new: { title: "New recipe", initial: "", confirmLabel: "Create" },
+      sample: { title: `New recipe from ${request.kind === "sample" ? request.sampleId : ""}`, initial: freeId(sample?.id ?? "recipe", others), confirmLabel: "Create" },
+      duplicate: { title: `Duplicate ${doc?.id ?? ""}.json`, initial: freeId(doc?.id || "recipe", others), confirmLabel: "Duplicate" },
+      rename: { title: `Rename ${doc?.id ?? ""}.json`, initial: doc?.id ?? "", confirmLabel: "Rename" },
+    }[request.kind];
+    if ("key" in request && !doc) {
+      return null; // gone meanwhile (deleted elsewhere)
+    }
+    return (
+      <NameDialog
+        {...settings}
+        taken={others}
+        onCancel={close}
+        onConfirm={(id) => {
+          close();
+          if (request.kind === "new") {
+            putDoc(newDoc(id, emptyRecipe()), true);
+          } else if (request.kind === "sample" && sample) {
+            putDoc(newDoc(id, structuredClone(sample.recipe)), true);
+          } else if (request.kind === "duplicate" && doc) {
+            void ensureLoaded(doc.key).then((source) => source && putDoc(newDoc(id, structuredClone(source.recipe)), true));
+          } else if (request.kind === "rename" && doc) {
+            rename(doc, id);
+          }
+        }}
+      />
+    );
+  };
 
   const removeFromList = (doc: Doc) => {
     const rest = docsRef.current.filter((d) => d.key !== doc.key);
@@ -255,13 +395,29 @@ export function App(props: { openDrafts?: () => Promise<DraftStore>; auth?: Goog
 
   // ---- Google Drive ----
 
-  const loadDoc = async (key: string) => {
+  /** Reads a Drive recipe's content; quiet: in the background, without the busy note (sync). */
+  const loadDoc = async (key: string, quiet = false) => {
     const current = placeRef.current;
     if (current.kind !== "drive") {
       return;
     }
-    await run("Loading…", async () => {
-      const { file, text } = await current.store.read(key);
+    const task = async () => {
+      let read: { file: DriveFile; text: string };
+      try {
+        read = await current.store.read(key);
+      } catch (e) {
+        if (e instanceof DriveError && e.status === 404) {
+          // Deleted or moved in Drive since the list was read.
+          const gone = docsRef.current.find((d) => d.key === key);
+          if (gone) {
+            removeFromList(gone);
+            setInfo(`${gone.id}.json is no longer in your Drive folder BrewberryPi/recipes (deleted or moved).`);
+          }
+          return;
+        }
+        throw e;
+      }
+      const { file, text } = read;
       let recipe = emptyRecipe();
       let loadError: string | undefined;
       let notice: string | undefined;
@@ -274,9 +430,18 @@ export function App(props: { openDrafts?: () => Promise<DraftStore>; auth?: Goog
         loadError = `${file.id}.json is not a JSON file (${message(e)}). Fix it in Drive, or replace it by saving this recipe.`;
       }
       const doc: Doc = { key, id: file.id, recipe, loaded: true, loadError, notice, fileId: file.fileId, version: file.version, updatedAt: Date.now() };
+      const now = docsRef.current.find((d) => d.key === key);
+      if (quiet && now && hasPendingChanges(now)) {
+        return; // edited while it was being read: keep the edits (the version check on save decides)
+      }
       // A converted file counts as changed, so saving writes it in the current format.
       putDoc({ ...doc, baseline: notice ? undefined : fingerprint(doc) });
-    });
+    };
+    if (quiet) {
+      await task().catch(() => undefined); // tried again with the next sync
+    } else {
+      await run("Loading…", task);
+    }
   };
 
   function selectDoc(key: string) {
@@ -288,19 +453,109 @@ export function App(props: { openDrafts?: () => Promise<DraftStore>; auth?: Goog
     }
   }
 
-  const showDrive = async (store: DriveStore) => {
-    const files = await store.list();
-    // Keep recipes not saved yet, and changes not saved yet.
-    const unsaved = docsRef.current.filter((d) => hasPendingChanges(d));
-    const unsavedKeys = new Set(unsaved.map((d) => d.key));
-    const next = sortDocs([...unsaved, ...files.filter((f) => !unsavedKeys.has(f.fileId)).map(driveDoc)]);
-    setDocs(next);
-    const keep = next.find((d) => d.key === selectedRef.current) ?? next[0];
-    setSelectedKey(keep?.key);
-    if (keep && !keep.loaded) {
-      await loadDoc(keep.key);
+  /**
+   * Reads the list from Drive and merges it into the open recipes (driveSync.ts). In the background (regular sync)
+   * it runs only with a valid token and never reports errors: the next sync tries again.
+   */
+  const syncing = useRef<Promise<void> | undefined>(undefined);
+  const syncDrive = async (store: DriveStore, background: boolean): Promise<void> => {
+    if (syncing.current) {
+      if (background) {
+        return;
+      }
+      await syncing.current.catch(() => undefined); // a sync the user asked for waits for a background one
+    }
+    if (background && !auth.current.hasValidToken()) {
+      return;
+    }
+    const task = syncOnce(store, background);
+    syncing.current = task;
+    try {
+      await task;
+    } finally {
+      if (syncing.current === task) {
+        syncing.current = undefined;
+      }
     }
   };
+
+  const syncOnce = async (store: DriveStore, background: boolean) => {
+    try {
+      const files = await store.list({ renew: !background });
+      const current = placeRef.current;
+      if (current.kind !== "drive" || current.store !== store) {
+        return; // signed out meanwhile
+      }
+      const merge = mergeDriveList(docsRef.current, files);
+      const next = sortDocs(merge.docs);
+      setDocs(next);
+      if (!next.some((d) => d.key === selectedRef.current)) {
+        selectedRef.current = next[0]?.key;
+        setSelectedKey(next[0]?.key);
+      }
+      const notes = [
+        ...merge.removed.map((d) => `${d.id}.json`),
+        ...merge.orphaned.map((d) => `${d.id}.json (your unsaved changes are kept)`),
+      ];
+      if (background && notes.length > 0) {
+        setInfo(`Deleted or moved in your Google Drive: ${notes.join(", ")}.`);
+      }
+      const toLoad = new Set(merge.reload);
+      const selected = next.find((d) => d.key === selectedRef.current);
+      if (selected && !selected.loaded) {
+        toLoad.add(selected.key);
+      }
+      for (const key of toLoad) {
+        await loadDoc(key, background);
+      }
+    } catch (e) {
+      if (!background) {
+        throw e;
+      }
+    }
+  };
+
+  const showDrive = (store: DriveStore) => syncDrive(store, false);
+
+  // Signed in: ask Drive's changes feed regularly and when the page comes back into view (another tab, device or
+  // drive.google.com may have changed the folder); read the list again when it changed, and anyway now and then.
+  useEffect(() => {
+    if (place.kind !== "drive") {
+      return;
+    }
+    const store = place.store;
+    let lastPoll = Date.now();
+    let lastFull = Date.now();
+    let polling = false;
+    const poll = async (minGapMs: number) => {
+      if (polling || document.visibilityState !== "visible" || Date.now() - lastPoll < minGapMs || !auth.current.hasValidToken()) {
+        return;
+      }
+      polling = true;
+      lastPoll = Date.now();
+      try {
+        const listed = new Set(docsRef.current.flatMap((d) => (d.fileId ? [d.fileId] : [])));
+        if ((await store.changedSince(listed)) || Date.now() - lastFull >= FULL_SYNC_MS) {
+          lastFull = Date.now();
+          await syncDrive(store, true);
+        }
+      } catch {
+        // offline or token expired: the next poll tries again
+      } finally {
+        polling = false;
+      }
+    };
+    const sync = (minGapMs: number) => void poll(minGapMs);
+    const timer = setInterval(() => sync(0), CHANGE_POLL_MS);
+    const onVisible = () => sync(5_000);
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", onVisible);
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("focus", onVisible);
+    };
+  }, [place]);
 
   const signIn = (switchAccount = false) =>
     void run("Signing in with Google…", async () => {
@@ -313,36 +568,49 @@ export function App(props: { openDrafts?: () => Promise<DraftStore>; auth?: Goog
         }
         throw e;
       }
-      const store = new DriveStore(auth.current);
-      await store.init();
-      const account = await store.about();
-      rememberHint(account.email);
-      // Leave the browser drafts (they stay stored) and show the Drive recipes.
-      saveTimers.current.forEach((t) => clearTimeout(t));
-      saveTimers.current.clear();
-      const browserDrafts = (await drafts?.all()) ?? docsRef.current;
-      setDocs([]);
-      placeRef.current = { kind: "drive", store, account };
-      setPlace(placeRef.current);
-      await showDrive(store);
-      if (browserDrafts.length > 0) {
-        setMigration({ drafts: sortDocs(browserDrafts), driveIds: new Set(docsRef.current.map((d) => d.id)) });
-      }
+      await enterDrive(true);
     });
+
+  /**
+   * Shows the signed-in user's Drive recipes (the token is there already). After an interactive sign-in it offers
+   * to save the browser drafts to Drive; a tab that takes over the stored token of another tab doesn't ask again.
+   */
+  const enterDrive = async (offerDrafts: boolean) => {
+    const store = new DriveStore(auth.current);
+    await store.init();
+    await store.startChanges();
+    const account = await store.about();
+    rememberHint(account.email);
+    // Leave the browser drafts (they stay stored) and show the Drive recipes.
+    saveTimers.current.forEach((t) => clearTimeout(t));
+    saveTimers.current.clear();
+    const browserDrafts = offerDrafts ? ((await draftsRef.current?.all()) ?? docsRef.current) : [];
+    setDocs([]);
+    placeRef.current = { kind: "drive", store, account };
+    setPlace(placeRef.current);
+    await showDrive(store);
+    if (browserDrafts.length > 0) {
+      setMigration({ drafts: sortDocs(browserDrafts), driveIds: new Set(docsRef.current.map((d) => d.id)) });
+    }
+  };
+
+  /** Back to the browser drafts (signed out here or in another tab). */
+  const leaveDrive = async () => {
+    setDocs([]);
+    selectedRef.current = undefined;
+    setSelectedKey(undefined);
+    placeRef.current = { kind: "browser" };
+    setPlace(placeRef.current);
+    const kept = sortDocs((await draftsRef.current?.all()) ?? []);
+    setDocs(kept);
+    setSelectedKey(kept[0]?.key);
+  };
 
   const signOut = () => {
     const leave = () =>
       void run("Signing out…", async () => {
-        auth.current.signOut();
-        // Drop the Drive recipes before the page shows browser drafts again.
-        setDocs([]);
-        selectedRef.current = undefined;
-        setSelectedKey(undefined);
-        placeRef.current = { kind: "browser" };
-        setPlace(placeRef.current);
-        const kept = sortDocs((await drafts?.all()) ?? []);
-        setDocs(kept);
-        setSelectedKey(kept[0]?.key);
+        auth.current.signOut(); // in every tab
+        await leaveDrive();
       });
     if (docsRef.current.some(hasPendingChanges)) {
       setConfirmation({
@@ -414,13 +682,6 @@ export function App(props: { openDrafts?: () => Promise<DraftStore>; auth?: Goog
         selectDoc(adopted[0].fileId);
       }
     });
-  };
-
-  const refresh = () => {
-    const current = placeRef.current;
-    if (current.kind === "drive") {
-      void run("Loading from Google Drive…", () => showDrive(current.store));
-    }
   };
 
   const migrate = (choices: Map<string, MigrateChoice>) => {
@@ -525,15 +786,11 @@ export function App(props: { openDrafts?: () => Promise<DraftStore>; auth?: Goog
               </button>
             </>
           ) : (
-            <button
-              type="button"
-              class={BUTTON_STYLES.primary}
+            <GoogleSignInButton
               disabled={isBusy || !googleConfigured()}
               title={googleConfigured() ? undefined : "Google sign-in is not configured in this build."}
               onClick={() => signIn()}
-            >
-              Sign in with Google
-            </button>
+            />
           )}
         </div>
       </header>
@@ -547,6 +804,7 @@ export function App(props: { openDrafts?: () => Promise<DraftStore>; auth?: Goog
           </p>
         )}
         {error && <ErrorBanner message={error} onClose={() => setError(undefined)} />}
+        {info && <InfoBanner message={info} onClose={() => setInfo(undefined)} />}
         {busy && (
           <p class="text-sm text-stone-600 dark:text-stone-300" role="status">
             {busy}
@@ -556,14 +814,7 @@ export function App(props: { openDrafts?: () => Promise<DraftStore>; auth?: Goog
 
       <div class="mt-4 grid flex-1 items-start gap-4 lg:grid-cols-[19rem_1fr]">
         <aside class={`${CARD_STYLE} min-w-0`} aria-label="Recipe list">
-          <div class="flex items-center justify-between gap-2">
-            <h2 class={TITLE_STYLE}>{inDrive ? "In your Drive" : "In this browser"}</h2>
-            {inDrive && (
-              <button type="button" class={BUTTON_STYLES.small} title="Reload the list from Google Drive" disabled={isBusy} onClick={refresh}>
-                ↻
-              </button>
-            )}
-          </div>
+          <h2 class={TITLE_STYLE}>{inDrive ? "In your Drive" : "In this browser"}</h2>
           <div class="mt-3 flex flex-wrap gap-2">
             <button type="button" class={BUTTON_STYLES.primary} disabled={isBusy} onClick={newRecipe}>
               New recipe
@@ -622,6 +873,7 @@ export function App(props: { openDrafts?: () => Promise<DraftStore>; auth?: Goog
               selectedKey={selectedKey}
               pendingLabel={inDrive ? "unsaved" : "not downloaded"}
               onSelect={selectDoc}
+              onAction={onRecipeAction}
             />
           </div>
           {!inDrive && docs.length > 0 && (
@@ -636,7 +888,7 @@ export function App(props: { openDrafts?: () => Promise<DraftStore>; auth?: Goog
             <RecipeEditor
               doc={selected}
               status={status(selected)}
-              onChange={(id, recipe) => change(selected, id, recipe)}
+              onChange={(recipe) => change(selected, recipe)}
               actions={
                 <>
                   {inDrive && (
@@ -656,9 +908,6 @@ export function App(props: { openDrafts?: () => Promise<DraftStore>; auth?: Goog
                     onClick={() => download(selected)}
                   >
                     Download {selected.id ? `${selected.id}.json` : "file"}
-                  </button>
-                  <button type="button" class={BUTTON_STYLES.secondary} disabled={isBusy} onClick={() => duplicate(selected)}>
-                    Duplicate
                   </button>
                   <button type="button" class={`${BUTTON_STYLES.danger} sm:ml-auto`} disabled={isBusy} onClick={() => remove(selected)}>
                     Delete
@@ -768,6 +1017,8 @@ export function App(props: { openDrafts?: () => Promise<DraftStore>; auth?: Goog
           </p>
         </Modal>
       )}
+
+      {nameRequest && nameDialog(nameRequest)}
 
       {migration && (
         <MigrateDialog drafts={migration.drafts} driveIds={migration.driveIds} busy={isBusy} onSave={migrate} onLater={() => setMigration(undefined)} />

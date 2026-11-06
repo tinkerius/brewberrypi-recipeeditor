@@ -125,9 +125,6 @@ export function validateRecipe(recipe: unknown): Problem[] {
   if (!Array.isArray(process.goals)) {
     problems.push({ path: GOALS_PATH, message: "The recipe needs a list of goals." });
   } else {
-    if (process.goals.length === 0) {
-      problems.push({ path: GOALS_PATH, message: "The recipe needs at least one goal." });
-    }
     process.goals.forEach((goal, i) => checkGoal(goal, i, problems));
   }
   return problems;

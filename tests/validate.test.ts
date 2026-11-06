@@ -16,13 +16,15 @@ function expectSameVerdict(recipe: unknown) {
 }
 
 /** A recipe with these goals. */
-const r = (goals: unknown, extra: object = {}) => ({ version: 1, name: "x", mashing_process: { goals }, ...extra });
+const r = (goals: unknown, extra: object = {}) => ({ version: 2, name: "x", mashing_process: { goals }, ...extra });
 
 const valid = r([{ type: "HeatUp", temperature: 62 }]);
 
 const CASES: [string, unknown][] = [
   ["valid", valid],
-  ["without version (version 1)", { name: "x", mashing_process: { goals: [{ type: "MashIn" }] } }],
+  ["without version", { name: "x", mashing_process: { goals: [{ type: "MashIn" }] } }],
+  ["version 1 (the editor writes 2)", { ...valid, version: 1 }],
+  ["version 3", { ...valid, version: 3 }],
   ["with $schema", { $schema: "../recipe.schema.json", ...valid }],
   ["all goal types", r([
     { type: "PourInBrewingWater" },
@@ -37,19 +39,18 @@ const CASES: [string, unknown][] = [
   ])],
   ["not an object", []],
   ["string", "x"],
-  ["version 2", { ...valid, version: 2 }],
   ["version 0", { ...valid, version: 0 }],
   ["version as string", { ...valid, version: "1" }],
   ["old flat format", { name: "x", goals: [{ type: "MashIn" }] }],
   ["old goals next to mashing_process", { ...valid, goals: [{ type: "MashIn" }] }],
-  ["no name", { version: 1, mashing_process: valid.mashing_process }],
+  ["no name", { version: 2, mashing_process: valid.mashing_process }],
   ["empty name", { ...valid, name: "" }],
   ["name not a string", { ...valid, name: 3 }],
-  ["no mashing_process", { version: 1, name: "x" }],
-  ["mashing_process not an object", { version: 1, name: "x", mashing_process: [] }],
-  ["mashing_process without goals", { version: 1, name: "x", mashing_process: {} }],
-  ["extra field in mashing_process", { version: 1, name: "x", mashing_process: { goals: [{ type: "MashIn" }], hops: [] } }],
-  ["empty goals", r([])],
+  ["no mashing_process", { version: 2, name: "x" }],
+  ["mashing_process not an object", { version: 2, name: "x", mashing_process: [] }],
+  ["mashing_process without goals", { version: 2, name: "x", mashing_process: {} }],
+  ["extra field in mashing_process", { version: 2, name: "x", mashing_process: { goals: [{ type: "MashIn" }], hops: [] } }],
+  ["empty goals (app Q-34)", r([])],
   ["goals not an array", r({})],
   ["extra top-level field", { ...valid, grain_bill: {} }],
   ["$schema not a string", { ...valid, $schema: 1 }],

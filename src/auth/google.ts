@@ -1,8 +1,10 @@
 /**
  * Sign-in with Google (Google Identity Services, token model): the browser gets a short-lived access token for the
- * scope drive.file and no refresh token, so no secret and no backend are needed. The token is kept in memory only;
- * when it expires (after about an hour) it is renewed with prompt "", which normally closes again at once while the
- * Google session lasts. The e-mail address of the last account is remembered in localStorage as a login hint only.
+ * scope drive.file and no refresh token, so no secret and no backend are needed. The token is kept in localStorage
+ * until it expires (about an hour) or the user signs out, so other tabs and reloads of the editor are signed in too;
+ * signing out in one tab signs out all of them (App listens for the storage event). An expired token is renewed with
+ * prompt "", which needs a click (it opens Google's window, which normally closes again at once while the Google
+ * session lasts). The e-mail address of the last account is remembered in localStorage as a login hint.
  */
 
 import { DRIVE_SCOPE, GOOGLE } from "../config";
@@ -10,6 +12,7 @@ import { loadScript } from "./loadScript";
 
 const GSI_SCRIPT = "https://accounts.google.com/gsi/client";
 const HINT_KEY = "brewberrypi.recipeeditor.googleHint";
+export const TOKEN_KEY = "brewberrypi.recipeeditor.googleToken";
 /** Renew this long before the token expires. */
 const EXPIRY_MARGIN_MS = 60_000;
 
@@ -42,16 +45,72 @@ export function rememberHint(email: string | undefined) {
   }
 }
 
+interface StoredToken {
+  token: string;
+  expiresAt: number;
+}
+
+function readStoredToken(storage: Storage | undefined): StoredToken | undefined {
+  try {
+    const stored = JSON.parse(storage?.getItem(TOKEN_KEY) ?? "null") as StoredToken | null;
+    return stored && typeof stored.token === "string" && typeof stored.expiresAt === "number" ? stored : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function defaultStorage(): Storage | undefined {
+  try {
+    return globalThis.localStorage;
+  } catch {
+    return undefined; // blocked: the token stays in this tab's memory
+  }
+}
+
 export class GoogleAuth implements TokenSource {
   private client: google.accounts.oauth2.TokenClient | undefined;
   private accessToken: string | undefined;
   private expiresAt = 0;
   private pending: { resolve: (token: string) => void; reject: (error: Error) => void } | undefined;
 
-  constructor(private readonly clientId: string = GOOGLE.clientId) {}
+  constructor(
+    private readonly clientId: string = GOOGLE.clientId,
+    private readonly storage: Storage | undefined = defaultStorage(),
+  ) {
+    this.adoptStoredToken();
+  }
 
   get signedIn(): boolean {
     return this.accessToken !== undefined;
+  }
+
+  /** True while the token is valid, so a request needs no renewal (which may open Google's window). */
+  hasValidToken(): boolean {
+    if (!(this.accessToken !== undefined && Date.now() < this.expiresAt - EXPIRY_MARGIN_MS)) {
+      this.adoptStoredToken(); // another tab may have renewed it
+    }
+    return this.accessToken !== undefined && Date.now() < this.expiresAt - EXPIRY_MARGIN_MS;
+  }
+
+  /** Takes over a still valid token another tab (or an earlier visit) stored. */
+  private adoptStoredToken() {
+    const stored = readStoredToken(this.storage);
+    if (stored && Date.now() < stored.expiresAt - EXPIRY_MARGIN_MS && stored.expiresAt > this.expiresAt) {
+      this.accessToken = stored.token;
+      this.expiresAt = stored.expiresAt;
+    }
+  }
+
+  private storeToken() {
+    try {
+      if (this.accessToken) {
+        this.storage?.setItem(TOKEN_KEY, JSON.stringify({ token: this.accessToken, expiresAt: this.expiresAt }));
+      } else {
+        this.storage?.removeItem(TOKEN_KEY);
+      }
+    } catch {
+      // blocked or full: the token stays in this tab's memory
+    }
   }
 
   private async tokenClient(): Promise<google.accounts.oauth2.TokenClient> {
@@ -84,6 +143,7 @@ export class GoogleAuth implements TokenSource {
     } else {
       this.accessToken = response.access_token;
       this.expiresAt = Date.now() + Number(response.expires_in) * 1000;
+      this.storeToken();
       this.settle(undefined, response.access_token);
     }
   }
@@ -119,7 +179,7 @@ export class GoogleAuth implements TokenSource {
   }
 
   async token(): Promise<string> {
-    if (this.accessToken && Date.now() < this.expiresAt - EXPIRY_MARGIN_MS) {
+    if (this.hasValidToken() && this.accessToken) {
       return this.accessToken;
     }
     return this.renew();
@@ -127,16 +187,30 @@ export class GoogleAuth implements TokenSource {
 
   renew(): Promise<string> {
     this.accessToken = undefined;
+    this.expiresAt = 0;
     return this.request("", readHint());
   }
 
+  /** Signs out in every tab: the stored token is removed (other tabs see it go) and revoked at Google. */
   signOut() {
     const token = this.accessToken;
+    this.forget();
+    this.storeToken();
+    rememberHint(undefined);
+    if (token) {
+      // After a reload the Google script may not be loaded yet.
+      void loadScript(GSI_SCRIPT)
+        .then(() => google.accounts.oauth2.revoke(token))
+        .catch(() => undefined);
+    }
+  }
+
+  /** Drops the token in this tab; discard also removes the stored one (it no longer works). */
+  forget(discard = false) {
     this.accessToken = undefined;
     this.expiresAt = 0;
-    rememberHint(undefined);
-    if (token && typeof google !== "undefined") {
-      google.accounts.oauth2.revoke(token);
+    if (discard) {
+      this.storeToken();
     }
   }
 }

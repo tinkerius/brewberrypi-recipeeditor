@@ -3,7 +3,8 @@
 Web editor for BrewberryPi brewing recipes: **https://recipes.brewberrypi.org**
 
 BrewberryPi is a Raspberry Pi controller for a home-brewing mash kettle. It brews from recipes: JSON files, one per
-recipe, in its recipe folder (`{"version": 1, "name": …, "mashing_process": {"goals": […]}}`). The editor writes the
+recipe, in its recipe folder (`{"version": 2, "name": …, "mashing_process": {"goals": […]}}`; the goals may be empty,
+then the app lists the recipe but can't brew it). The editor writes the
 app's current format version. Files in the old format (goals at the top level) are converted when opened; files of a
 newer format version are refused. This editor creates and edits those files in the browser. It is a static site on GitHub
 Pages, with no backend.
@@ -16,6 +17,11 @@ Pages, with no backend.
 - **Signed in with Google:** recipes are files in your own Google Drive, folder `BrewberryPi/recipes`. The editor
   uses Google's `drive.file` permission, so it sees only the files it created or that you picked in the Google Picker
   ("Add files from Drive"). On sign-in it offers to move the browser drafts to Drive.
+
+Signed in, the list follows changes made elsewhere (the editor in another tab or on another device,
+drive.google.com) within about 10 seconds. Drive's push notifications need a server (a webhook), so the editor asks
+Drive's changes feed instead, every 10 seconds while the page is visible; it reads the whole list again only when
+the folder changed, and every 5 minutes anyway (`src/driveSync.ts`).
 
 To brew with a recipe, copy its file into the `app/recipes` folder of the BrewberryPi's file share
 (`\\<hostname>.local\config`, see [brewberrypi-os](https://github.com/tinkerius/brewberrypi-os)). The app picks it up

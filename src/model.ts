@@ -1,10 +1,11 @@
 /**
  * Recipe and goal types: the recipe file format of brewberrypi-app (data/recipe.schema.json, spec 04 and 07 §7.2):
- * { "version": 1, "name": …, "mashing_process": { "goals": […] } }, one recipe per file, the file name is the id.
+ * { "version": 2, "name": …, "mashing_process": { "goals": […] } }, one recipe per file, the file name is the id.
+ * The goals may be empty (app Q-34): the app then lists the recipe but can't load it.
  */
 
 /** The recipe file format version this editor reads and writes (RCP-008: the app's latest version). */
-export const FORMAT_VERSION = 1;
+export const FORMAT_VERSION = 2;
 
 export const GOAL_TYPES = [
   "PourInBrewingWater",
@@ -182,7 +183,8 @@ export function readRecipe(json: unknown): ReadRecipe {
         "It was written for a newer BrewberryPi app. Reload the editor to get the latest version.",
     };
   }
-  if (version !== undefined && version !== FORMAT_VERSION) {
+  // Version 1 (or none) differs from version 2 only in that goals may now be empty: written as version 2 as is.
+  if (version !== undefined && version !== 1 && version !== FORMAT_VERSION) {
     changes.push(`its format version ${JSON.stringify(version)} is not valid; it is written as version ${FORMAT_VERSION}`);
   }
   let process: MashingProcess;

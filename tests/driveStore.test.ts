@@ -195,6 +195,19 @@ describe("DriveStore", () => {
     await expect(store.update(a.fileId, "B", recipe, renamed.version)).rejects.toBeInstanceOf(NameTakenError);
   });
 
+  it("renames a file without changing its content, and says whether it was still current", async () => {
+    const { drive, store } = await setup();
+    const a = await store.create("A", recipe);
+    await store.create("B", recipe);
+    const renamed = await store.rename(a.fileId, "C", a.version);
+    expect(renamed.file.id).toBe("C");
+    expect(renamed.current).toBe(true);
+    expect(JSON.parse(drive.files.find((f) => f.id === a.fileId)!.content)).toEqual(recipe);
+    await expect(store.rename(a.fileId, "B", renamed.file.version)).rejects.toBeInstanceOf(NameTakenError);
+    drive.files.find((f) => f.id === a.fileId)!.version += 3; // changed elsewhere
+    expect((await store.rename(a.fileId, "D", renamed.file.version)).current).toBe(false);
+  });
+
   it("moves deleted recipes to the trash", async () => {
     const { drive, store } = await setup();
     const a = await store.create("A", recipe);

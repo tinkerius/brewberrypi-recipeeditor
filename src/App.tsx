@@ -18,10 +18,18 @@ import { ErrorBanner, InfoBanner, StorageBanner } from "./ui/Banners";
 import { MigrateDialog, type MigrateChoice } from "./ui/MigrateDialog";
 import { Modal } from "./ui/Modal";
 import { RecipeEditor } from "./ui/RecipeEditor";
-import { RecipeList } from "./ui/RecipeList";
+import { NameDialog } from "./ui/NameDialog";
+import { RecipeList, type RecipeAction } from "./ui/RecipeList";
 import { BUTTON_STYLES, CARD_STYLE, HINT_STYLE, SELECT_STYLE, TITLE_STYLE } from "./ui/styles";
 
 export const APP_TITLE = "Recipe Editor";
+
+/** What the file-name dialog is for: the name is asked when a recipe is created, duplicated or renamed. */
+type NameRequest =
+  | { kind: "new" }
+  | { kind: "sample"; sampleId: string }
+  | { kind: "duplicate"; key: string }
+  | { kind: "rename"; key: string };
 const SAVE_DELAY_MS = 200;
 
 type Place =
@@ -59,6 +67,7 @@ export function App(props: { openDrafts?: () => Promise<DraftStore>; auth?: Goog
   const [confirmation, setConfirmation] = useState<Confirmation>();
   const [conflict, setConflict] = useState<{ doc: Doc; file: DriveFile }>();
   const [migration, setMigration] = useState<{ drafts: Doc[]; driveIds: Set<string> }>();
+  const [nameRequest, setNameRequest] = useState<NameRequest>();
   const [dragging, setDragging] = useState(false);
   const auth = useRef(props.auth ?? new GoogleAuth());
   const uploadInput = useRef<HTMLInputElement>(null);
@@ -157,12 +166,11 @@ export function App(props: { openDrafts?: () => Promise<DraftStore>; auth?: Goog
 
   // ---- Recipes, both places ----
 
-  const newRecipe = () => putDoc(newDoc("", emptyRecipe()), true);
+  const newRecipe = () => setNameRequest({ kind: "new" });
 
-  const newFromSample = (id: string) => {
-    const sample = SAMPLES.find((s) => s.id === id);
-    if (sample) {
-      putDoc(newDoc(freeId(sample.id, takenIds()), structuredClone(sample.recipe)), true);
+  const newFromSample = (sampleId: string) => {
+    if (SAMPLES.some((s) => s.id === sampleId)) {
+      setNameRequest({ kind: "sample", sampleId });
     }
   };
 
@@ -190,7 +198,7 @@ export function App(props: { openDrafts?: () => Promise<DraftStore>; auth?: Goog
     }
   };
 
-  const change = (doc: Doc, id: string, recipe: Recipe) => putDoc({ ...doc, id, recipe, updatedAt: Date.now() });
+  const change = (doc: Doc, recipe: Recipe) => putDoc({ ...doc, recipe, updatedAt: Date.now() });
 
   const download = (doc: Doc) => {
     downloadRecipe(doc.id, doc.recipe);
@@ -199,7 +207,100 @@ export function App(props: { openDrafts?: () => Promise<DraftStore>; auth?: Goog
     }
   };
 
-  const duplicate = (doc: Doc) => putDoc(newDoc(freeId(doc.id || "recipe", takenIds()), structuredClone(doc.recipe)), true);
+  /** The doc with its content (Drive recipes are read when first needed). */
+  const ensureLoaded = async (key: string): Promise<Doc | undefined> => {
+    if (docsRef.current.find((d) => d.key === key)?.loaded === false) {
+      await loadDoc(key);
+    }
+    return docsRef.current.find((d) => d.key === key && d.loaded);
+  };
+
+  /** Renames a recipe's file: in Drive at once (content unchanged), else the next download uses the new name. */
+  const rename = (doc: Doc, id: string) => {
+    const current = placeRef.current;
+    if (current.kind !== "drive" || !doc.fileId) {
+      putDoc({ ...doc, id, updatedAt: Date.now() });
+      return;
+    }
+    const fileId = doc.fileId;
+    void run("Renaming…", async () => {
+      try {
+        const { file, current: wasCurrent } = await current.store.rename(fileId, id, doc.loaded ? doc.version : undefined);
+        const now = docsRef.current.find((d) => d.key === doc.key) ?? doc;
+        // The saved content stays the same under its new name.
+        const baseline = now.baseline === undefined ? undefined : `${file.id}${now.baseline.slice(now.baseline.indexOf("\n"))}`;
+        putDoc({ ...now, id: file.id, version: wasCurrent ? file.version : now.version, baseline, updatedAt: Date.now() });
+      } catch (e) {
+        if (e instanceof NameTakenError) {
+          setError(`${e.message} Choose another file name.`);
+          return;
+        }
+        throw e;
+      }
+    });
+  };
+
+  const onRecipeAction = (doc: Doc, action: RecipeAction) => {
+    switch (action) {
+      case "rename":
+      case "duplicate":
+        setNameRequest({ kind: action, key: doc.key });
+        break;
+      case "download":
+        void (async () => {
+          const loaded = await ensureLoaded(doc.key);
+          if (!loaded) {
+            return;
+          }
+          if (problemsOf(loaded).length > 0 || loaded.loadError) {
+            selectDoc(loaded.key);
+            setError(`${loaded.id}.json is incomplete; fix it before downloading.`);
+            return;
+          }
+          download(loaded);
+        })();
+        break;
+      case "delete":
+        remove(doc);
+        break;
+    }
+  };
+
+  /** The file-name dialog for nameRequest, or nothing. */
+  const nameDialog = (request: NameRequest) => {
+    const doc = "key" in request ? docsRef.current.find((d) => d.key === request.key) : undefined;
+    const others = new Set(docsRef.current.filter((d) => d !== doc || request.kind !== "rename").map((d) => d.id));
+    const sample = request.kind === "sample" ? SAMPLES.find((s) => s.id === request.sampleId) : undefined;
+    const close = () => setNameRequest(undefined);
+    const settings = {
+      new: { title: "New recipe", initial: "", confirmLabel: "Create" },
+      sample: { title: `New recipe from ${request.kind === "sample" ? request.sampleId : ""}`, initial: freeId(sample?.id ?? "recipe", others), confirmLabel: "Create" },
+      duplicate: { title: `Duplicate ${doc?.id ?? ""}.json`, initial: freeId(doc?.id || "recipe", others), confirmLabel: "Duplicate" },
+      rename: { title: `Rename ${doc?.id ?? ""}.json`, initial: doc?.id ?? "", confirmLabel: "Rename" },
+    }[request.kind];
+    if ("key" in request && !doc) {
+      return null; // gone meanwhile (deleted elsewhere)
+    }
+    return (
+      <NameDialog
+        {...settings}
+        taken={others}
+        onCancel={close}
+        onConfirm={(id) => {
+          close();
+          if (request.kind === "new") {
+            putDoc(newDoc(id, emptyRecipe()), true);
+          } else if (request.kind === "sample" && sample) {
+            putDoc(newDoc(id, structuredClone(sample.recipe)), true);
+          } else if (request.kind === "duplicate" && doc) {
+            void ensureLoaded(doc.key).then((source) => source && putDoc(newDoc(id, structuredClone(source.recipe)), true));
+          } else if (request.kind === "rename" && doc) {
+            rename(doc, id);
+          }
+        }}
+      />
+    );
+  };
 
   const removeFromList = (doc: Doc) => {
     const rest = docsRef.current.filter((d) => d.key !== doc.key);
@@ -723,6 +824,7 @@ export function App(props: { openDrafts?: () => Promise<DraftStore>; auth?: Goog
               selectedKey={selectedKey}
               pendingLabel={inDrive ? "unsaved" : "not downloaded"}
               onSelect={selectDoc}
+              onAction={onRecipeAction}
             />
           </div>
           {!inDrive && docs.length > 0 && (
@@ -737,7 +839,7 @@ export function App(props: { openDrafts?: () => Promise<DraftStore>; auth?: Goog
             <RecipeEditor
               doc={selected}
               status={status(selected)}
-              onChange={(id, recipe) => change(selected, id, recipe)}
+              onChange={(recipe) => change(selected, recipe)}
               actions={
                 <>
                   {inDrive && (
@@ -757,9 +859,6 @@ export function App(props: { openDrafts?: () => Promise<DraftStore>; auth?: Goog
                     onClick={() => download(selected)}
                   >
                     Download {selected.id ? `${selected.id}.json` : "file"}
-                  </button>
-                  <button type="button" class={BUTTON_STYLES.secondary} disabled={isBusy} onClick={() => duplicate(selected)}>
-                    Duplicate
                   </button>
                   <button type="button" class={`${BUTTON_STYLES.danger} sm:ml-auto`} disabled={isBusy} onClick={() => remove(selected)}>
                     Delete
@@ -869,6 +968,8 @@ export function App(props: { openDrafts?: () => Promise<DraftStore>; auth?: Goog
           </p>
         </Modal>
       )}
+
+      {nameRequest && nameDialog(nameRequest)}
 
       {migration && (
         <MigrateDialog drafts={migration.drafts} driveIds={migration.driveIds} busy={isBusy} onSave={migrate} onLater={() => setMigration(undefined)} />

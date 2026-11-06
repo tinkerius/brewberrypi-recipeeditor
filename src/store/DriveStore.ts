@@ -227,6 +227,25 @@ export class DriveStore {
     );
   }
 
+  /**
+   * Renames the file to "<id>.json", leaving its content as it is. current tells whether the file was still at
+   * expectedVersion: only then may the caller take over the new version, else a later save must still notice that
+   * the content changed elsewhere.
+   */
+  async rename(fileId: string, id: string, expectedVersion: string | undefined): Promise<{ file: DriveFile; current: boolean }> {
+    const before = toDriveFile(await this.metadata(fileId));
+    if (before.id !== id) {
+      await this.assertNameFree(id, fileId);
+    }
+    const file = toDriveFile(
+      await this.json<ApiFile>("PATCH", `${API}/files/${encodeURIComponent(fileId)}?fields=${FILE_FIELDS}`, {
+        body: JSON.stringify({ name: `${id}.json` }),
+        contentType: "application/json",
+      }),
+    );
+    return { file, current: expectedVersion === undefined || before.version === expectedVersion };
+  }
+
   /** Moves the file to the Drive trash (recoverable there for 30 days). */
   async trash(fileId: string): Promise<void> {
     await this.call("PATCH", `${API}/files/${encodeURIComponent(fileId)}?fields=id`, {

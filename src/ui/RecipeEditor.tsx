@@ -59,7 +59,7 @@ export function ProblemList(props: { doc: Doc }) {
   );
 }
 
-export function RecipeEditor(props: { doc: Doc; onChange: (recipe: Recipe) => void; actions: ComponentChildren; status?: ComponentChildren }) {
+export function RecipeEditor(props: { doc: Doc; onChange: (recipe: Recipe) => void; actions?: ComponentChildren; status?: ComponentChildren }) {
   const { doc } = props;
   const problems = problemsOf(doc);
   const [addType, setAddType] = useState<GoalType>("HeatUp");
@@ -193,7 +193,7 @@ export function RecipeEditor(props: { doc: Doc; onChange: (recipe: Recipe) => vo
         )}
         <ProblemList doc={doc} />
       </div>
-      <div class="mt-4 flex flex-wrap gap-2">{props.actions}</div>
+      {props.actions && <div class="mt-4 flex flex-wrap gap-2">{props.actions}</div>}
     </section>
   );
 }

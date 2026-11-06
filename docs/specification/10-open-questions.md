@@ -27,3 +27,4 @@ answered). Record answers here and update the affected sections; do not change b
 | `QE-19` | Is "Delete all recipes in this browser" needed? | **2026-11-06:** no, removed; single recipes are deleted from their menu. | `BRW-006`, `GUI-020` |
 | `QE-20` | How are goals reordered? | **2026-11-06:** by drag and drop (mouse and touch) with a handle on each goal, and the arrow keys on the handle for the keyboard; the move-up/move-down arrow buttons are removed. | `EDT-012` |
 | `QE-21` | Where is the recipe name edited? | **2026-11-06:** in the title (click the name or the pencil next to it), not in a second field below it. | `EDT-010`, `GUI-030` |
+| `QE-22` | Download and Delete buttons below the recipe, besides the menu? | **2026-11-06:** no, removed; both are in the recipe's menu. Signed in, Save to Google Drive stays. | `GUI-031` |

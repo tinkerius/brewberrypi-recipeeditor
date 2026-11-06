@@ -53,6 +53,8 @@ a release that changes sign-in or Drive behaviour.
 - `ACC-043` (EDT-012, EDT-014, EDT-017) "+ Add goal" opens the type dialog; choosing Rest adds a Rest goal at the
   end; Cancel adds nothing. The pencil of a HeatUp 40 °C goal opens the dialog with HeatUp marked; choosing Rest makes
   it a Rest of 40 °C. There is no type dropdown in the goal list.
+- `ACC-044` (QE-24, EDT-011, EDT-017, FMT-004) No goal's type name of the file (`PourInBrewingWater`, `HeatUp`, …) is
+  shown: not in the goal list, not in the type dialog, not in the problems ("A Heat Up goal needs a temperature.").
 - `ACC-017` (BRW-004, DRV-010) A recipe has pending changes until it is downloaded (draft) or saved (Drive), and again
   after a change.
 - `ACC-018` (EDT-016) On the first visit (new browser storage) the list holds the draft `BENIWEISS`; on a later visit

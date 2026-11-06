@@ -351,9 +351,10 @@ describe("App, editing the recipe name in the title (EDT-010)", () => {
 describe("App, choosing a goal's type in a dialog (QE-23)", () => {
   const goalTypes = () =>
     [...root.querySelectorAll<HTMLElement>("[aria-label=Recipe] [data-goal-type]")].map((b) => b.dataset.goalType);
-  const dialogChoice = (type: string) =>
-    [...root.querySelectorAll<HTMLButtonElement>("[role=dialog] [aria-label='Goal types'] button")].find((b) =>
-      b.textContent?.includes(`(${type})`),
+  /** The dialog's choice with this display name. */
+  const dialogChoice = (label: string) =>
+    [...root.querySelectorAll<HTMLButtonElement>("[role=dialog] [aria-label='Goal types'] button")].find(
+      (b) => b.querySelector("span")?.textContent === label,
     )!;
 
   it("ACC-043 asks for the type when a goal is added and when the pencil is used; no type dropdowns", async () => {
@@ -372,10 +373,34 @@ describe("App, choosing a goal's type in a dialog (QE-23)", () => {
 
     const pencil = root.querySelector<HTMLButtonElement>("[aria-label^='Change the type of goal 1']")!;
     await act(async () => pencil.click());
-    expect(dialogChoice("HeatUp").getAttribute("aria-current")).toBe("true");
+    expect(dialogChoice("Heat Up").getAttribute("aria-current")).toBe("true");
     await act(async () => dialogChoice("Rest").click());
     expect(goalTypes()).toEqual(["Rest", "Rest"]);
     const temperature = root.querySelector<HTMLInputElement>("[aria-label=Recipe] ol > li input")!;
     expect(temperature.value).toBe("40"); // kept (EDT-014)
+  });
+});
+
+describe("App, no technical goal type names (QE-24)", () => {
+  // The type names that differ from their display names ("Rest" and "Lautering" are both).
+  const TECHNICAL = /\b(PourInBrewingWater|HeatUp|MashIn|IodineTest|HeatUpForHopsCooking|CookWater)\b/;
+
+  it("ACC-044 shows display names only: goal list, type dialog and problems", async () => {
+    const store = new MemoryStore();
+    const goals = [
+      { type: "PourInBrewingWater" },
+      { type: "HeatUp" }, // a problem: no temperature
+      { type: "MashIn" },
+      { type: "IodineTest", temperature: 68, minutes: 10 },
+      { type: "HeatUpForHopsCooking" },
+      { type: "CookWater", name: "Cook", description: "Cook", minutes: 10 },
+    ];
+    await store.put(newDoc("Kept", { version: 2, name: "Kept", mashing_process: { goals } }));
+    await show(store);
+    expect(root.textContent).toContain("A Heat Up goal needs a temperature.");
+    expect(root.textContent).not.toMatch(TECHNICAL);
+    await act(async () => button("+ Add goal").click());
+    expect(root.querySelector("[role=dialog]")?.textContent).toContain("Heat Up (hops cooking)");
+    expect(root.textContent).not.toMatch(TECHNICAL);
   });
 });

@@ -3,7 +3,7 @@
  * under a strict Content-Security-Policy (no eval). tests/validate.test.ts compares the results with Ajv.
  */
 
-import { FORMAT_VERSION, GOAL_TYPES, ID_PATTERN, isGoalType, type GoalField } from "./model";
+import { FORMAT_VERSION, GOAL_INFO, ID_PATTERN, isGoalType, type GoalField } from "./model";
 
 export interface Problem {
   /** Where: "" for the whole recipe, "name", "mashing_process.goals", or "mashing_process.goals[2].minutes". */
@@ -66,20 +66,22 @@ function checkGoal(goal: unknown, index: number, problems: Problem[]) {
     return;
   }
   if (!isGoalType(goal.type)) {
-    problems.push({ path: `${at}.type`, message: `Unknown goal type ${JSON.stringify(goal.type)}; known: ${GOAL_TYPES.join(", ")}.` });
+    problems.push({ path: `${at}.type`, message: `Unknown goal type ${JSON.stringify(goal.type)}: choose a type with the pencil.` });
     return;
   }
   const rules = GOAL_FIELDS[goal.type];
+  // Display names only, never the file's type names (QE-24).
+  const label = GOAL_INFO[goal.type].label;
   for (const key of Object.keys(goal)) {
     if (key !== "type" && !(rules.allowed as string[]).includes(key)) {
-      problems.push({ path: `${at}.${key}`, message: `A ${goal.type} goal has no field "${key}".` });
+      problems.push({ path: `${at}.${key}`, message: `A ${label} goal has no field "${key}".` });
     }
   }
   for (const field of rules.allowed) {
     const value = goal[field];
     if (value === undefined) {
       if (rules.required.includes(field)) {
-        problems.push({ path: `${at}.${field}`, message: `A ${goal.type} goal needs ${field === "minutes" ? "minutes" : `a ${field}`}.` });
+        problems.push({ path: `${at}.${field}`, message: `A ${label} goal needs ${field === "minutes" ? "minutes" : `a ${field}`}.` });
       }
     } else {
       checkField(field, value, `${at}.${field}`, problems);

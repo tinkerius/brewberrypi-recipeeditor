@@ -90,7 +90,7 @@ describe("validateRecipe", () => {
 
   it("ACC-001 points at the goal field", () => {
     expect(validateRecipe(r([{ type: "HeatUp" }, { type: "HeatUp", temperature: 200 }]))).toEqual([
-      { path: "mashing_process.goals[0].temperature", message: "A HeatUp goal needs a temperature." },
+      { path: "mashing_process.goals[0].temperature", message: "A Heat Up goal needs a temperature." },
       { path: "mashing_process.goals[1].temperature", message: "Temperature must be between 0 and 110 °C." },
     ]);
   });

@@ -25,6 +25,8 @@ commit (`NFR-030`).
   file name missing or invalid; name empty; `mashing_process` or its `goals` missing or not a list; unknown goal
   type; a parameter missing, of the wrong type or out of range (temperature 0…110 °C, minutes a whole number ≥ 0);
   a Rest with only one of name and description; a field the goal type does not take; any other key.
+  Messages name goal types by their display name (e.g. "A Heat Up goal needs a temperature."), never by the type
+  name of the file; only a type the editor does not know is quoted as written in the file (`QE-24`).
 - `FMT-005` A file with problems is still opened, keeping every field it had, so the brewer sees and fixes the
   problems (`EDT-020`). Fields a goal type does not take can be removed with one action.
 - `FMT-006` Written files (download, Drive) are formatted like the app's shipped recipes: `version` first, then

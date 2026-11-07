@@ -52,8 +52,8 @@ recipes in their Google Drive, `BrewberryPi/recipes/<id>.json`, with scope `driv
   the app raises the version (`RCP-011`), follow it with `/follow-app-format`, and merge only after the app release
   that reads it (`NFR-022`).
 - Privacy: no backend, no analytics, no third-party storage. The only localStorage entries are the Google access
-  token (until it expires, about an hour, or sign-out; shared by the editor's tabs, product owner's decision) and
-  the sign-in hint (e-mail). Update `public/privacy.html` and brewberrypi's `site/privacy.html` when what the
+  token (until it expires, about an hour, or sign-out; shared by the editor's tabs, product owner's decision), the
+  sign-in hint (e-mail) and whether the recipe list is collapsed (`QE-29`). Update `public/privacy.html` and brewberrypi's `site/privacy.html` when what the
   editor stores or sends changes.
 - Content-Security-Policy (`vite.config.ts`): only the page itself and Google. No `eval`, no new third-party origins.
 - Scope stays `drive.file` (non-sensitive). Broader Drive scopes need Google's restricted-scope verification.

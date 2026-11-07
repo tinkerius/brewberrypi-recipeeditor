@@ -13,7 +13,7 @@ in the brand colours. Unlike the website, the editor also has a dark mode, follo
   "Cloud Sync is on: your recipes are files in your Google Drive, folder **BrewberryPi/recipes**. …" (and how to add
   files put there yourself); errors and information notices, each closable.
 - `GUI-003` Two columns on wide screens (list left, recipe right), one column on phones; no horizontal scrolling at
-  390 px width.
+  390 px width. The list can be collapsed (`GUI-024`); then the recipe takes the width.
 - `GUI-004` Footer, a dark band as on the website: the BrewberryPi logo and links to brewberrypi.org, the privacy
   policy, the terms of use and the source code.
 - `GUI-005` With no recipe selected, the right side explains what a recipe is, how to get it onto a BrewberryPi
@@ -38,6 +38,13 @@ in the brand colours. Unlike the website, the editor also has a dark mode, follo
   click on the row; Escape closes it, arrow keys move in it.
 - `GUI-023` Rare actions are shown as a **link** (text with the brand's berry underline, as the links on
   brewberrypi.org), not as a button: **Add untracked file from cloud storage** (`DRV-009`, an edge case, `QE-17`).
+- `GUI-024` The recipe list is a **collapsible sidebar** (`QE-29`), like the sidebar in Claude Code. A sidebar button
+  in its title row ("Hide sidebar" / "Show sidebar", tooltip with the shortcut) and **Ctrl+B** (⌘B on a Mac),
+  anywhere on the page but not while a dialog is open, collapse and expand it. Collapsed on a wide screen, it is a
+  narrow strip with the sidebar button and a **New recipe** button (+); on a phone, only its title row with the number
+  of recipes. While collapsed, a dot on it says how many recipes are not downloaded / unsaved (`BRW-004`, `DRV-010`),
+  so changes that can be lost stay visible. The browser remembers a collapsed list (`NFR-002`); expanding it forgets
+  it again.
 
 ## 7.4 Recipe
 

@@ -21,7 +21,14 @@ import { Modal } from "./ui/Modal";
 import { RecipeEditor } from "./ui/RecipeEditor";
 import { NameDialog } from "./ui/NameDialog";
 import { RecipeList, type RecipeAction } from "./ui/RecipeList";
+import { SidebarIcon, isSidebarShortcut, readSidebarCollapsed, writeSidebarCollapsed } from "./ui/sidebar";
 import { BUTTON_STYLES, CARD_STYLE, HINT_STYLE, LINK_STYLE, TITLE_STYLE } from "./ui/styles";
+
+/** Icon-only buttons of the sidebar (GUI-024), like Claude Code's. */
+const ICON_BUTTON =
+  "inline-flex size-9 shrink-0 items-center justify-center rounded-md text-muted hover:enabled:bg-stone-100 hover:enabled:text-ink " +
+  "focus-visible:outline-2 focus-visible:outline-berry-light disabled:opacity-40 " +
+  "dark:text-muted-dark dark:hover:enabled:bg-white/10 dark:hover:enabled:text-ink-light";
 
 export const APP_TITLE = "Recipe Editor";
 
@@ -68,6 +75,24 @@ export function App(props: { openDrafts?: () => Promise<DraftStore>; auth?: Goog
   const [conflict, setConflict] = useState<{ doc: Doc; file: DriveFile }>();
   const [migration, setMigration] = useState<{ drafts: Doc[]; driveIds: Set<string> }>();
   const [nameRequest, setNameRequest] = useState<NameRequest>();
+  // The recipe list as a collapsible sidebar, remembered in the browser (GUI-024, QE-29).
+  const [collapsed, setCollapsedState] = useState(readSidebarCollapsed);
+  const setCollapsed = (next: boolean) => {
+    setCollapsedState(next);
+    writeSidebarCollapsed(next);
+  };
+
+  // Ctrl+B / ⌘B toggles the sidebar anywhere on the page, but not while a dialog is open.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (isSidebarShortcut(e) && !document.querySelector("[role=dialog]")) {
+        e.preventDefault();
+        setCollapsed(!collapsed);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [collapsed]);
   const [dragging, setDragging] = useState(false);
   const auth = useRef(props.auth ?? new GoogleAuth());
   const uploadInput = useRef<HTMLInputElement>(null);
@@ -746,6 +771,23 @@ export function App(props: { openDrafts?: () => Promise<DraftStore>; auth?: Goog
     );
   };
 
+  const pendingCount = docs.filter(hasPendingChanges).length;
+  const pendingText = `${pendingCount} ${pendingCount === 1 ? "recipe" : "recipes"} ${inDrive ? "unsaved" : "not downloaded"}`;
+  const shortcut = /Mac|iPhone|iPad/.test(globalThis.navigator?.userAgent ?? "") ? "⌘B" : "Ctrl+B";
+  const sidebarToggle = (
+    <button
+      type="button"
+      class={ICON_BUTTON}
+      aria-controls="recipe-sidebar"
+      aria-expanded={!collapsed}
+      aria-label={collapsed ? "Show sidebar" : "Hide sidebar"}
+      title={`${collapsed ? "Show sidebar" : "Hide sidebar"} (${shortcut})`}
+      onClick={() => setCollapsed(!collapsed)}
+    >
+      <SidebarIcon />
+    </button>
+  );
+
   return (
     <div
       class="flex min-h-screen flex-col"
@@ -825,54 +867,88 @@ export function App(props: { openDrafts?: () => Promise<DraftStore>; auth?: Goog
         )}
       </div>
 
-      <div class="mt-4 grid flex-1 items-start gap-4 lg:grid-cols-[19rem_1fr]">
-        <aside class={`${CARD_STYLE} min-w-0`} aria-label="Recipe list">
-          <h2 class={TITLE_STYLE}>My Recipes</h2>
-          <div class="mt-3">
-            <RecipeList
-              docs={docs}
-              selectedKey={selectedKey}
-              pendingLabel={inDrive ? "unsaved" : "not downloaded"}
-              onSelect={selectDoc}
-              onAction={onRecipeAction}
-            />
-          </div>
-          <div class="mt-4 flex flex-wrap gap-2 border-t border-stone-200 pt-4 dark:border-white/10">
-            <button type="button" class={BUTTON_STYLES.primary} disabled={isBusy} onClick={newRecipe}>
-              New recipe
-            </button>
-            <button type="button" class={BUTTON_STYLES.secondary} disabled={isBusy} onClick={() => uploadInput.current?.click()}>
-              Upload recipe
-            </button>
-            <input
-              ref={uploadInput}
-              type="file"
-              accept=".json,application/json"
-              multiple
-              class="hidden"
-              data-testid="upload"
-              onChange={(e) => {
-                const files = e.currentTarget.files;
-                if (files?.length) {
-                  void upload(Array.from(files));
-                }
-                e.currentTarget.value = "";
-              }}
-            />
-          </div>
-          <p class={`${HINT_STYLE} mt-2`}>You can also drop .json recipe files onto the page.</p>
-          {inDrive && (
+      <div class={`mt-4 grid flex-1 items-start gap-4 ${collapsed ? "lg:grid-cols-[3.5rem_1fr]" : "lg:grid-cols-[19rem_1fr]"}`}>
+        {collapsed ? (
+          <aside
+            id="recipe-sidebar"
+            aria-label="Recipe list"
+            class="flex min-w-0 items-center gap-2 rounded-lg bg-white p-2 ring-1 ring-line lg:flex-col lg:px-1.5 dark:bg-surface-dark dark:ring-white/10"
+          >
+            {sidebarToggle}
+            <h2 class={`${TITLE_STYLE} whitespace-nowrap lg:hidden`}>
+              My Recipes <span class="font-sans text-sm font-normal text-muted dark:text-muted-dark">({docs.length})</span>
+            </h2>
+            {pendingCount > 0 && (
+              <span data-pending-dot title={pendingText} class="flex items-center gap-1.5 lg:py-1">
+                <span aria-hidden="true" class="size-2.5 rounded-full bg-berry dark:bg-berry-light" />
+                <span class="text-xs text-berry lg:sr-only dark:text-berry-light">{pendingText}</span>
+              </span>
+            )}
             <button
               type="button"
-              class={`${LINK_STYLE} mt-3`}
-              disabled={isBusy || !pickerConfigured()}
-              title={pickerConfigured() ? undefined : "The Google Picker is not configured in this build."}
-              onClick={addFromDrive}
+              class={`${ICON_BUTTON} ml-auto lg:ml-0`}
+              aria-label="New recipe"
+              title="New recipe"
+              disabled={isBusy}
+              onClick={newRecipe}
             >
-              Add untracked file from cloud storage
+              <svg viewBox="0 0 20 20" aria-hidden="true" class="size-5 fill-none stroke-current stroke-[1.75]">
+                <path d="M10 4.5v11M4.5 10h11" stroke-linecap="round" />
+              </svg>
             </button>
-          )}
-        </aside>
+          </aside>
+        ) : (
+          <aside id="recipe-sidebar" class={`${CARD_STYLE} min-w-0`} aria-label="Recipe list">
+            <div class="flex items-center justify-between gap-2">
+              <h2 class={TITLE_STYLE}>My Recipes</h2>
+              {sidebarToggle}
+            </div>
+            <div class="mt-3">
+              <RecipeList
+                docs={docs}
+                selectedKey={selectedKey}
+                pendingLabel={inDrive ? "unsaved" : "not downloaded"}
+                onSelect={selectDoc}
+                onAction={onRecipeAction}
+              />
+            </div>
+            <div class="mt-4 flex flex-wrap gap-2 border-t border-stone-200 pt-4 dark:border-white/10">
+              <button type="button" class={BUTTON_STYLES.primary} disabled={isBusy} onClick={newRecipe}>
+                New recipe
+              </button>
+              <button type="button" class={BUTTON_STYLES.secondary} disabled={isBusy} onClick={() => uploadInput.current?.click()}>
+                Upload recipe
+              </button>
+              <input
+                ref={uploadInput}
+                type="file"
+                accept=".json,application/json"
+                multiple
+                class="hidden"
+                data-testid="upload"
+                onChange={(e) => {
+                  const files = e.currentTarget.files;
+                  if (files?.length) {
+                    void upload(Array.from(files));
+                  }
+                  e.currentTarget.value = "";
+                }}
+              />
+            </div>
+            <p class={`${HINT_STYLE} mt-2`}>You can also drop .json recipe files onto the page.</p>
+            {inDrive && (
+              <button
+                type="button"
+                class={`${LINK_STYLE} mt-3`}
+                disabled={isBusy || !pickerConfigured()}
+                title={pickerConfigured() ? undefined : "The Google Picker is not configured in this build."}
+                onClick={addFromDrive}
+              >
+                Add untracked file from cloud storage
+              </button>
+            )}
+          </aside>
+        )}
 
         <main class="min-w-0">
           {selected?.loaded ? (

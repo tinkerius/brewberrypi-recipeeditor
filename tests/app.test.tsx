@@ -9,10 +9,12 @@ import { GoogleAuth, TOKEN_KEY } from "../src/auth/google";
 import { DriveStore } from "../src/store/DriveStore";
 import { FakeAuth, FakeDrive } from "./fakeDrive";
 import { BROWSER_STORAGE_WARNING, MEMORY_STORAGE_WARNING } from "../src/ui/Banners";
+import { SIDEBAR_KEY } from "../src/ui/sidebar";
 
 let root: HTMLElement;
 
 beforeEach(() => {
+  localStorage.removeItem(SIDEBAR_KEY);
   root = document.createElement("div");
   document.body.append(root);
 });
@@ -266,6 +268,44 @@ describe("App, the recipe's tabs (QE-28)", () => {
     expect([...panel.querySelectorAll("button")].some((b) => b.textContent?.trim() === "+ Add goal")).toBe(true);
     expect(panel.textContent).not.toContain("A Heat Up goal needs a temperature.");
     expect(recipe.textContent).toContain("A Heat Up goal needs a temperature.");
+  });
+});
+
+describe("App, the collapsible recipe list (QE-29)", () => {
+  const sidebar = () => root.querySelector<HTMLElement>("#recipe-sidebar")!;
+  const ctrlB = async () =>
+    act(async () => {
+      window.dispatchEvent(new KeyboardEvent("keydown", { key: "b", ctrlKey: true, bubbles: true, cancelable: true }));
+    });
+
+  it("ACC-049 collapses to a strip, is remembered, shows unsaved work, and Ctrl+B expands it", async () => {
+    const store = new MemoryStore();
+    await store.put(newDoc("Kept", { version: 2, name: "Kept recipe", mashing_process: { goals: [{ type: "MashIn" }] } }));
+    await show(store);
+    expect(listText()).toHaveLength(1);
+    await act(async () => sidebar().querySelector<HTMLButtonElement>("[aria-label='Hide sidebar']")!.click());
+
+    expect(root.querySelector("[aria-label=Recipes]")).toBeNull(); // the list is gone
+    expect(sidebar().querySelector("[aria-label='Show sidebar']")?.getAttribute("aria-expanded")).toBe("false");
+    expect(sidebar().querySelector("[aria-label='New recipe']")).not.toBeNull();
+    expect(sidebar().querySelector("[data-pending-dot]")?.getAttribute("title")).toBe("1 recipe not downloaded");
+    expect(root.querySelector("[aria-label=Recipe]")?.textContent).toContain("Kept recipe"); // still shown
+    expect(localStorage.getItem(SIDEBAR_KEY)).toBe("collapsed");
+
+    render(null, root);
+    await show(store);
+    expect(sidebar().querySelector("[aria-label='Show sidebar']")).not.toBeNull(); // remembered
+
+    await act(async () => sidebar().querySelector<HTMLButtonElement>("[aria-label='New recipe']")!.click());
+    expect(root.querySelector("[role=dialog]")).not.toBeNull();
+    await ctrlB();
+    expect(sidebar().querySelector("[aria-label='Show sidebar']")).not.toBeNull(); // not while a dialog is open
+    await act(async () => button("Cancel").click());
+
+    await ctrlB();
+    expect(sidebar().querySelector("[aria-label='Hide sidebar']")?.getAttribute("aria-expanded")).toBe("true");
+    expect(listText()).toHaveLength(1);
+    expect(localStorage.getItem(SIDEBAR_KEY)).toBeNull();
   });
 });
 

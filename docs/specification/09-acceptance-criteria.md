@@ -72,6 +72,9 @@ a release that changes sign-in or Drive behaviour.
   New recipe, the recipe stays shown, and the browser remembers it (also after the page is shown again); with a
   recipe not downloaded, the strip shows "1 recipe not downloaded". Ctrl+B expands it again and the browser forgets
   it; Ctrl+B does nothing while a dialog is open.
+- `ACC-056` (QE-30, GUI-002, GUI-020) Signed in, no notice above the columns says "Cloud Sync is on"; the recipe list
+  says, below "Add untracked file from cloud storage", that the recipes are files in the Google Drive folder
+  BrewberryPi/recipes.
 - `ACC-017` (BRW-004, DRV-010) A recipe has pending changes until it is downloaded (draft) or saved (Drive), and again
   after a change.
 - `ACC-018` (EDT-016) On the first visit (new browser storage) the list holds the draft `BENIWEISS`; on a later visit

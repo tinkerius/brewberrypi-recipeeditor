@@ -9,9 +9,9 @@ in the brand colours. Unlike the website, the editor also has a dark mode, follo
 - `GUI-001` Top bar, a dark band over the full width as on the website: the BrewberryPi mark and "Brewberry**Pi**"
   (a link to https://brewberrypi.org/), "Recipe Editor", and on the right "Cloud Sync" with **Sign in with
   Google** (Cloud Sync off), or "Cloud Sync: Google Drive · <e-mail address>" with **Sign out** (Cloud Sync on).
-- `GUI-002` Below it the notices: the storage banner (`BRW-003`) with Cloud Sync off, or with Cloud Sync on the line
-  "Cloud Sync is on: your recipes are files in your Google Drive, folder **BrewberryPi/recipes**. …" (and how to add
-  files put there yourself); errors and information notices, each closable.
+- `GUI-002` Below it the notices: the storage banner (`BRW-003`) with Cloud Sync off; errors and information notices,
+  each closable. With Cloud Sync on there is no notice: where the recipes are is a hint in the recipe list
+  (`GUI-020`, `QE-30`).
 - `GUI-003` Two columns on wide screens (list left, recipe right), one column on phones; no horizontal scrolling at
   390 px width. The list can be collapsed (`GUI-024`); then the recipe takes the width.
 - `GUI-004` Footer, a dark band as on the website: the BrewberryPi logo and links to brewberrypi.org, the privacy
@@ -30,7 +30,9 @@ in the brand colours. Unlike the website, the editor also has a dark mode, follo
 
 - `GUI-020` Title **My Recipes** (signed in and out, `QE-17`); the recipes; **below** them the buttons **New recipe**
   and **Upload recipe**, the hint that recipe files can be dropped onto the page, signed in the link
-  **Add untracked file from cloud storage** (`GUI-023`).
+  **Add untracked file from cloud storage** (`GUI-023`) and below it the small hint "Your recipes are files in your
+  Google Drive, folder **BrewberryPi/recipes**. Files you put there yourself appear after you add them with this
+  link." (`QE-30`).
 - `GUI-021` Each recipe shows its name (or file name, or "Untitled recipe"), `<id>.json`, and the markers
   **incomplete** and **not downloaded** / **unsaved**.
 - `GUI-022` Each recipe has a **menu** (`EDT-006`..`EDT-009`): Rename…, Duplicate…, Download, Delete…. It opens with

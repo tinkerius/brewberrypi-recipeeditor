@@ -1,7 +1,7 @@
 # 07 — User Interface
 
-The look follows the website brewberrypi.org (`QE-27`): its dark top bar and footer bands, page background, white
-cards with a thin border, buttons (the main one pink with dark text, the others outlined) and Zilla Slab Bold titles,
+The look follows the website brewberrypi.org (`QE-27`): its dark top bar and footer bands, its content width (at most
+1180 px), page background with the faint measuring grid fading out from the top, white cards with a thin border, buttons (the main one pink with dark text, the others outlined) and Zilla Slab Bold titles,
 in the brand colours. Unlike the website, the editor also has a dark mode, following the system setting.
 
 ## 7.1 Page

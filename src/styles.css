@@ -52,3 +52,31 @@
     @apply bg-white text-ink dark:bg-surface-dark dark:text-ink-light;
   }
 }
+
+/* The website's content width (site/styles.css .wrap): at most 1180 px, with a 16 px gutter on narrow screens. */
+@utility wrap {
+  width: min(100% - 2 * 16px, 1180px);
+  margin-inline: auto;
+}
+
+/* The website's faint measuring grid that fades out (site/styles.css .page-head::before), behind the top of the
+   page: 48 px squares in the line colour, opacity .6. */
+.page-grid {
+  position: absolute;
+  inset: 0 0 auto;
+  height: 42rem;
+  pointer-events: none;
+  background-image:
+    linear-gradient(var(--grid-line) 1px, transparent 1px), linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: radial-gradient(ellipse 80% 80% at 20% 0%, #000 10%, transparent 70%);
+  -webkit-mask-image: radial-gradient(ellipse 80% 80% at 20% 0%, #000 10%, transparent 70%);
+  opacity: 0.6;
+  --grid-line: var(--color-line);
+}
+
+@media (prefers-color-scheme: dark) {
+  .page-grid {
+    --grid-line: rgb(241 232 235 / 0.1);
+  }
+}

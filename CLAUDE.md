@@ -59,5 +59,6 @@ recipes in their Google Drive, `BrewberryPi/recipes/<id>.json`, with scope `driv
 - Scope stays `drive.file` (non-sensitive). Broader Drive scopes need Google's restricted-scope verification.
 - Warn about data that can be lost: the signed-out banner, the "not downloaded"/"unsaved" markers and the
   `beforeunload` prompt stay.
-- Same stack and look as brewberrypi-app's web UI (Preact, Tailwind v4, brand colours in `src/styles.css`).
+- Same stack as brewberrypi-app's web UI (Preact, Tailwind v4); the look follows the website brewberrypi.org (`QE-27`:
+  its top bar, footer, background, buttons and titles; brand colours in `src/styles.css`), plus a dark mode.
 - Commit messages say what changed and why. Pull requests target `main`; a merge deploys.

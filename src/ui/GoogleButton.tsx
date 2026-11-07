@@ -1,6 +1,6 @@
 /**
  * "Sign in with Google" as Google's branding guidelines describe it (developers.google.com/identity/branding-guidelines):
- * the standard "G" logo, Roboto Medium 14px, a light button with a grey border, dark in dark mode. Google renders
+ * the standard "G" logo, Roboto Medium 14px, in Google's dark theme on the editor's dark top bar (GUI-010). Google renders
  * this button itself only for its ID-token sign-in; the editor uses the OAuth token model (Drive access), so it
  * draws the button after the guidelines. Roboto is bundled, not loaded from Google.
  */
@@ -28,8 +28,7 @@ export function GoogleSignInButton(props: { disabled?: boolean; title?: string; 
       style={{ fontFamily: "Roboto, Arial, sans-serif" }}
       class={
         "inline-flex h-10 items-center gap-2.5 rounded-full border px-3 text-sm font-medium tracking-[0.25px] transition " +
-        "border-[#747775] bg-white text-[#1f1f1f] hover:enabled:bg-[#f2f2f2] " +
-        "dark:border-[#8e918f] dark:bg-[#131314] dark:text-[#e3e3e3] dark:hover:enabled:bg-[#1f1f20] " +
+        "border-[#8e918f] bg-[#131314] text-[#e3e3e3] hover:enabled:bg-[#1f1f20] " +
         "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#4285F4] " +
         "disabled:cursor-not-allowed disabled:opacity-40"
       }

@@ -82,7 +82,7 @@ export function GoalEditor(props: {
           class={
             "flex h-8 w-6 shrink-0 cursor-grab touch-none items-center justify-center rounded-md text-stone-400 " +
             "hover:enabled:bg-stone-100 hover:enabled:text-stone-600 active:cursor-grabbing disabled:cursor-default disabled:opacity-30 " +
-            "focus-visible:outline-2 focus-visible:outline-berry dark:hover:enabled:bg-white/10 dark:hover:enabled:text-stone-200"
+            "focus-visible:outline-2 focus-visible:outline-berry-light dark:hover:enabled:bg-white/10 dark:hover:enabled:text-stone-200"
           }
           onPointerDown={(e) => {
             if (e.button === 0 && props.count > 1) {
@@ -114,7 +114,7 @@ export function GoalEditor(props: {
           title={known ? GOAL_INFO[goal.type as GoalType].summary : undefined}
           class={
             "flex min-w-0 flex-1 items-center gap-2 rounded-md px-2 py-1 text-left text-sm " +
-            "hover:bg-stone-100 focus-visible:outline-2 focus-visible:outline-berry dark:hover:bg-white/5 dark:focus-visible:outline-berry-light"
+            "hover:bg-stone-100 focus-visible:outline-2 focus-visible:outline-berry-light dark:hover:bg-white/5 dark:focus-visible:outline-berry-light"
           }
           onClick={props.onToggle}
         >
@@ -141,7 +141,7 @@ export function GoalEditor(props: {
             type="button"
             aria-label={`Change the type of goal ${index + 1}: ${known ? GOAL_INFO[goal.type as GoalType].label : "unknown"}`}
             title="Change the goal type"
-            class="group flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-xs text-stone-500 hover:bg-stone-100 focus-visible:outline-2 focus-visible:outline-berry dark:text-stone-400 dark:hover:bg-white/5 dark:focus-visible:outline-berry-light"
+            class="group flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-xs text-stone-500 hover:bg-stone-100 focus-visible:outline-2 focus-visible:outline-berry-light dark:text-stone-400 dark:hover:bg-white/5 dark:focus-visible:outline-berry-light"
             onClick={() => setChoosing(true)}
           >
             <svg

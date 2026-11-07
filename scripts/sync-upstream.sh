@@ -31,10 +31,13 @@ done
 brand_files=(
   "brand/logo.svg:public/logo.svg"
   "brand/logo-dark.svg:public/logo-dark.svg"
+  "brand/logo-stacked-dark.svg:public/logo-stacked-dark.svg"
+  "brand/mark-dark.svg:public/mark-dark.svg"
   "brand/favicon.svg:public/favicon.svg"
   "brand/favicon.ico:public/favicon.ico"
   "brand/apple-touch-icon.png:public/apple-touch-icon.png"
   "site/fonts/zilla-slab-medium.woff2:public/fonts/zilla-slab-medium.woff2"
+  "site/fonts/zilla-slab-bold.woff2:public/fonts/zilla-slab-bold.woff2"
   "site/fonts/OFL.txt:public/fonts/OFL.txt"
 )
 

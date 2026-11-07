@@ -748,7 +748,7 @@ export function App(props: { openDrafts?: () => Promise<DraftStore>; auth?: Goog
 
   return (
     <div
-      class="mx-auto flex min-h-screen max-w-6xl flex-col px-4 py-4 sm:px-6"
+      class="flex min-h-screen flex-col"
       onDragOver={(e) => {
         if (e.dataTransfer?.types.includes("Files")) {
           e.preventDefault();
@@ -768,36 +768,44 @@ export function App(props: { openDrafts?: () => Promise<DraftStore>; auth?: Goog
         }
       }}
     >
-      <header class="flex flex-wrap items-center gap-x-4 gap-y-3">
-        <picture>
-          <source srcset="/logo-dark.svg" media="(prefers-color-scheme: dark)" />
-          <img src="/logo.svg" alt="BrewberryPi" class="h-9 w-auto sm:h-10" />
-        </picture>
-        <h1 class="font-brand text-xl font-medium text-stone-600 sm:text-2xl dark:text-stone-300">{APP_TITLE}</h1>
-        <div class="ml-auto flex flex-wrap items-center gap-2">
-          {place.kind === "drive" ? (
-            <>
-              <span class="text-sm text-stone-600 dark:text-stone-300" title={place.account.name}>
-                <span class="font-medium text-ink dark:text-ink-light">Cloud Sync: Google Drive</span> ·{" "}
-                {place.account.email || place.account.name}
-              </span>
-              <button type="button" class={BUTTON_STYLES.secondary} disabled={isBusy} onClick={signOut}>
-                Sign out
-              </button>
-            </>
-          ) : (
-            <>
-              <span class="text-sm font-medium text-stone-600 dark:text-stone-300">Cloud Sync</span>
-              <GoogleSignInButton
-              disabled={isBusy || !googleConfigured()}
-              title={googleConfigured() ? undefined : "Google sign-in is not configured in this build."}
-              onClick={() => signIn()}
-              />
-            </>
-          )}
+      <header class="z-20 border-b border-white/10 bg-paper-dark text-ink-light sm:sticky sm:top-0">
+        <div class="mx-auto flex min-h-16 max-w-6xl flex-wrap items-center gap-x-4 gap-y-2 px-4 py-2 sm:px-6">
+          <a
+            href="https://brewberrypi.org/"
+            aria-label="BrewberryPi home (brewberrypi.org)"
+            class="flex items-center gap-2.5 rounded font-brand text-[1.3rem] leading-none font-bold no-underline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-berry-light"
+          >
+            <img src="/mark-dark.svg" alt="" width="32" height="32" class="size-8" />
+            <span>
+              Brewberry<b class="text-berry-light">Pi</b>
+            </span>
+          </a>
+          <h1 class="border-l border-white/20 pl-4 font-brand text-lg leading-none font-medium text-muted-dark">{APP_TITLE}</h1>
+          <div class="ml-auto flex flex-wrap items-center gap-2">
+            {place.kind === "drive" ? (
+              <>
+                <span class="text-sm text-muted-dark" title={place.account.name}>
+                  <span class="font-medium text-ink-light">Cloud Sync: Google Drive</span> · {place.account.email || place.account.name}
+                </span>
+                <button type="button" class={BUTTON_STYLES.onDark} disabled={isBusy} onClick={signOut}>
+                  Sign out
+                </button>
+              </>
+            ) : (
+              <>
+                <span class="text-sm font-medium text-muted-dark">Cloud Sync</span>
+                <GoogleSignInButton
+                  disabled={isBusy || !googleConfigured()}
+                  title={googleConfigured() ? undefined : "Google sign-in is not configured in this build."}
+                  onClick={() => signIn()}
+                />
+              </>
+            )}
+          </div>
         </div>
       </header>
 
+      <div class="mx-auto w-full max-w-6xl flex-1 px-4 pt-5 pb-10 sm:px-6">
       <div class="mt-4 space-y-3">
         {place.kind === "browser" && drafts && <StorageBanner kind={drafts.kind} />}
         {place.kind === "drive" && (
@@ -902,18 +910,25 @@ export function App(props: { openDrafts?: () => Promise<DraftStore>; auth?: Goog
           )}
         </main>
       </div>
+      </div>
 
-      <footer class="mt-8 flex flex-wrap gap-x-4 gap-y-1 border-t border-stone-200 py-4 text-xs text-stone-500 dark:border-white/10 dark:text-stone-400">
-        <span>BrewberryPi Recipe Editor</span>
-        <a class="underline" href="/privacy.html">
-          Privacy
-        </a>
-        <a class="underline" href="/terms.html">
-          Terms
-        </a>
-        <a class="underline" href="https://github.com/tinkerius/brewberrypi-recipeeditor">
-          Source
-        </a>
+      <footer class="border-t border-white/10 bg-paper-dark text-muted-dark">
+        <div class="mx-auto flex max-w-6xl flex-col items-center gap-5 px-4 py-10 text-center sm:px-6">
+          <img src="/logo-stacked-dark.svg" alt="BrewberryPi" width="136" height="90" class="h-auto w-28" />
+          <nav aria-label="Links" class="flex flex-wrap justify-center gap-x-6 gap-y-1 text-sm font-medium">
+            {[
+              ["https://brewberrypi.org/", "brewberrypi.org"],
+              ["/privacy.html", "Privacy"],
+              ["/terms.html", "Terms"],
+              ["https://github.com/tinkerius/brewberrypi-recipeeditor", "Source code"],
+            ].map(([href, text]) => (
+              <a key={href} href={href} class="no-underline hover:text-ink-light">
+                {text}
+              </a>
+            ))}
+          </nav>
+          <p class="text-xs">BrewberryPi Recipe Editor · free and open source</p>
+        </div>
       </footer>
 
       {dragging && (

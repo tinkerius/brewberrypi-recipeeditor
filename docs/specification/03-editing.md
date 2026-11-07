@@ -45,10 +45,14 @@ Applies signed out (drafts, §4) and signed in (Drive recipes, §5) alike, unles
 - `EDT-010` The recipe name is edited **in the title** (`QE-21`): clicking the name, or the pencil next to it, turns it
   into a text field; Enter or leaving the field keeps the change, Escape restores the name it had before. A recipe
   without a name (a new one) starts with the field open. There is no separate name field.
-- `EDT-011` Goals are listed in brewing order. Each goal shows its type by its display name only (all goal
-  types of app spec 04; the type names of the file, e.g. `HeatUp`, are not shown, `QE-24`) with a pencil to change it (`EDT-014`), a one-line explanation, and the fields its type takes (app `RCP` §7.3 table): temperature,
-  minutes, and for Rest optionally both name and description (one switch adds or removes both); CookWater always
-  has name and description.
+- `EDT-011` Goals are listed in brewing order, **one line each** (`QE-26`): the goal's type by its display name
+  only (all goal types of app spec 04; the type names of the file, e.g. `HeatUp`, are not shown, `QE-24`) and its
+  values as a short sentence, e.g. "Heat Up to 62 °C", "Rest at 65 °C for 30 min — Maltoserast" (the name of a Rest
+  or Cook after a dash). A missing value reads "?"; a goal with a problem (`EDT-020`) is marked in its line.
+  Clicking the line opens the goal below it, one goal at a time (opening another closes it; clicking the line again
+  closes it): the one-line explanation of its type, the pencil to change the type (`EDT-014`), and the fields its
+  type takes (app `RCP` §7.3 table): temperature, minutes, and for Rest optionally both name and description (one
+  switch adds or removes both); CookWater always has name and description. A goal added with **+ Add goal** opens.
 - `EDT-012` **+ Add goal** asks for the type first (`EDT-017`) and adds a goal of that type at the end. Goals can be
   removed, and reordered by **drag and drop**
   (`QE-20`): each goal has a drag handle; dragging it with the mouse or a finger moves the goal, a line shows where it
@@ -56,7 +60,7 @@ Applies signed out (drafts, §4) and signed in (Drive recipes, §5) alike, unles
   one place up or down, and the handle keeps the focus. There are no move-up/move-down buttons.
 - `EDT-013` A new goal starts valid where possible: HeatUp 62 °C; Rest and IodineTest 62 °C, 10 min; CookWater
   60 min with empty name and description (to be filled in).
-- `EDT-014` The pencil next to a goal's type asks for the new type (`EDT-017`, the current one marked). Changing it
+- `EDT-014` The pencil of an open goal (`EDT-011`) asks for the new type (`EDT-017`, the current one marked). Changing it
   keeps the values the new type also takes and drops the others. A goal of an unknown type (`FMT-004`) shows
   "Unknown: <type>" with the same pencil.
 - `EDT-017` The goal type is chosen in a dialog that lists every goal type with its display name and its
@@ -68,6 +72,6 @@ Applies signed out (drafts, §4) and signed in (Drive recipes, §5) alike, unles
 ## 3.4 Problems and notices
 
 - `EDT-020` Problems (`FMT-004`) are listed below the goals, each with where it is; fields with a problem are
-  marked. For an invalid file name the message says to rename it from the recipe's menu.
+  marked. A goal's problem names the goal ("Goal 2"); clicking that opens the goal (`EDT-011`). For an invalid file name the message says to rename it from the recipe's menu.
 - `EDT-021` When the editor changed a file while reading it (`FMT-003`), it says what it changed until the recipe
   is downloaded or saved.

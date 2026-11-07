@@ -374,6 +374,8 @@ describe("App, choosing a goal's type in a dialog (QE-23)", () => {
     await act(async () => dialogChoice("Rest").click());
     expect(goalTypes()).toEqual(["HeatUp", "Rest"]);
 
+    expect(root.querySelector("[aria-label^='Change the type of goal 1']")).toBeNull(); // only on an open goal
+    await act(async () => root.querySelector<HTMLButtonElement>("[aria-label=Recipe] ol > li [data-goal-line]")!.click());
     const pencil = root.querySelector<HTMLButtonElement>("[aria-label^='Change the type of goal 1']")!;
     await act(async () => pencil.click());
     expect(dialogChoice("Heat Up").getAttribute("aria-current")).toBe("true");
@@ -405,6 +407,53 @@ describe("App, no technical goal type names (QE-24)", () => {
     await act(async () => button("+ Add goal").click());
     expect(root.querySelector("[role=dialog]")?.textContent).toContain("Heat Up (hops cooking)");
     expect(root.textContent).not.toMatch(TECHNICAL);
+  });
+});
+
+describe("App, one line per goal (QE-26)", () => {
+  const items = () => [...root.querySelectorAll<HTMLElement>("[aria-label=Recipe] ol > li")];
+  const lines = () => items().map((li) => li.querySelector("[data-goal-line] > span")!.textContent!.trim());
+  const openGoals = () => items().flatMap((li, i) => (li.querySelector("input") ? [i] : []));
+  const click = async (i: number) => act(async () => items()[i].querySelector<HTMLButtonElement>("[data-goal-line]")!.click());
+
+  async function withGoals(goals: { type: string; [field: string]: unknown }[]) {
+    const store = new MemoryStore();
+    await store.put(newDoc("Kept", { version: 2, name: "Kept", mashing_process: { goals } }));
+    await show(store);
+  }
+
+  it("ACC-046 shows each goal as one line; clicking opens it and closes the other; a new goal is open", async () => {
+    await withGoals([
+      { type: "HeatUp", temperature: 40 },
+      { type: "Rest", temperature: 65, minutes: 30, name: "Maltoserast", description: "Maltoserast @65 for 30min" },
+    ]);
+    expect(lines()).toEqual(["Heat Up to 40 °C", "Rest at 65 °C for 30 min — Maltoserast"]);
+    expect(openGoals()).toEqual([]);
+    await click(1);
+    expect(openGoals()).toEqual([1]);
+    expect(items()[1].querySelector("[data-goal-line]")!.getAttribute("aria-expanded")).toBe("true");
+    await click(0);
+    expect(openGoals()).toEqual([0]);
+    await click(0);
+    expect(openGoals()).toEqual([]);
+    await act(async () => button("+ Add goal").click());
+    await act(async () =>
+      [...root.querySelectorAll<HTMLButtonElement>("[role=dialog] [aria-label='Goal types'] button")]
+        .find((b) => b.querySelector("span")?.textContent === "Iodine Test")!
+        .click(),
+    );
+    expect(lines()[2]).toBe("Iodine Test at 62 °C for 10 min");
+    expect(openGoals()).toEqual([2]);
+  });
+
+  it("ACC-046 marks an incomplete goal, and its entry in the problem list opens it", async () => {
+    await withGoals([{ type: "MashIn" }, { type: "HeatUp" }]);
+    expect(lines()).toEqual(["Mash In", "Heat Up to ? °C"]);
+    expect(items()[0].querySelector("[data-incomplete]")).toBeNull();
+    expect(items()[1].querySelector("[data-incomplete]")).not.toBeNull();
+    await act(async () => button("Goal 2").click());
+    expect(openGoals()).toEqual([1]);
+    expect(document.activeElement).toBe(items()[1].querySelector("input"));
   });
 });
 

@@ -51,7 +51,7 @@ a release that changes sign-in or Drive behaviour.
   it as the title and in the list; Escape after typing restores the old name; a new recipe opens with the field
   focused; there is no other name field.
 - `ACC-043` (EDT-012, EDT-014, EDT-017) "+ Add goal" opens the type dialog; choosing Rest adds a Rest goal at the
-  end; Cancel adds nothing. The pencil of a HeatUp 40 °C goal opens the dialog with HeatUp marked; choosing Rest makes
+  end; Cancel adds nothing. The pencil of an open HeatUp 40 °C goal opens the dialog with HeatUp marked; choosing Rest makes
   it a Rest of 40 °C. There is no type dropdown in the goal list.
 - `ACC-044` (QE-24, EDT-011, EDT-017, FMT-004) No goal's type name of the file (`PourInBrewingWater`, `HeatUp`, …) is
   shown: not in the goal list, not in the type dialog, not in the problems ("A Heat Up goal needs a temperature.").
@@ -59,6 +59,11 @@ a release that changes sign-in or Drive behaviour.
   its name it is enabled; Discard changes and Cancel keep the change; Discard changes and confirming show the name
   saved in Drive again and "Saved in Google Drive", and the file in Drive is unchanged. A recipe not saved yet:
   disabled.
+- `ACC-046` (QE-26, EDT-011, EDT-020, GUI-030) Each goal is one line without fields: HeatUp 40 °C reads "Heat Up
+  to 40 °C", a Rest of 65 °C, 30 min named Maltoserast "Rest at 65 °C for 30 min — Maltoserast". Clicking a line
+  opens that goal's fields and closes the one open before; clicking it again closes it. A goal added with + Add goal
+  is open. A HeatUp without temperature reads "Heat Up to ? °C" and is marked; its "Goal 2" in the problem list opens
+  it.
 - `ACC-017` (BRW-004, DRV-010) A recipe has pending changes until it is downloaded (draft) or saved (Drive), and again
   after a change.
 - `ACC-018` (EDT-016) On the first visit (new browser storage) the list holds the draft `BENIWEISS`; on a later visit

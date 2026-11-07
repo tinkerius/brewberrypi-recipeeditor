@@ -91,11 +91,42 @@ export const GOAL_INFO: Record<GoalType, GoalInfo> = {
 };
 
 export const FIELD_LABELS: Record<GoalField, string> = {
-  temperature: "Temperature (°C)",
-  minutes: "Minutes",
+  temperature: "Temperature",
+  minutes: "Duration",
   name: "Name",
   description: "Description",
 };
+
+/** One part of a goal's line (EDT-011): the type, a joining word, a value, a missing value, or the goal's name. */
+export interface LinePart {
+  kind: "type" | "word" | "value" | "missing" | "name";
+  text: string;
+}
+
+/**
+ * A goal as one short sentence (QE-26): "Heat Up to 62 °C", "Rest at 65 °C for 30 min — Maltoserast". Display names
+ * only (QE-24); a missing value reads "?", a value that is not a number is shown as typed (both "missing").
+ */
+export function goalLine(goal: Goal): LinePart[] {
+  if (!isGoalType(goal.type)) {
+    const text = typeof goal.type === "string" && goal.type ? `Unknown: ${goal.type}` : "Choose a type";
+    return [{ kind: "missing", text }];
+  }
+  const fields = goalFields(goal.type);
+  const parts: LinePart[] = [{ kind: "type", text: GOAL_INFO[goal.type].label }];
+  const value = (v: unknown, unit: string): LinePart =>
+    typeof v === "number" ? { kind: "value", text: `${v} ${unit}` } : { kind: "missing", text: `${typeof v === "string" && v ? v : "?"} ${unit}` };
+  if (fields.includes("temperature")) {
+    parts.push({ kind: "word", text: goal.type === "HeatUp" ? "to" : "at" }, value(goal.temperature, "°C"));
+  }
+  if (fields.includes("minutes")) {
+    parts.push({ kind: "word", text: "for" }, value(goal.minutes, "min"));
+  }
+  if (typeof goal.name === "string" && goal.name.trim()) {
+    parts.push({ kind: "word", text: "—" }, { kind: "name", text: goal.name });
+  }
+  return parts;
+}
 
 export function isGoalType(type: unknown): type is GoalType {
   return typeof type === "string" && (GOAL_TYPES as readonly string[]).includes(type);

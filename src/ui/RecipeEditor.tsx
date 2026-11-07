@@ -8,6 +8,7 @@ import { GOALS_PATH } from "../validate";
 import { GoalEditor } from "./GoalEditor";
 import { GoalTypeDialog } from "./GoalTypeDialog";
 import { RecipeTitle } from "./RecipeTitle";
+import { Tabs } from "./Tabs";
 import { dropSlot, moveItem, targetIndex } from "./reorder";
 import { BUTTON_STYLES, CARD_STYLE, HINT_STYLE, LINK_STYLE } from "./styles";
 
@@ -74,10 +75,15 @@ export function ProblemList(props: { doc: Doc; onGoal?: (index: number) => void 
   );
 }
 
+/** The recipe's tabs (GUI-032, QE-28); more come later. */
+const RECIPE_TABS = [{ id: "mash", label: "Mash Process" }] as const;
+type RecipeTab = (typeof RECIPE_TABS)[number]["id"];
+
 export function RecipeEditor(props: { doc: Doc; onChange: (recipe: Recipe) => void; actions?: ComponentChildren; status?: ComponentChildren }) {
   const { doc } = props;
   const problems = problemsOf(doc);
   const [adding, setAdding] = useState(false);
+  const [tab, setTab] = useState<RecipeTab>("mash");
   const setRecipe = (recipe: Recipe) => props.onChange(recipe);
   const setGoals = (goals: Goal[]) => setRecipe(withGoals(doc.recipe, goals));
   const goals = goalsOf(doc.recipe);
@@ -180,60 +186,62 @@ export function RecipeEditor(props: { doc: Doc; onChange: (recipe: Recipe) => vo
       </div>
 
 
-      <h3 class="mt-6 text-sm font-semibold text-ink dark:text-ink-light">Mashing process: goals in brewing order</h3>
-      {goals.length === 0 ? (
-        <p class={`${HINT_STYLE} mt-2`}>No goals yet. Add them below; until then the BrewberryPi app lists this recipe but can't brew it.</p>
-      ) : (
-        <ol
-          ref={list}
-          class="mt-2 divide-y divide-stone-200 rounded-lg ring-1 ring-stone-200 dark:divide-white/10 dark:ring-white/10"
-        >
-          {goals.map((goal, i) => (
-            <GoalEditor
-              key={`${doc.key}-${i}`}
-              goal={goal}
-              index={i}
-              count={goals.length}
-              problems={problems}
-              open={open === i}
-              onToggle={() => setOpen(open === i ? undefined : i)}
-              onChange={(g) => setGoals(goals.map((x, j) => (j === i ? g : x)))}
-              onDragStart={(e) => startDrag(i, e)}
-              onMoveKey={(delta) => {
-                const to = i + delta;
-                if (to >= 0 && to < goals.length) {
-                  moveGoal(i, to);
-                  setFocusHandle(to);
-                }
-              }}
-              dragging={drag?.from === i}
-              dropLine={dropLine(i)}
-              onRemove={() => {
-                setGoals(goals.filter((_, j) => j !== i));
-                if (open !== undefined && open >= i) {
-                  setOpen(open === i ? undefined : open - 1);
-                }
-              }}
-            />
-          ))}
-        </ol>
-      )}
-      <div class="mt-3">
-        <button type="button" class={BUTTON_STYLES.secondary} onClick={() => setAdding(true)}>
-          + Add goal
-        </button>
-      </div>
-      {adding && (
-        <GoalTypeDialog
-          title="Add a goal"
-          onCancel={() => setAdding(false)}
-          onChoose={(type) => {
-            setAdding(false);
-            setGoals([...goals, newGoal(type)]);
-            setOpen(goals.length);
-          }}
-        />
-      )}
+      <Tabs label="Recipe sections" tabs={RECIPE_TABS} selected={tab} onSelect={setTab}>
+        <p class={HINT_STYLE}>The goals in brewing order.</p>
+        {goals.length === 0 ? (
+          <p class={`${HINT_STYLE} mt-2`}>No goals yet. Add them below; until then the BrewberryPi app lists this recipe but can't brew it.</p>
+        ) : (
+          <ol
+            ref={list}
+            class="mt-2 divide-y divide-line rounded-lg ring-1 ring-line dark:divide-white/10 dark:ring-white/10"
+          >
+            {goals.map((goal, i) => (
+              <GoalEditor
+                key={`${doc.key}-${i}`}
+                goal={goal}
+                index={i}
+                count={goals.length}
+                problems={problems}
+                open={open === i}
+                onToggle={() => setOpen(open === i ? undefined : i)}
+                onChange={(g) => setGoals(goals.map((x, j) => (j === i ? g : x)))}
+                onDragStart={(e) => startDrag(i, e)}
+                onMoveKey={(delta) => {
+                  const to = i + delta;
+                  if (to >= 0 && to < goals.length) {
+                    moveGoal(i, to);
+                    setFocusHandle(to);
+                  }
+                }}
+                dragging={drag?.from === i}
+                dropLine={dropLine(i)}
+                onRemove={() => {
+                  setGoals(goals.filter((_, j) => j !== i));
+                  if (open !== undefined && open >= i) {
+                    setOpen(open === i ? undefined : open - 1);
+                  }
+                }}
+              />
+            ))}
+          </ol>
+        )}
+        <div class="mt-3">
+          <button type="button" class={BUTTON_STYLES.secondary} onClick={() => setAdding(true)}>
+            + Add goal
+          </button>
+        </div>
+        {adding && (
+          <GoalTypeDialog
+            title="Add a goal"
+            onCancel={() => setAdding(false)}
+            onChoose={(type) => {
+              setAdding(false);
+              setGoals([...goals, newGoal(type)]);
+              setOpen(goals.length);
+            }}
+          />
+        )}
+      </Tabs>
 
       <div class="mt-6 space-y-2">
         {doc.notice && (

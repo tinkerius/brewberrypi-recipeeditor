@@ -66,6 +66,8 @@ a release that changes sign-in or Drive behaviour.
   it.
 - `ACC-047` (QE-27, GUI-001, GUI-004) The top bar shows "BrewberryPi" as a link to https://brewberrypi.org/, "Recipe
   Editor" and Cloud Sync; the footer links to brewberrypi.org, the privacy policy, the terms and the source code.
+- `ACC-048` (QE-28, GUI-032) Below the recipe's title is a tab list with one tab, **Mash Process**, selected; its
+  panel holds the goals and + Add goal; the problems are below the panel, not in it.
 - `ACC-017` (BRW-004, DRV-010) A recipe has pending changes until it is downloaded (draft) or saved (Drive), and again
   after a change.
 - `ACC-018` (EDT-016) On the first visit (new browser storage) the list holds the draft `BENIWEISS`; on a later visit

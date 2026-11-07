@@ -252,6 +252,23 @@ describe("App, the website's top bar and footer (QE-27)", () => {
   });
 });
 
+describe("App, the recipe's tabs (QE-28)", () => {
+  it("ACC-048 shows one selected tab Mash Process with the goals; the problems are below it", async () => {
+    const store = new MemoryStore();
+    await store.put(newDoc("Kept", { version: 2, name: "Kept", mashing_process: { goals: [{ type: "HeatUp" }] } }));
+    await show(store);
+    const recipe = root.querySelector("[aria-label=Recipe]")!;
+    const tabs = [...recipe.querySelectorAll<HTMLElement>("[role=tablist] [role=tab]")];
+    expect(tabs.map((t) => [t.textContent, t.getAttribute("aria-selected")])).toEqual([["Mash Process", "true"]]);
+    const panel = recipe.querySelector<HTMLElement>("[role=tabpanel]")!;
+    expect(panel.getAttribute("aria-labelledby")).toBe(tabs[0].id);
+    expect(panel.querySelector("ol [data-goal-line]")).not.toBeNull();
+    expect([...panel.querySelectorAll("button")].some((b) => b.textContent?.trim() === "+ Add goal")).toBe(true);
+    expect(panel.textContent).not.toContain("A Heat Up goal needs a temperature.");
+    expect(recipe.textContent).toContain("A Heat Up goal needs a temperature.");
+  });
+});
+
 describe("App, reordering goals by drag and drop (EDT-012)", () => {
   const goals = [
     { type: "HeatUp", temperature: 40 },

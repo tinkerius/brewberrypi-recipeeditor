@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { changeGoalType, emptyRecipe, goalFields, newGoal, readRecipe, serializeRecipe, toRecipe, GOAL_TYPES } from "../src/model";
+import { changeGoalType, emptyRecipe, goalFields, goalLine, newGoal, readRecipe, serializeRecipe, toRecipe, GOAL_TYPES } from "../src/model";
 import { freeId, fingerprint, hasPendingChanges, newDoc, problemsOf } from "../src/doc";
 import { validateRecipe } from "../src/validate";
 
@@ -124,5 +124,26 @@ describe("docs", () => {
   it("ACC-013 finds a free file name", () => {
     expect(freeId("A", ["B"])).toBe("A");
     expect(freeId("A", ["A", "A-2"])).toBe("A-3");
+  });
+});
+
+describe("goalLine", () => {
+  const text = (goal: Record<string, unknown>) => goalLine(goal as never).map((p) => p.text).join(" ");
+  it.each([
+    [{ type: "PourInBrewingWater" }, "Add Water"],
+    [{ type: "HeatUp", temperature: 62 }, "Heat Up to 62 °C"],
+    [{ type: "Rest", temperature: 65, minutes: 30 }, "Rest at 65 °C for 30 min"],
+    [{ type: "Rest", temperature: 65, minutes: 30, name: "Maltoserast", description: "d" }, "Rest at 65 °C for 30 min — Maltoserast"],
+    [{ type: "CookWater", minutes: 60, name: "", description: "" }, "Cook for 60 min"],
+    [{ type: "HeatUp" }, "Heat Up to ? °C"],
+    [{ type: "HeatUp", temperature: "62x" }, "Heat Up to 62x °C"],
+    [{ type: "Boil" }, "Unknown: Boil"],
+  ])("ACC-046 %j reads %s", (goal, expected) => {
+    expect(text(goal)).toBe(expected);
+  });
+
+  it("ACC-046 marks missing and invalid values", () => {
+    expect(goalLine({ type: "HeatUp" }).map((p) => p.kind)).toEqual(["type", "word", "missing"]);
+    expect(goalLine({ type: "HeatUp", temperature: "x" }).at(-1)!.kind).toBe("missing");
   });
 });

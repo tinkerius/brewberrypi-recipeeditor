@@ -1,4 +1,8 @@
-/** Form fields that keep what the user is typing, even while it is not a valid number yet. */
+/**
+ * Form fields of an open goal (EDT-011), as rows of a two-column grid: the label left, the field right. The label
+ * element uses `display: contents`, so it still names its field. Number fields keep what the user is typing, even
+ * while it is not a valid number yet (EDT-015).
+ */
 
 import { useEffect, useState } from "preact/hooks";
 import { INPUT_STYLE, INVALID_INPUT, LABEL_STYLE } from "./styles";
@@ -17,6 +21,8 @@ export function NumberField(props: {
   value: unknown;
   invalid: boolean;
   integer?: boolean;
+  /** Shown after the field, e.g. "°C". */
+  unit?: string;
   onChange: (value: number | string | undefined) => void;
 }) {
   const shown = typeof props.value === "number" || typeof props.value === "string" ? String(props.value) : "";
@@ -28,21 +34,24 @@ export function NumberField(props: {
     }
   }, [shown]);
   return (
-    <label class="block">
+    <label class="contents">
       <span class={LABEL_STYLE}>{props.label}</span>
-      <input
-        type="text"
-        inputMode={props.integer ? "numeric" : "decimal"}
-        class={`${INPUT_STYLE} mt-1 ${props.invalid ? INVALID_INPUT : ""}`}
-        value={text}
-        onInput={(e) => {
-          const next = e.currentTarget.value;
-          setText(next);
-          const parsed = parseNumber(next);
-          // Not a number: keep the text, so the validator reports it ("must be a number").
-          props.onChange(parsed === undefined ? undefined : Number.isNaN(parsed) ? next : parsed);
-        }}
-      />
+      <span class="flex items-center gap-2 text-sm text-stone-600 dark:text-stone-300">
+        <input
+          type="text"
+          inputMode={props.integer ? "numeric" : "decimal"}
+          class={`${INPUT_STYLE} w-20! py-1.5! text-right ${props.invalid ? INVALID_INPUT : ""}`}
+          value={text}
+          onInput={(e) => {
+            const next = e.currentTarget.value;
+            setText(next);
+            const parsed = parseNumber(next);
+            // Not a number: keep the text, so the validator reports it ("must be a number").
+            props.onChange(parsed === undefined ? undefined : Number.isNaN(parsed) ? next : parsed);
+          }}
+        />
+        {props.unit}
+      </span>
     </label>
   );
 }
@@ -56,9 +65,9 @@ export function TextField(props: {
   onChange: (value: string) => void;
 }) {
   const value = typeof props.value === "string" ? props.value : "";
-  const cls = `${INPUT_STYLE} mt-1 ${props.invalid ? INVALID_INPUT : ""}`;
+  const cls = `${INPUT_STYLE} py-1.5! ${props.invalid ? INVALID_INPUT : ""}`;
   return (
-    <label class="block">
+    <label class="contents">
       <span class={LABEL_STYLE}>{props.label}</span>
       {props.multiline ? (
         <textarea

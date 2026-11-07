@@ -9,7 +9,7 @@ import { GoalEditor } from "./GoalEditor";
 import { GoalTypeDialog } from "./GoalTypeDialog";
 import { RecipeTitle } from "./RecipeTitle";
 import { dropSlot, moveItem, targetIndex } from "./reorder";
-import { BUTTON_STYLES, CARD_STYLE, HINT_STYLE } from "./styles";
+import { BUTTON_STYLES, CARD_STYLE, HINT_STYLE, LINK_STYLE } from "./styles";
 
 const PATH_LABELS: Record<string, string> = {
   id: "File name",
@@ -19,15 +19,19 @@ const PATH_LABELS: Record<string, string> = {
   [GOALS_PATH]: "Goals",
 };
 
-function describePath(path: string): string {
+/** The goal a problem is about, if any (its index). */
+function goalOf(path: string): number | undefined {
   const goal = /^mashing_process\.goals\[(\d+)\](?:\.(\w+))?$/.exec(path);
-  if (goal) {
-    return `Goal ${Number(goal[1]) + 1}`;
-  }
-  return PATH_LABELS[path] ?? (path || "Recipe");
+  return goal ? Number(goal[1]) : undefined;
 }
 
-export function ProblemList(props: { doc: Doc }) {
+function describePath(path: string): string {
+  const goal = goalOf(path);
+  return goal !== undefined ? `Goal ${goal + 1}` : (PATH_LABELS[path] ?? (path || "Recipe"));
+}
+
+/** The problems (EDT-020); a goal's problem opens that goal when its "Goal n" is clicked. */
+export function ProblemList(props: { doc: Doc; onGoal?: (index: number) => void }) {
   const problems = problemsOf(props.doc);
   if (props.doc.loadError) {
     return (
@@ -49,12 +53,22 @@ export function ProblemList(props: { doc: Doc }) {
     <div class="rounded-lg bg-brass/10 p-3 text-sm dark:bg-brass-light/10" role="status">
       <p class="font-medium text-ink dark:text-ink-light">Incomplete — fix these before saving or downloading:</p>
       <ul class="mt-1 list-disc pl-5 text-stone-700 dark:text-stone-300">
-        {problems.map((p, i) => (
-          <li key={i}>
-            <span class="font-medium">{describePath(p.path)}:</span> {p.message}
-            {p.path === "id" && " Rename it with the recipe's menu (⋯) in the list."}
-          </li>
-        ))}
+        {problems.map((p, i) => {
+          const goal = goalOf(p.path);
+          return (
+            <li key={i}>
+              {goal !== undefined && props.onGoal ? (
+                <button type="button" class={LINK_STYLE} onClick={() => props.onGoal!(goal)}>
+                  {describePath(p.path)}
+                </button>
+              ) : (
+                <span class="font-medium">{describePath(p.path)}</span>
+              )}
+              : {p.message}
+              {p.path === "id" && " Rename it with the recipe's menu (⋯) in the list."}
+            </li>
+          );
+        })}
       </ul>
     </div>
   );
@@ -71,6 +85,27 @@ export function RecipeEditor(props: { doc: Doc; onChange: (recipe: Recipe) => vo
   const list = useRef<HTMLOListElement>(null);
   const [drag, setDrag] = useState<{ from: number; slot: number }>();
   const [focusHandle, setFocusHandle] = useState<number>();
+  // The open goal (EDT-011, one at a time), for this recipe only.
+  const [opened, setOpened] = useState<{ key: string; index: number; focus?: boolean }>();
+  const open = opened?.key === doc.key ? opened.index : undefined;
+  const setOpen = (index: number | undefined, focus = false) =>
+    setOpened(index === undefined ? undefined : { key: doc.key, index, focus });
+  /** Moves goals and keeps the open one open where it went. */
+  const moveGoal = (from: number, to: number) => {
+    setGoals(moveItem(goals, from, to));
+    if (open !== undefined) {
+      setOpen(moveItem(goals.map((_, j) => j), from, to).indexOf(open));
+    }
+  };
+
+  // Opened from the problem list: its first field gets the focus (and so scrolls into view).
+  useEffect(() => {
+    if (opened?.focus && open !== undefined) {
+      const item = list.current?.children[open];
+      (item?.querySelector<HTMLElement>("input, textarea") ?? item?.querySelector<HTMLElement>("[data-goal-line]"))?.focus();
+      setOpened({ ...opened, focus: false });
+    }
+  }, [opened]);
 
   // Keyboard reordering: the moved goal's handle keeps the focus.
   useEffect(() => {
@@ -107,7 +142,7 @@ export function RecipeEditor(props: { doc: Doc; onChange: (recipe: Recipe) => vo
       if (e.type === "pointerup") {
         const to = targetIndex(from, dropSlot(e.clientY, midpoints()));
         if (to !== from) {
-          setGoals(moveItem(goals, from, to));
+          moveGoal(from, to);
         }
       }
     };
@@ -149,7 +184,10 @@ export function RecipeEditor(props: { doc: Doc; onChange: (recipe: Recipe) => vo
       {goals.length === 0 ? (
         <p class={`${HINT_STYLE} mt-2`}>No goals yet. Add them below; until then the BrewberryPi app lists this recipe but can't brew it.</p>
       ) : (
-        <ol ref={list} class="mt-2 space-y-2">
+        <ol
+          ref={list}
+          class="mt-2 divide-y divide-stone-200 rounded-lg ring-1 ring-stone-200 dark:divide-white/10 dark:ring-white/10"
+        >
           {goals.map((goal, i) => (
             <GoalEditor
               key={`${doc.key}-${i}`}
@@ -157,18 +195,25 @@ export function RecipeEditor(props: { doc: Doc; onChange: (recipe: Recipe) => vo
               index={i}
               count={goals.length}
               problems={problems}
+              open={open === i}
+              onToggle={() => setOpen(open === i ? undefined : i)}
               onChange={(g) => setGoals(goals.map((x, j) => (j === i ? g : x)))}
               onDragStart={(e) => startDrag(i, e)}
               onMoveKey={(delta) => {
                 const to = i + delta;
                 if (to >= 0 && to < goals.length) {
-                  setGoals(moveItem(goals, i, to));
+                  moveGoal(i, to);
                   setFocusHandle(to);
                 }
               }}
               dragging={drag?.from === i}
               dropLine={dropLine(i)}
-              onRemove={() => setGoals(goals.filter((_, j) => j !== i))}
+              onRemove={() => {
+                setGoals(goals.filter((_, j) => j !== i));
+                if (open !== undefined && open >= i) {
+                  setOpen(open === i ? undefined : open - 1);
+                }
+              }}
             />
           ))}
         </ol>
@@ -185,6 +230,7 @@ export function RecipeEditor(props: { doc: Doc; onChange: (recipe: Recipe) => vo
           onChoose={(type) => {
             setAdding(false);
             setGoals([...goals, newGoal(type)]);
+            setOpen(goals.length);
           }}
         />
       )}
@@ -195,7 +241,7 @@ export function RecipeEditor(props: { doc: Doc; onChange: (recipe: Recipe) => vo
             {doc.notice} Download or save it to write the file in the current format.
           </p>
         )}
-        <ProblemList doc={doc} />
+        <ProblemList doc={doc} onGoal={(index) => setOpen(index, true)} />
       </div>
       {props.actions && <div class="mt-4 flex flex-wrap gap-2">{props.actions}</div>}
     </section>

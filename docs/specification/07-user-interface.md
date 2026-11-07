@@ -39,7 +39,7 @@ The look follows the BrewberryPi brand and the app's web UI (brand colours, Zill
 
 - `GUI-030` Title: the recipe name, editable in place (`EDT-010`; "Untitled recipe" while it has none); below it
   `<id>.json` (not editable here, `EDT-003`); the state (`BRW-004`,
-  `DRV-010`) at the right. Then the goals (`EDT-011`..`EDT-015`) and the problems
+  `DRV-010`) at the right. Then the goals, one line each with one open for editing (`EDT-011`..`EDT-015`, `QE-26`), and the problems
   (`EDT-020`).
 - `GUI-031` Actions below, signed in: **Save to Google Drive** and **Discard changes** (`DRV-006`). Download and
   Delete are only in the recipe's menu (`GUI-022`, `QE-22`).

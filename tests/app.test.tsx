@@ -233,6 +233,25 @@ describe("App, the name Cloud Sync (QE-18)", () => {
   });
 });
 
+describe("App, the website's top bar and footer (QE-27)", () => {
+  it("ACC-047 links BrewberryPi to brewberrypi.org, names the editor and Cloud Sync; the footer has its links", async () => {
+    await show(new MemoryStore());
+    const header = root.querySelector("header")!;
+    const brand = header.querySelector<HTMLAnchorElement>("a[href='https://brewberrypi.org/']")!;
+    expect(brand.textContent).toBe("BrewberryPi");
+    expect(brand.querySelector("b")?.textContent).toBe("Pi");
+    expect(header.querySelector("h1")?.textContent).toBe("Recipe Editor");
+    expect(header.textContent).toContain("Cloud Sync");
+    const links = [...root.querySelectorAll<HTMLAnchorElement>("footer a")].map((a) => [a.textContent, a.getAttribute("href")]);
+    expect(links).toEqual([
+      ["brewberrypi.org", "https://brewberrypi.org/"],
+      ["Privacy", "/privacy.html"],
+      ["Terms", "/terms.html"],
+      ["Source code", "https://github.com/tinkerius/brewberrypi-recipeeditor"],
+    ]);
+  });
+});
+
 describe("App, reordering goals by drag and drop (EDT-012)", () => {
   const goals = [
     { type: "HeatUp", temperature: 40 },

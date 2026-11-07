@@ -64,6 +64,8 @@ a release that changes sign-in or Drive behaviour.
   opens that goal's fields and closes the one open before; clicking it again closes it. A goal added with + Add goal
   is open. A HeatUp without temperature reads "Heat Up to ? °C" and is marked; its "Goal 2" in the problem list opens
   it.
+- `ACC-047` (QE-27, GUI-001, GUI-004) The top bar shows "BrewberryPi" as a link to https://brewberrypi.org/, "Recipe
+  Editor" and Cloud Sync; the footer links to brewberrypi.org, the privacy policy, the terms and the source code.
 - `ACC-017` (BRW-004, DRV-010) A recipe has pending changes until it is downloaded (draft) or saved (Drive), and again
   after a change.
 - `ACC-018` (EDT-016) On the first visit (new browser storage) the list holds the draft `BENIWEISS`; on a later visit
@@ -120,3 +122,5 @@ a release that changes sign-in or Drive behaviour.
 - `ACC-053` *manual* (DRV-009) A recipe file dropped into the folder at drive.google.com appears after "Add
   untracked file from cloud storage", which is shown as a link (GUI-023).
 - `ACC-054` *manual* (DRV-011, DRV-013) A second tab is signed in at once; signing out in it signs out the first.
+- `ACC-055` *manual* (QE-27) Next to brewberrypi.org, the editor's top bar, page background, cards, buttons, titles
+  and footer look the same; in dark mode the page is dark and readable.

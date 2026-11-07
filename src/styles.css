@@ -1,8 +1,10 @@
 /* Tailwind CSS v4; the components carry their styles as utility classes. Bundled with the page. */
 @import "tailwindcss";
 
-/* The BrewberryPi brand (tinkerius/brewberrypi, brand/README.md; BRAND.md). Each colour has a
-   darker value for light backgrounds and a lighter one (-light) for dark backgrounds. */
+/* The BrewberryPi brand (tinkerius/brewberrypi, brand/README.md) as the website brewberrypi.org uses it
+   (site/styles.css, QE-27). Each colour has a darker value for light backgrounds and a lighter one (-light) for dark
+   backgrounds; berry-light is the website's pink: on light backgrounds only a fill under ink text. Paper, ink,
+   lines and muted text are the website's page tokens, the -dark ones those of its dark bands. */
 @theme {
   --color-berry: #8a2a4a;
   --color-berry-hover: #9e3557;
@@ -12,11 +14,15 @@
   --color-leaf-light: #8fc77f;
   --color-brass: #c4821a;
   --color-brass-light: #e9b04f;
-  --color-ink: #2a1d22;
+  --color-ink: #1c1719;
   --color-ink-light: #f1e8eb;
-  --color-paper: #fbf8f6;
-  --color-paper-dark: #1c1719;
-  --color-surface-dark: #262023;
+  --color-paper: #f6f5f3;
+  --color-paper-dark: #161113;
+  --color-surface-dark: #1f191c;
+  --color-line: #e3e0dc;
+  --color-line-2: #c9c5bf;
+  --color-muted: #6b6468;
+  --color-muted-dark: #a8979e;
   --font-brand: "Zilla Slab", Rockwell, Georgia, serif;
 }
 
@@ -25,6 +31,13 @@
   font-weight: 500;
   font-display: swap;
   src: url("/fonts/zilla-slab-medium.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Zilla Slab";
+  font-weight: 700;
+  font-display: swap;
+  src: url("/fonts/zilla-slab-bold.woff2") format("woff2");
 }
 
 @layer base {

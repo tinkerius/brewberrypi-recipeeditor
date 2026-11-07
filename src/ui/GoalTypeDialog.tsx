@@ -38,7 +38,7 @@ export function GoalTypeDialog(props: {
                 aria-current={current ? "true" : undefined}
                 class={
                   "h-full w-full rounded-lg p-3 text-left ring-1 transition hover:bg-stone-50 " +
-                  "focus-visible:outline-2 focus-visible:outline-berry dark:hover:bg-white/5 dark:focus-visible:outline-berry-light " +
+                  "focus-visible:outline-2 focus-visible:outline-berry-light dark:hover:bg-white/5 dark:focus-visible:outline-berry-light " +
                   (current
                     ? "ring-2 ring-berry dark:ring-berry-light"
                     : "ring-stone-200 dark:ring-white/10")

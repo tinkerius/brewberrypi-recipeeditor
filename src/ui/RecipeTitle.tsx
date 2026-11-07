@@ -32,7 +32,7 @@ export function RecipeTitle(props: { docKey: string; name: string; invalid: bool
         title="Shown in the app's process list"
         class={
           `${TITLE_STYLE} w-full rounded-md bg-white px-2 py-1 -ml-2 ring-1 ring-stone-300 ring-inset ` +
-          "placeholder:text-stone-400 focus-visible:outline-2 focus-visible:outline-berry " +
+          "placeholder:text-stone-400 focus-visible:outline-2 focus-visible:outline-berry-light " +
           `dark:bg-white/10 dark:ring-white/10 dark:focus-visible:outline-berry-light ${props.invalid ? INVALID_INPUT : ""}`
         }
         value={props.name}
@@ -56,7 +56,7 @@ export function RecipeTitle(props: { docKey: string; name: string; invalid: bool
       type="button"
       aria-label={`Edit recipe name: ${props.name || "Untitled recipe"}`}
       title="Click to edit the recipe name (shown in the app's process list)"
-      class="group -ml-2 flex max-w-full items-center gap-2 rounded-md px-2 py-1 text-left hover:bg-stone-100 focus-visible:outline-2 focus-visible:outline-berry dark:hover:bg-white/5 dark:focus-visible:outline-berry-light"
+      class="group -ml-2 flex max-w-full items-center gap-2 rounded-md px-2 py-1 text-left hover:bg-stone-100 focus-visible:outline-2 focus-visible:outline-berry-light dark:hover:bg-white/5 dark:focus-visible:outline-berry-light"
       onClick={() => setEditing(true)}
     >
       <h2 class={`${TITLE_STYLE} truncate ${props.name ? "" : "text-stone-400 dark:text-stone-500"}`}>

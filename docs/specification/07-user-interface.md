@@ -1,17 +1,21 @@
 # 07 — User Interface
 
-The look follows the BrewberryPi brand and the app's web UI (brand colours, Zilla Slab titles, light and dark mode).
+The look follows the website brewberrypi.org (`QE-27`): its dark top bar and footer bands, page background, white
+cards with a thin border, buttons (the main one pink with dark text, the others outlined) and Zilla Slab Bold titles,
+in the brand colours. Unlike the website, the editor also has a dark mode, following the system setting.
 
 ## 7.1 Page
 
-- `GUI-001` Top bar: the BrewberryPi logo, "Recipe Editor", and on the right "Cloud Sync" with **Sign in with
+- `GUI-001` Top bar, a dark band over the full width as on the website: the BrewberryPi mark and "Brewberry**Pi**"
+  (a link to https://brewberrypi.org/), "Recipe Editor", and on the right "Cloud Sync" with **Sign in with
   Google** (Cloud Sync off), or "Cloud Sync: Google Drive · <e-mail address>" with **Sign out** (Cloud Sync on).
 - `GUI-002` Below it the notices: the storage banner (`BRW-003`) with Cloud Sync off, or with Cloud Sync on the line
   "Cloud Sync is on: your recipes are files in your Google Drive, folder **BrewberryPi/recipes**. …" (and how to add
   files put there yourself); errors and information notices, each closable.
 - `GUI-003` Two columns on wide screens (list left, recipe right), one column on phones; no horizontal scrolling at
   390 px width.
-- `GUI-004` Footer: links to the privacy policy, the terms of use and the source code.
+- `GUI-004` Footer, a dark band as on the website: the BrewberryPi logo and links to brewberrypi.org, the privacy
+  policy, the terms of use and the source code.
 - `GUI-005` With no recipe selected, the right side explains what a recipe is, how to get it onto a BrewberryPi
   (`SCO-012`) and where recipes are kept.
 - `GUI-006` Dropping files onto the page shows "Drop recipe files to open them" while dragging (`EDT-005`).
@@ -19,7 +23,7 @@ The look follows the BrewberryPi brand and the app's web UI (brand colours, Zill
 ## 7.2 Sign-in button
 
 - `GUI-010` **Sign in with Google** looks as Google's branding guidelines describe: Google's "G" logo, the text
-  "Sign in with Google" in Roboto Medium, white with a grey border (dark grey in dark mode). The font is part of
+  "Sign in with Google" in Roboto Medium, in Google's dark theme (dark grey with a grey border) on the dark top bar. The font is part of
   the page (`NFR-011`). In a build without Google settings the button is disabled and says why.
 
 ## 7.3 Recipe list

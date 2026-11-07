@@ -124,5 +124,5 @@ a release that changes sign-in or Drive behaviour.
 - `ACC-053` *manual* (DRV-009) A recipe file dropped into the folder at drive.google.com appears after "Add
   untracked file from cloud storage", which is shown as a link (GUI-023).
 - `ACC-054` *manual* (DRV-011, DRV-013) A second tab is signed in at once; signing out in it signs out the first.
-- `ACC-055` *manual* (QE-27) Next to brewberrypi.org, the editor's top bar, page background, cards, buttons, titles
-  and footer look the same; in dark mode the page is dark and readable.
+- `ACC-055` *manual* (QE-27) Next to brewberrypi.org, the editor's top bar, content width, page background (with the
+  grid), cards, buttons, titles and footer look the same; in dark mode the page is dark and readable.

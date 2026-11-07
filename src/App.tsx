@@ -769,7 +769,7 @@ export function App(props: { openDrafts?: () => Promise<DraftStore>; auth?: Goog
       }}
     >
       <header class="z-20 border-b border-white/10 bg-paper-dark text-ink-light sm:sticky sm:top-0">
-        <div class="mx-auto flex min-h-16 max-w-6xl flex-wrap items-center gap-x-4 gap-y-2 px-4 py-2 sm:px-6">
+        <div class="wrap flex min-h-16 flex-wrap items-center gap-x-6 gap-y-2 py-2">
           <a
             href="https://brewberrypi.org/"
             aria-label="BrewberryPi home (brewberrypi.org)"
@@ -805,7 +805,9 @@ export function App(props: { openDrafts?: () => Promise<DraftStore>; auth?: Goog
         </div>
       </header>
 
-      <div class="mx-auto w-full max-w-6xl flex-1 px-4 pt-5 pb-10 sm:px-6">
+      <div class="relative flex-1">
+        <div aria-hidden="true" class="page-grid" />
+        <div class="wrap relative pt-6 pb-12">
       <div class="mt-4 space-y-3">
         {place.kind === "browser" && drafts && <StorageBanner kind={drafts.kind} />}
         {place.kind === "drive" && (
@@ -910,10 +912,11 @@ export function App(props: { openDrafts?: () => Promise<DraftStore>; auth?: Goog
           )}
         </main>
       </div>
+        </div>
       </div>
 
       <footer class="border-t border-white/10 bg-paper-dark text-muted-dark">
-        <div class="mx-auto flex max-w-6xl flex-col items-center gap-5 px-4 py-10 text-center sm:px-6">
+        <div class="wrap flex flex-col items-center gap-5 py-14 text-center">
           <img src="/logo-stacked-dark.svg" alt="BrewberryPi" width="136" height="90" class="h-auto w-28" />
           <nav aria-label="Links" class="flex flex-wrap justify-center gap-x-6 gap-y-1 text-sm font-medium">
             {[

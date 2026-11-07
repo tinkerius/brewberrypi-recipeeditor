@@ -852,12 +852,6 @@ export function App(props: { openDrafts?: () => Promise<DraftStore>; auth?: Goog
         <div class="wrap relative pt-6 pb-12">
       <div class="mt-4 space-y-3">
         {place.kind === "browser" && drafts && <StorageBanner kind={drafts.kind} />}
-        {place.kind === "drive" && (
-          <p class={HINT_STYLE}>
-            Cloud Sync is on: your recipes are files in your Google Drive, folder <strong>BrewberryPi/recipes</strong>. Recipe
-            files you put there yourself appear here after you add them with “Add untracked file from cloud storage”.
-          </p>
-        )}
         {error && <ErrorBanner message={error} onClose={() => setError(undefined)} />}
         {info && <InfoBanner message={info} onClose={() => setInfo(undefined)} />}
         {busy && (
@@ -946,6 +940,12 @@ export function App(props: { openDrafts?: () => Promise<DraftStore>; auth?: Goog
               >
                 Add untracked file from cloud storage
               </button>
+            )}
+            {inDrive && (
+              <p class={`${HINT_STYLE} mt-2`} data-drive-hint>
+                Your recipes are files in your Google Drive, folder <strong>BrewberryPi/recipes</strong>. Files you put there
+                yourself appear after you add them with this link.
+              </p>
             )}
           </aside>
         )}

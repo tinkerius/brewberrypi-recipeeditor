@@ -584,6 +584,20 @@ describe("App, signed in: Discard changes (QE-25)", () => {
     }
   }
 
+  it("ACC-056 tells where the recipes are in the recipe list, not in a notice at the top", async () => {
+    const { restore } = await signedIn();
+    try {
+      expect(root.textContent).not.toContain("Cloud Sync is on");
+      const sidebar = root.querySelector<HTMLElement>("#recipe-sidebar")!;
+      const hint = sidebar.querySelector<HTMLElement>("[data-drive-hint]")!;
+      expect(hint.textContent).toContain("Google Drive, folder BrewberryPi/recipes");
+      const link = [...sidebar.querySelectorAll("button")].find((b) => b.textContent?.includes("Add untracked file"))!;
+      expect(link.compareDocumentPosition(hint) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    } finally {
+      restore();
+    }
+  });
+
   it("ACC-045 discards unsaved changes after asking, and shows the version saved in Google Drive", async () => {
     const { drive, restore } = await signedIn();
     try {

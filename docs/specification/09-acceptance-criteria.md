@@ -68,6 +68,10 @@ a release that changes sign-in or Drive behaviour.
   Editor" and Cloud Sync; the footer links to brewberrypi.org, the privacy policy, the terms and the source code.
 - `ACC-048` (QE-28, GUI-032) Below the recipe's title is a tab list with one tab, **Mash Process**, selected; its
   panel holds the goals and + Add goal; the problems are below the panel, not in it.
+- `ACC-049` (QE-29, GUI-024, NFR-002) "Hide sidebar" collapses the recipe list to a strip with "Show sidebar" and
+  New recipe, the recipe stays shown, and the browser remembers it (also after the page is shown again); with a
+  recipe not downloaded, the strip shows "1 recipe not downloaded". Ctrl+B expands it again and the browser forgets
+  it; Ctrl+B does nothing while a dialog is open.
 - `ACC-017` (BRW-004, DRV-010) A recipe has pending changes until it is downloaded (draft) or saved (Drive), and again
   after a change.
 - `ACC-018` (EDT-016) On the first visit (new browser storage) the list holds the draft `BENIWEISS`; on a later visit

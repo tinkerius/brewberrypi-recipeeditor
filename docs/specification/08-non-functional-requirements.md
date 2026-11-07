@@ -5,7 +5,8 @@
 - `NFR-001` The editor is a static web page: no BrewberryPi server, backend, database or account. Recipes and Google
   account data never pass through BrewberryPi.
 - `NFR-002` The editor stores only, in the user's browser: drafts (`BRW-001`), the Google access token until it
-  expires or sign-out (`DRV-011`) and the account's e-mail address as a sign-in hint (`DRV-014`). No cookies of its
+  expires or sign-out (`DRV-011`), the account's e-mail address as a sign-in hint (`DRV-014`) and whether the recipe
+  list is collapsed (`GUI-024`). No cookies of its
   own, no analytics, no tracking, no third-party storage.
 - `NFR-003` Data from Google is used only to show and save the user's recipes, as the Google API Services User Data
   Policy (Limited Use) requires; it is not shared, sold, used for advertising or to train AI models.

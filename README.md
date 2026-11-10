@@ -77,6 +77,14 @@ VITE_GOOGLE_API_KEY=…
 VITE_GOOGLE_APP_ID=…
 ```
 
+In a GitHub codespace, set the same three as **Codespaces secrets** of this repository instead (github.com →
+Settings → Codespaces → Codespaces secrets; Vite reads `VITE_*` from the environment), then create the codespace
+(or rebuild it). Google accepts only registered origins: either open the codespace in VS Code on the desktop, which
+forwards the dev server to `http://localhost:5173`, or register the browser address
+`https://<codespace-name>-5173.app.github.dev` as in `docs/google-setup.md` §3–4. Signed in, the dev server works on
+your real Drive folder `BrewberryPi/recipes`, which BrewberryPi's Cloud Sync reads: a recipe saved there is written
+in this branch's format version, which an older app release skips.
+
 Checks (CI runs the same):
 
 ```bash

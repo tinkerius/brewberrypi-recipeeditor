@@ -264,11 +264,11 @@ describe("App, the recipe's tabs (QE-28)", () => {
     const recipe = root.querySelector("[aria-label=Recipe]")!;
     const tabs = [...recipe.querySelectorAll<HTMLElement>("[role=tablist] [role=tab]")];
     expect(tabs.map((t) => [t.textContent, t.getAttribute("aria-selected")])).toEqual([
-      ["Mash Process", "true"],
       ["Mashing", "false"],
+      ["Mash Process", "true"],
     ]);
     const panel = recipe.querySelector<HTMLElement>("[role=tabpanel]")!;
-    expect(panel.getAttribute("aria-labelledby")).toBe(tabs[0].id);
+    expect(panel.getAttribute("aria-labelledby")).toBe(tabs[1].id);
     expect(panel.querySelector("ol [data-goal-line]")).not.toBeNull();
     expect([...panel.querySelectorAll("button")].some((b) => b.textContent?.trim() === "+ Add goal")).toBe(true);
     expect(panel.textContent).not.toContain("A Heat Up goal needs a temperature.");
@@ -752,11 +752,11 @@ describe("App, the Mashing tab (QE-32)", () => {
       expect(r.textContent).toContain(info.label);
       const typical = (f: string) => r.querySelector(`[data-mash-typical=${f}]`)!;
       expect([typical("temperature").textContent, typical("minutes").textContent]).toEqual([
-        `typ. ${info.tempMin}–${info.tempMax} °C`,
+        `${info.tempMin}–${info.tempMax} °C`,
         info.duration,
       ]);
-      expect(typical("temperature").closest("td")!.cellIndex).toBe(2); // the °C column
-      expect(typical("minutes").closest("td")!.cellIndex).toBe(3); // the min column
+      expect(typical("temperature").closest("td")!.cellIndex).toBe(3); // Typical, after °C
+      expect(typical("minutes").closest("td")!.cellIndex).toBe(5); // Typical, after min
       expect(r.querySelector<HTMLInputElement>("input[type=checkbox]")!.checked).toBe(false);
       expect(r.querySelector("input:not([type=checkbox])")).toBeNull();
       const about = r.querySelector<HTMLButtonElement>("button[aria-expanded]")!;
@@ -773,12 +773,15 @@ describe("App, the Mashing tab (QE-32)", () => {
     await act(async () => row("MashOut").querySelector<HTMLButtonElement>("button[aria-expanded]")!.click());
     expect(panel().querySelector("[data-mash-about]")).toBeNull();
     expect(rows[5].textContent).toContain("Maltose rest (beta-amylase rest)");
-    expect(rows[5].textContent).toContain("typ. 60–65 °C");
-    // A ticked rest: the typical values right beside its fields.
+    expect(rows[5].textContent).toContain("60–65 °C");
+    const heads = [...panel().querySelectorAll("thead th")].map((th) => th.textContent);
+    expect(heads).toEqual(["Planned", "Rest", "°C", "Typical", "min", "Typical", "About"]);
+    // A ticked rest: its fields in the °C and min columns, the typical values stay in their own columns.
     await tick("MaltoseRest");
-    for (const f of ["temperature", "minutes"]) {
+    for (const [f, cell] of [["temperature", 3], ["minutes", 5]] as const) {
       const t = row("MaltoseRest").querySelector(`[data-mash-typical=${f}]`)!;
-      expect(t.previousElementSibling?.querySelector("input")).not.toBeNull();
+      expect(t.closest("td")!.cellIndex).toBe(cell);
+      expect((row("MaltoseRest") as HTMLTableRowElement).cells[cell - 1].querySelector("input")).not.toBeNull();
     }
     expect(panel().querySelector("[data-goal-line]")).toBeNull();
   });
@@ -814,7 +817,7 @@ describe("App, the Mashing tab (QE-32)", () => {
     expect(input.className).toContain("ring-amber-500!");
     const typical = document.getElementById(input.getAttribute("aria-describedby")!)!;
     expect(typical).toBe(typicalOf());
-    expect(typical.textContent).toBe("typ. 60–65 °C");
+    expect(typical.textContent).toBe("60–65 °C");
     expect(typical.className).toContain("text-amber-700");
     expect(recipe().textContent).toContain("Complete: BrewberryPi can load this recipe.");
     expect(await download()).toContain('"MaltoseRest": { "temperature": 70, "minutes": 45 }');

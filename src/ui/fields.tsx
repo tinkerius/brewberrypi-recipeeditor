@@ -48,7 +48,7 @@ export function NumberField(props: {
           inputMode={props.integer ? "numeric" : "decimal"}
           aria-describedby={props.describedBy}
           class={
-            `${INPUT_STYLE} ${props.compact ? "w-12! px-1.5! sm:w-16! sm:px-2!" : "w-20!"} py-1.5! text-right ` +
+            `${INPUT_STYLE} ${props.compact ? "w-11! px-1! sm:w-16! sm:px-2!" : "w-20!"} py-1.5! text-right ` +
             (props.invalid ? INVALID_INPUT : props.warn ? WARN_INPUT : "")
           }
           value={text}

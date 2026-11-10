@@ -98,8 +98,8 @@ export function ProblemList(props: { doc: Doc; onGoal?: (index: number) => void;
 
 /** The recipe's tabs (GUI-032, QE-28, QE-32); more come later. */
 const RECIPE_TABS = [
-  { id: "mash", label: "Mash Process" },
   { id: "mashing", label: "Mashing" },
+  { id: "mash", label: "Mash Process" },
 ] as const;
 type RecipeTab = (typeof RECIPE_TABS)[number]["id"];
 

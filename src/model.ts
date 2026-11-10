@@ -87,9 +87,9 @@ export function newMashRest(id: MashRestId): MashRest {
 }
 
 /** Whether a rest's temperature is outside its typical range (EDT-033); only for numbers. */
-/** The typical temperature range beside the °C field (EDT-031): "typ. 60–65 °C". */
+/** The typical temperature range in the column after the °C field (EDT-031): "60–65 °C". */
 export function typicalTemperature(id: MashRestId): string {
-  return `typ. ${MASH_RESTS[id].tempMin}–${MASH_RESTS[id].tempMax} °C`;
+  return `${MASH_RESTS[id].tempMin}–${MASH_RESTS[id].tempMax} °C`;
 }
 
 export function outsideTypicalRange(id: MashRestId, temperature: unknown): boolean {

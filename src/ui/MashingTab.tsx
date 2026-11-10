@@ -1,8 +1,9 @@
 /**
  * The Mashing tab (EDT-030..035, QE-32): the brewer's mashing plan as a table. Every rest of the catalogue is one
  * row, in temperature order: a check box, the rest, and the planned temperature and duration in their own columns,
- * each with the rest's typical value right beside it. The ⓘ button expands what the rest does below its row. A
- * temperature outside the rest's typical range is a warning beside that range, not a problem: the file stays valid.
+ * each followed by a "Typical" column with the rest's typical value. The ⓘ button expands what the rest does below
+ * its row. A temperature outside the rest's typical range is a warning beside that range, not a problem: the file
+ * stays valid.
  */
 
 import { useRef, useState } from "preact/hooks";
@@ -27,8 +28,10 @@ function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-const CELL = "px-1 py-2 align-top first:pl-2 last:pr-2 sm:px-2 sm:first:pl-3 sm:last:pr-3";
-const HEAD = `${CELL} text-left text-xs font-semibold text-stone-600 dark:text-stone-300`;
+const CELL = "px-0.5 py-2 align-top first:pl-1.5 last:pr-1 sm:px-2 sm:first:pl-3 sm:last:pr-3";
+const HEAD = `${CELL} text-left text-[11px] font-semibold sm:text-xs text-stone-600 dark:text-stone-300`;
+/** A typical value (and its warning), centred on the height of the field beside it. */
+const VALUE = "flex min-h-8 flex-wrap items-center gap-x-2 gap-y-1 sm:min-h-9";
 
 function RestRows(props: {
   id: MashRestId;
@@ -47,25 +50,20 @@ function RestRows(props: {
   const checkbox = `mash-${id}`;
   const about = `mash-about-${id}`;
   const typicalId = (field: string) => `mash-typical-${id}-${field}`;
-  /** A field's typical value, right beside the field (or alone while the rest is not planned). */
+  /** A field's typical value, in its own "Typical" column right after the field's, so they line up. */
   const typical = (field: string, text: string, highlight = false) => (
     <span
       id={typicalId(field)}
       data-mash-typical={field}
       class={
-        "text-xs leading-snug " +
-        (field === "temperature" ? "sm:whitespace-nowrap " : "") +
+        "text-[11px] leading-snug sm:text-xs " +
+        (field === "temperature" ? "whitespace-nowrap tracking-tight sm:tracking-normal " : "") +
         (highlight ? "font-medium text-amber-700 dark:text-brass-light" : "text-stone-500 dark:text-stone-400")
       }
     >
       {text}
     </span>
   );
-  /**
-   * A field, its typical value beside it, and the warning after that. On a phone they wrap below the field; from
-   * `sm` on they stay in one row and a long text wraps beside the field.
-   */
-  const VALUE = "flex min-h-8 flex-wrap items-center gap-x-2 gap-y-1 sm:min-h-9 sm:flex-nowrap";
   return (
     <>
       <tr
@@ -75,7 +73,7 @@ function RestRows(props: {
           (planned ? "bg-berry-light/10 dark:bg-berry-light/5" : "")
         }
       >
-        <td class={`${CELL} w-7 sm:w-8`}>
+        <td class={`${CELL} w-5 sm:w-8`}>
           <input
             id={checkbox}
             type="checkbox"
@@ -85,48 +83,52 @@ function RestRows(props: {
           />
         </td>
         <td class={CELL}>
-          <label for={checkbox} class="block cursor-pointer pt-1.5 text-sm font-semibold text-ink dark:text-ink-light">
-            {info.label}
+          <label for={checkbox} class="block cursor-pointer pt-1.5 text-[13px] leading-snug font-semibold sm:text-sm sm:leading-normal text-ink dark:text-ink-light">
+            {/* On a phone the short name, so the seven columns fit. */}
+            <span class="sm:hidden">{info.short}</span>
+            <span class="hidden sm:inline">{info.label}</span>
           </label>
+        </td>
+        <td class={`${CELL} w-12 sm:w-20`}>
+          {planned && (
+            <NumberField
+              label={`Temperature (°C), ${info.short}`}
+              compact
+              value={rest.temperature}
+              invalid={invalid("temperature")}
+              warn={warn}
+              describedBy={typicalId("temperature")}
+              onChange={(v) => props.onChange({ ...rest, temperature: v })}
+            />
+          )}
         </td>
         <td class={CELL}>
           <div class={VALUE}>
-            {planned && (
-              <NumberField
-                label={`Temperature (°C), ${info.short}`}
-                compact
-                value={rest.temperature}
-                invalid={invalid("temperature")}
-                warn={warn}
-                describedBy={typicalId("temperature")}
-                onChange={(v) => props.onChange({ ...rest, temperature: v })}
-              />
-            )}
             {typical("temperature", typicalTemperature(id), warn)}
             {warn && (
-              <span class="text-xs font-medium text-amber-700 dark:text-brass-light" data-mash-warning>
+              <span class="text-[11px] leading-snug font-medium text-amber-700 sm:text-xs dark:text-brass-light" data-mash-warning>
                 ⚠ Outside the typical range
               </span>
             )}
           </div>
         </td>
-        <td class={CELL}>
-          <div class={VALUE}>
-            {planned && (
-              <NumberField
-                label={`Duration (min), ${info.short}`}
-                compact
-                integer
-                value={rest.minutes}
-                invalid={invalid("minutes")}
-                describedBy={typicalId("minutes")}
-                onChange={(v) => props.onChange({ ...rest, minutes: v })}
-              />
-            )}
-            {typical("minutes", info.duration)}
-          </div>
+        <td class={`${CELL} w-12 sm:w-20`}>
+          {planned && (
+            <NumberField
+              label={`Duration (min), ${info.short}`}
+              compact
+              integer
+              value={rest.minutes}
+              invalid={invalid("minutes")}
+              describedBy={typicalId("minutes")}
+              onChange={(v) => props.onChange({ ...rest, minutes: v })}
+            />
+          )}
         </td>
-        <td class={`${CELL} w-8 text-right sm:w-10`}>
+        <td class={CELL}>
+          <div class={VALUE}>{typical("minutes", info.duration)}</div>
+        </td>
+        <td class={`${CELL} w-7 text-right sm:w-10`}>
           <button
             type="button"
             class={
@@ -149,7 +151,7 @@ function RestRows(props: {
       {props.open && (
         <tr id={about} data-mash-about={id} class={planned ? "bg-berry-light/10 dark:bg-berry-light/5" : ""}>
           <td />
-          <td colSpan={4} class={`${CELL} pt-0`}>
+          <td colSpan={6} class={`${CELL} pt-0`}>
             <dl class="space-y-1 rounded-md bg-stone-50 p-3 text-xs text-stone-700 dark:bg-white/5 dark:text-stone-300">
               {info.about.map(([term, text]) => (
                 <div key={term}>
@@ -182,7 +184,8 @@ export function MashingTab(props: { recipe: Recipe; problems: Problem[]; onChang
       <div class="mt-3">
         <MashLadder plan={plan} selected={open} onSelect={showRest} />
       </div>
-      <div class="overflow-x-auto rounded-lg ring-1 ring-line dark:ring-white/10">
+      {/* On a phone the table uses the card's full width; `relative` keeps the fields' screen-reader labels in it. */}
+      <div class="relative -mx-4 overflow-x-auto border-y border-line sm:mx-0 sm:rounded-lg sm:border-0 sm:ring-1 sm:ring-line dark:border-white/10 dark:sm:ring-white/10">
         <table ref={table} class="w-full border-collapse">
           <thead class="bg-stone-50 dark:bg-white/5">
             <tr>
@@ -191,7 +194,9 @@ export function MashingTab(props: { recipe: Recipe; problems: Problem[]; onChang
               </th>
               <th class={HEAD}>Rest</th>
               <th class={HEAD}>°C</th>
+              <th class={HEAD}>Typical</th>
               <th class={HEAD}>min</th>
+              <th class={HEAD}>Typical</th>
               <th class={HEAD}>
                 <span class="sr-only">About</span>
               </th>

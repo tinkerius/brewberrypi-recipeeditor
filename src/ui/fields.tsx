@@ -5,7 +5,7 @@
  */
 
 import { useEffect, useState } from "preact/hooks";
-import { INPUT_STYLE, INVALID_INPUT, LABEL_STYLE } from "./styles";
+import { INPUT_STYLE, INVALID_INPUT, LABEL_STYLE, WARN_INPUT } from "./styles";
 
 function parseNumber(text: string): number | undefined {
   const trimmed = text.trim().replace(",", ".");
@@ -23,6 +23,10 @@ export function NumberField(props: {
   integer?: boolean;
   /** Shown after the field, e.g. "°C". */
   unit?: string;
+  /** In a table cell (EDT-031): the label is only for screen readers, the field narrower. */
+  compact?: boolean;
+  /** Marks the field as worth a second look (a warning, not a problem; EDT-033). */
+  warn?: boolean;
   onChange: (value: number | string | undefined) => void;
 }) {
   const shown = typeof props.value === "number" || typeof props.value === "string" ? String(props.value) : "";
@@ -35,12 +39,15 @@ export function NumberField(props: {
   }, [shown]);
   return (
     <label class="contents">
-      <span class={LABEL_STYLE}>{props.label}</span>
+      <span class={props.compact ? "sr-only" : LABEL_STYLE}>{props.label}</span>
       <span class="flex items-center gap-2 text-sm text-stone-600 dark:text-stone-300">
         <input
           type="text"
           inputMode={props.integer ? "numeric" : "decimal"}
-          class={`${INPUT_STYLE} w-20! py-1.5! text-right ${props.invalid ? INVALID_INPUT : ""}`}
+          class={
+            `${INPUT_STYLE} ${props.compact ? "w-12! px-1.5! sm:w-16! sm:px-2!" : "w-20!"} py-1.5! text-right ` +
+            (props.invalid ? INVALID_INPUT : props.warn ? WARN_INPUT : "")
+          }
           value={text}
           onInput={(e) => {
             const next = e.currentTarget.value;

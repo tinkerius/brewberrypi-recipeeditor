@@ -86,15 +86,16 @@ a release that changes sign-in or Drive behaviour.
   a later sign-in (the folders exist) adds nothing.
 - `ACC-019` (GUI-020) The list is titled "My Recipes"; "New recipe" and "Upload recipe" come after the recipes;
   there is no "New from a sample recipe".
-- `ACC-058` (QE-32, EDT-030, EDT-031, GUI-032) The Mashing tab lists the 9 rests of `EDT-031` in its order, each
-  with its name, typical range and duration, an unticked check box (for a recipe without `mashing`) and **About this
-  rest** with its texts; the goals are not shown in it.
+- `ACC-058` (QE-32, EDT-030, EDT-031, GUI-032) The Mashing tab is a table of the 9 rests of `EDT-031` in its
+  order, each row with its name, typical range and duration, an unticked check box and no fields (for a recipe
+  without `mashing`), and an ⓘ button "About this rest" that expands the rest's texts below the row (one at a time)
+  and collapses them again; the goals are not shown in it.
 - `ACC-059` (EDT-032, EDT-034, FMT-006) Ticking Mash-out and then Maltose rest plans them with 78 °C, 10 min and
   63 °C, 45 min; the recipe is complete, and the written file has `"mashing"` after `"mashing_process"` with
   `MaltoseRest` before `MashOut`, one rest per line, and reads back the same. Changing the Maltose rest's fields
   changes the plan; unticking both rests removes `mashing` from the recipe.
-- `ACC-060` (EDT-033) A Maltose rest at 70 °C shows a warning naming its typical range "60–65 °C, typ. ~63 °C"; the
-  recipe stays complete and can be downloaded. At 60 °C and 65 °C there is no warning.
+- `ACC-060` (EDT-033) A Maltose rest at 70 °C shows a warning naming its typical range "60–65 °C, typ. ~63 °C" and
+  its temperature field is marked; the recipe stays complete and can be downloaded. At 60 °C and 65 °C there is no warning.
 - `ACC-061` (EDT-035, FMT-004) A planned Maltose rest whose temperature is cleared is reported as "Mashing, Maltose
   rest: The Maltose rest needs a temperature." and its field is marked; clicking "Mashing, Maltose rest" from the
   Mash Process tab opens the Mashing tab. A file with an unknown rest in `mashing` is opened with it kept and

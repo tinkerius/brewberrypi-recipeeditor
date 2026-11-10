@@ -1,9 +1,11 @@
 /**
- * The Mashing tab (EDT-030..035, QE-32): the brewer's mashing plan. Every rest of the catalogue is one row, in
- * temperature order; a ticked rest gets its temperature and duration. A temperature outside the rest's typical
- * range is a warning, not a problem: the file stays valid.
+ * The Mashing tab (EDT-030..035, QE-32): the brewer's mashing plan as a table. Every rest of the catalogue is one
+ * row, in temperature order: a check box, the rest with its typical range and duration, and the planned temperature
+ * and duration in their own columns. The ⓘ button expands what the rest does below its row. A temperature outside
+ * the rest's typical range is a warning, not a problem: the file stays valid.
  */
 
+import { useState } from "preact/hooks";
 import type { Problem } from "../validate";
 import {
   MASH_REST_IDS,
@@ -23,10 +25,15 @@ function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-function RestRow(props: {
+const CELL = "px-1 py-2 align-middle first:pl-2 last:pr-2 sm:px-2 sm:first:pl-3 sm:last:pr-3";
+const HEAD = `${CELL} text-left text-xs font-semibold text-stone-600 dark:text-stone-300`;
+
+function RestRows(props: {
   id: MashRestId;
   rest: MashRest | undefined;
   problems: Problem[];
+  open: boolean;
+  onToggle: () => void;
   onChange: (rest: MashRest | undefined) => void;
 }) {
   const { id, rest } = props;
@@ -36,83 +43,151 @@ function RestRow(props: {
   const invalid = (field: string) => props.problems.some((p) => p.path === `${at}.${field}`);
   const warn = planned && outsideTypicalRange(id, rest.temperature);
   const checkbox = `mash-${id}`;
+  const about = `mash-about-${id}`;
+  const typical = `${info.range} · ${info.duration}`;
   return (
-    <li class="px-3 py-3" data-mash-rest={id}>
-      <div class="flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between sm:gap-3">
-        <label for={checkbox} class="flex cursor-pointer items-baseline gap-2">
+    <>
+      <tr
+        data-mash-rest={id}
+        class={
+          "border-t border-line first:border-t-0 dark:border-white/10 " +
+          (planned ? "bg-berry-light/10 dark:bg-berry-light/5" : "")
+        }
+      >
+        <td class={`${CELL} w-7 sm:w-8`}>
           <input
             id={checkbox}
             type="checkbox"
-            class="size-4 shrink-0 translate-y-0.5 accent-berry"
+            class="size-4 accent-berry"
             checked={planned}
             onChange={(e) => props.onChange(e.currentTarget.checked ? newMashRest(id) : undefined)}
           />
-          <span class="text-sm font-semibold text-ink dark:text-ink-light">{info.label}</span>
-        </label>
-        <span class={`${HINT_STYLE} ml-6 sm:ml-0 sm:text-right`}>
-          {info.range} · {info.duration}
-        </span>
-      </div>
-      {planned && (
-        <div class="mt-2 ml-6 grid grid-cols-[auto_1fr] items-center gap-x-3 gap-y-2">
-          <NumberField
-            label="Temperature"
-            unit="°C"
-            value={rest.temperature}
-            invalid={invalid("temperature")}
-            onChange={(v) => props.onChange({ ...rest, temperature: v })}
-          />
-          <NumberField
-            label="Duration"
-            unit="min"
-            integer
-            value={rest.minutes}
-            invalid={invalid("minutes")}
-            onChange={(v) => props.onChange({ ...rest, minutes: v })}
-          />
-        </div>
+        </td>
+        <td class={CELL}>
+          <label for={checkbox} class="block cursor-pointer text-sm font-semibold text-ink dark:text-ink-light">
+            {info.label}
+          </label>
+          <span class={`${HINT_STYLE} block md:hidden`}>{typical}</span>
+          {warn && (
+            <span class="block text-xs font-medium text-amber-700 dark:text-brass-light" data-mash-warning>
+              ⚠ Outside the typical range: {info.range}
+            </span>
+          )}
+        </td>
+        <td class={`${CELL} hidden md:table-cell ${HINT_STYLE}`}>{typical}</td>
+        <td class={CELL}>
+          {planned ? (
+            <NumberField
+              label={`Temperature (°C), ${info.short}`}
+              compact
+              value={rest.temperature}
+              invalid={invalid("temperature")}
+              warn={warn}
+              onChange={(v) => props.onChange({ ...rest, temperature: v })}
+            />
+          ) : (
+            <span class="text-sm text-stone-400 dark:text-stone-500" aria-hidden="true">
+              –
+            </span>
+          )}
+        </td>
+        <td class={CELL}>
+          {planned ? (
+            <NumberField
+              label={`Duration (min), ${info.short}`}
+              compact
+              integer
+              value={rest.minutes}
+              invalid={invalid("minutes")}
+              onChange={(v) => props.onChange({ ...rest, minutes: v })}
+            />
+          ) : (
+            <span class="text-sm text-stone-400 dark:text-stone-500" aria-hidden="true">
+              –
+            </span>
+          )}
+        </td>
+        <td class={`${CELL} w-8 text-right sm:w-10`}>
+          <button
+            type="button"
+            class={
+              "inline-flex size-6 items-center sm:size-7 justify-center rounded-full text-sm font-semibold ring-1 ring-inset " +
+              "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-berry-light " +
+              (props.open
+                ? "bg-ink text-paper ring-ink dark:bg-ink-light dark:text-ink dark:ring-ink-light"
+                : "text-stone-600 ring-stone-300 hover:bg-stone-100 dark:text-stone-300 dark:ring-white/20 dark:hover:bg-white/10")
+            }
+            aria-expanded={props.open}
+            aria-controls={about}
+            aria-label={`About the ${info.short}`}
+            title="About this rest"
+            onClick={props.onToggle}
+          >
+            i
+          </button>
+        </td>
+      </tr>
+      {props.open && (
+        <tr id={about} data-mash-about={id} class={planned ? "bg-berry-light/10 dark:bg-berry-light/5" : ""}>
+          <td />
+          <td colSpan={5} class={`${CELL} pt-0`}>
+            <dl class="space-y-1 rounded-md bg-stone-50 p-3 text-xs text-stone-700 dark:bg-white/5 dark:text-stone-300">
+              {info.about.map(([term, text]) => (
+                <div key={term}>
+                  <dt class="inline font-semibold">{term}:</dt> <dd class="inline">{text}</dd>
+                </div>
+              ))}
+            </dl>
+          </td>
+        </tr>
       )}
-      {warn && (
-        <p class="mt-2 ml-6 text-xs font-medium text-amber-700 dark:text-brass-light" data-mash-warning>
-          ⚠ {rest.temperature} °C is outside the typical range of this rest: {info.range}.
-        </p>
-      )}
-      <details class="mt-1 ml-6">
-        <summary class={`${HINT_STYLE} cursor-pointer select-none`}>About this rest</summary>
-        <dl class="mt-1 space-y-1 text-xs text-stone-700 dark:text-stone-300">
-          {info.about.map(([term, text]) => (
-            <div key={term}>
-              <dt class="inline font-semibold">{term}:</dt> <dd class="inline">{text}</dd>
-            </div>
-          ))}
-        </dl>
-      </details>
-    </li>
+    </>
   );
 }
 
 export function MashingTab(props: { recipe: Recipe; problems: Problem[]; onChange: (recipe: Recipe) => void }) {
   const plan = mashingOf(props.recipe);
+  const [open, setOpen] = useState<MashRestId>();
   return (
     <>
       <p class={HINT_STYLE}>
-        Plan the rests of the mash: tick the rests you want and set their temperature and duration. The plan is kept
-        in the recipe file; it doesn't change the goals of the mash process.
+        Tick the rests of your mash and set their temperature and duration. The plan is kept in the recipe file; it
+        doesn't change the goals of the mash process.
       </p>
-      <ul class="mt-2 divide-y divide-line rounded-lg ring-1 ring-line dark:divide-white/10 dark:ring-white/10">
-        {MASH_REST_IDS.map((id) => {
-          const rest = plan[id];
-          return (
-            <RestRow
-              key={id}
-              id={id}
-              rest={rest === undefined ? undefined : isObject(rest) ? (rest as MashRest) : {}}
-              problems={props.problems}
-              onChange={(next) => props.onChange(withMashRest(props.recipe, id, next))}
-            />
-          );
-        })}
-      </ul>
+      <div class="mt-2 overflow-x-auto rounded-lg ring-1 ring-line dark:ring-white/10">
+        <table class="w-full border-collapse">
+          <thead class="bg-stone-50 dark:bg-white/5">
+            <tr>
+              <th class={HEAD}>
+                <span class="sr-only">Planned</span>
+              </th>
+              <th class={HEAD}>Rest</th>
+              <th class={`${HEAD} hidden md:table-cell`}>Typical</th>
+              <th class={HEAD}>°C</th>
+              <th class={HEAD}>min</th>
+              <th class={HEAD}>
+                <span class="sr-only">About</span>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {MASH_REST_IDS.map((id) => {
+              const rest = plan[id];
+              return (
+                <RestRows
+                  key={id}
+                  id={id}
+                  rest={rest === undefined ? undefined : isObject(rest) ? (rest as MashRest) : {}}
+                  problems={props.problems}
+                  open={open === id}
+                  onToggle={() => setOpen(open === id ? undefined : id)}
+                  onChange={(next) => props.onChange(withMashRest(props.recipe, id, next))}
+                />
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
     </>
   );
 }

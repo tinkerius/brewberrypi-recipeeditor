@@ -742,7 +742,7 @@ describe("App, the Mashing tab (QE-32)", () => {
     });
   }
 
-  it("ACC-058 lists the 9 rests in order with range, duration, an unticked box and what each does", async () => {
+  it("ACC-058 lists the 9 rests as table rows with range, duration, an unticked box, and expands what each does", async () => {
     await openMashing();
     expect(recipe().querySelector("#tab-mashing")!.getAttribute("aria-selected")).toBe("true");
     const rows = [...panel().querySelectorAll<HTMLElement>("[data-mash-rest]")];
@@ -753,11 +753,20 @@ describe("App, the Mashing tab (QE-32)", () => {
       expect(r.textContent).toContain(info.range);
       expect(r.textContent).toContain(info.duration);
       expect(r.querySelector<HTMLInputElement>("input[type=checkbox]")!.checked).toBe(false);
-      expect(r.querySelector("details summary")!.textContent).toBe("About this rest");
+      expect(r.querySelector("input:not([type=checkbox])")).toBeNull();
+      const about = r.querySelector<HTMLButtonElement>("button[aria-expanded]")!;
+      expect([about.title, about.getAttribute("aria-expanded")]).toEqual(["About this rest", "false"]);
+      await act(async () => about.click());
+      expect(about.getAttribute("aria-expanded")).toBe("true");
+      const texts = panel().querySelector(`[data-mash-about=${r.dataset.mashRest}]`)!;
+      expect(texts.id).toBe(about.getAttribute("aria-controls"));
       for (const [term, text] of info.about) {
-        expect(r.querySelector("details")!.textContent).toContain(`${term}: ${text}`);
+        expect(texts.textContent).toContain(`${term}: ${text}`);
       }
     }
+    expect(panel().querySelectorAll("[data-mash-about]")).toHaveLength(1); // one open at a time
+    await act(async () => row("MashOut").querySelector<HTMLButtonElement>("button[aria-expanded]")!.click());
+    expect(panel().querySelector("[data-mash-about]")).toBeNull();
     expect(rows[5].textContent).toContain("Maltose rest (beta-amylase rest)");
     expect(rows[5].textContent).toContain("60–65 °C, typ. ~63 °C");
     expect(panel().querySelector("[data-goal-line]")).toBeNull();
@@ -788,6 +797,7 @@ describe("App, the Mashing tab (QE-32)", () => {
     expect(warning()).toBeUndefined();
     await type(field("MaltoseRest", "Temperature"), "70");
     expect(warning()).toContain("60–65 °C, typ. ~63 °C");
+    expect(field("MaltoseRest", "Temperature").className).toContain("ring-amber-500!");
     expect(recipe().textContent).toContain("Complete: BrewberryPi can load this recipe.");
     expect(await download()).toContain('"MaltoseRest": { "temperature": 70, "minutes": 45 }');
     await type(field("MaltoseRest", "Temperature"), "60");

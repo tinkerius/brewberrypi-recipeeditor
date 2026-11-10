@@ -81,9 +81,12 @@ Applies signed out (drafts, §4) and signed in (Drive recipes, §5) alike, unles
 - `EDT-030` The tab **Mashing** (`GUI-032`) is the brewer's mashing plan (app `RCP-012`): which rests the mash
   gets, each with its temperature and duration. It is design information for the brewer; it does not change the
   goals (**Mash Process**), and the app does not use it. (Goals made from the plan may follow later.)
-- `EDT-031` The tab lists every rest of the table below, each once, in this order. Each row shows the rest's name,
-  its typical temperature range and duration, and a check box; **About this rest** opens what the rest does
-  (enzymes, effect, when useful). The texts are the product owner's (2026-11-10), verbatim.
+- `EDT-031` The tab is a **table** with one row per rest of the table below, each once, in this order. Its columns:
+  a check box, the rest's name, its typical temperature range and duration (on narrow screens below the name),
+  the planned **°C** and **min**, and an **ⓘ** button. The planned values are fields in their own columns, so the
+  plan reads at a glance; a ticked row is highlighted, an unticked one shows "–" instead of the fields. The ⓘ
+  button ("About this rest") expands what the rest does (enzymes, effect, when useful) below its row, one rest at
+  a time; pressing it again collapses it. The texts are the product owner's (2026-11-10), verbatim.
 
 | Rest id | Name | Temperature range | Typ. duration | Warning outside | Preset |
 |---|---|---|---|---|---|
@@ -131,8 +134,8 @@ Applies signed out (drafts, §4) and signed in (Drive recipes, §5) alike, unles
 - `EDT-032` Ticking a rest plans it with its preset temperature and duration (table above); its **Temperature**
   (°C) and **Duration** (min, a whole number) fields appear and can be changed (`EDT-015`). Unticking it removes the
   rest from the plan, with its values.
-- `EDT-033` A planned rest whose temperature is outside its "warning outside" range (inclusive) shows a warning
-  that names the rest's typical range. It is only a warning: the recipe stays complete and can be saved and
+- `EDT-033` A planned rest whose temperature is outside its "warning outside" range (inclusive) shows a warning:
+  its temperature field is marked amber and the row says "⚠ Outside the typical range: <typical range>". It is only a warning: the recipe stays complete and can be saved and
   downloaded (`FMT-010`).
 - `EDT-034` The plan holds only ticked rests. When no rest is ticked, the recipe file has no `mashing`; a file read
   with an empty `mashing` (`{}`) keeps it until a rest is ticked and unticked.

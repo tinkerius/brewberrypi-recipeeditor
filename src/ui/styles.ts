@@ -39,6 +39,9 @@ export const INPUT_STYLE =
 
 export const INVALID_INPUT = "ring-red-400 dark:ring-red-400/60";
 
+/** A value worth a second look, but valid (EDT-033). */
+export const WARN_INPUT = "ring-2! ring-amber-500! dark:ring-brass-light!";
+
 export const SELECT_STYLE =
   "rounded-md bg-white px-3 py-2 text-sm font-medium text-ink ring-1 ring-line-2 ring-inset " +
   "focus-visible:outline-2 focus-visible:outline-berry-light disabled:cursor-not-allowed disabled:opacity-40 " +

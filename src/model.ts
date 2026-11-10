@@ -41,6 +41,8 @@ export interface Recipe {
   mashing_process: MashingProcess;
   /** The mashing plan (app RCP-012); absent while no rest is planned. */
   mashing?: unknown;
+  /** The malts and hops (app RCP-013); absent while there are none. */
+  ingredients?: unknown;
   [key: string]: unknown;
 }
 
@@ -94,6 +96,66 @@ export function typicalTemperature(id: MashRestId): string {
 
 export function outsideTypicalRange(id: MashRestId, temperature: unknown): boolean {
   return typeof temperature === "number" && (temperature < MASH_RESTS[id].tempMin || temperature > MASH_RESTS[id].tempMax);
+}
+
+/** The two ingredient lists of the Ingredients tab (app RCP-013, EDT-041), in the file's key order. */
+export const INGREDIENT_KINDS = ["malts", "hops"] as const;
+export type IngredientKind = (typeof INGREDIENT_KINDS)[number];
+
+/** How an ingredient kind is called: the section heading, one entry, the add button. */
+export const INGREDIENT_LABELS: Record<IngredientKind, { title: string; one: string }> = {
+  malts: { title: "Malt", one: "Malt" },
+  hops: { title: "Hops", one: "Hop" },
+};
+
+export type Ingredient = { name?: unknown; grams?: unknown } & Record<string, unknown>;
+
+export function ingredientsOf(recipe: Recipe, kind: IngredientKind): Ingredient[] {
+  const list = isObject(recipe.ingredients) ? recipe.ingredients[kind] : undefined;
+  return Array.isArray(list) ? list.map((entry) => (isObject(entry) ? entry : {})) : [];
+}
+
+/**
+ * The recipe with `kind`'s list replaced (EDT-042): an empty list is left out of the file, and so is `ingredients`
+ * when nothing is left in it. Other keys of `ingredients` are kept (they are reported, FMT-004).
+ */
+export function withIngredients(recipe: Recipe, kind: IngredientKind, list: Ingredient[]): Recipe {
+  const current = isObject(recipe.ingredients) ? { ...recipe.ingredients } : {};
+  if (list.length === 0) {
+    delete current[kind];
+  } else {
+    current[kind] = list;
+  }
+  const ordered: Record<string, unknown> = {};
+  for (const k of INGREDIENT_KINDS) {
+    if (k in current) {
+      ordered[k] = current[k];
+    }
+  }
+  const ingredients = { ...ordered, ...current };
+  const { ingredients: _old, ...others } = recipe;
+  return Object.keys(ingredients).length === 0 ? others : { ...others, ingredients };
+}
+
+/** A whole number of grams of at least 1 (app RCP-013): only such amounts count towards the total. */
+export function validGrams(grams: unknown): grams is number {
+  return typeof grams === "number" && Number.isInteger(grams) && grams >= 1;
+}
+
+/** The total weight of a list (EDT-043): the sum of its valid amounts, in grams. */
+export function totalGrams(list: Ingredient[]): number {
+  return list.reduce((sum, entry) => sum + (validGrams(entry.grams) ? entry.grams : 0), 0);
+}
+
+/** An entry's share of the list's total weight, in percent (EDT-043); undefined while its amount is not valid. */
+export function shareOf(entry: Ingredient, list: Ingredient[]): number | undefined {
+  const total = totalGrams(list);
+  return validGrams(entry.grams) && total > 0 ? (entry.grams / total) * 100 : undefined;
+}
+
+/** A share as text, rounded to one decimal: "90 %", "33.3 %" (EDT-043). */
+export function formatShare(percent: number): string {
+  return `${Math.round(percent * 10) / 10} %`;
 }
 
 export function goalsOf(recipe: Recipe): Goal[] {
@@ -315,11 +377,11 @@ const indentGoal = (goal: Goal) =>
 
 /**
  * The file content, formatted like the app's shipped recipes: "version" first (RCP-008), one line per goal, then the
- * mashing plan, one line per rest in catalogue order (FMT-006). The editor does not write "$schema" (optional,
+ * mashing plan, one line per rest in catalogue order, then the ingredients, one line per malt and hop (FMT-006). The editor does not write "$schema" (optional,
  * ignored by the app).
  */
 export function serializeRecipe(recipe: Recipe): string {
-  const { $schema: _schema, version, name, mashing_process: process, mashing, ...rest } = recipe;
+  const { $schema: _schema, version, name, mashing_process: process, mashing, ingredients, ...rest } = recipe;
   const { goals, ...processRest } = process;
   const lines: string[] = [];
   if (version !== undefined) {
@@ -356,6 +418,30 @@ export function serializeRecipe(recipe: Recipe): string {
   } else if (mashing !== undefined) {
     lines[lines.length - 1] += ",";
     lines.push(`  "mashing": ${JSON.stringify(mashing)}`);
+  }
+  if (isObject(ingredients) && Object.keys(ingredients).length > 0) {
+    // One line per malt and hop, in the brewer's order (FMT-006).
+    lines[lines.length - 1] += ",";
+    lines.push(`  "ingredients": {`);
+    const keys = Object.keys(ingredients);
+    keys.forEach((key, k) => {
+      const value = ingredients[key];
+      const comma = k < keys.length - 1 ? "," : "";
+      if (Array.isArray(value) && value.length > 0) {
+        lines.push(`    ${JSON.stringify(key)}: [`);
+        value.forEach((entry, i) => {
+          const text = isObject(entry) ? indentGoal(entry as Goal) : JSON.stringify(entry);
+          lines.push(`      ${text}${i < value.length - 1 ? "," : ""}`);
+        });
+        lines.push(`    ]${comma}`);
+      } else {
+        lines.push(`    ${JSON.stringify(key)}: ${JSON.stringify(value)}${comma}`);
+      }
+    });
+    lines.push(`  }`);
+  } else if (ingredients !== undefined) {
+    lines[lines.length - 1] += ",";
+    lines.push(`  "ingredients": ${JSON.stringify(ingredients)}`);
   }
   for (const [key, value] of Object.entries(rest)) {
     lines[lines.length - 1] += ",";

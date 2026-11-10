@@ -11,7 +11,7 @@ import { FakeAuth, FakeDrive } from "./fakeDrive";
 import { BROWSER_STORAGE_WARNING, MEMORY_STORAGE_WARNING } from "../src/ui/Banners";
 import { SIDEBAR_KEY } from "../src/ui/sidebar";
 import { CHANGE_POLL_MS } from "../src/driveSync";
-import { MASH_RESTS, MASH_REST_IDS, type MashRestId, type Recipe } from "../src/model";
+import { MASH_RESTS, MASH_REST_IDS, toRecipe, type MashRestId, type Recipe } from "../src/model";
 
 let root: HTMLElement;
 
@@ -33,6 +33,12 @@ async function show(drafts: DraftStore) {
   await act(async () => {
     await new Promise((r) => setTimeout(r, 0));
   });
+}
+
+/** Shows the app and opens the selected recipe's Mash Process tab (the Ingredients tab opens first, GUI-032). */
+async function showMashProcess(drafts: DraftStore) {
+  await show(drafts);
+  await act(async () => root.querySelector<HTMLElement>("[aria-label=Recipe] #tab-mash")!.click());
 }
 
 function dialogText(): string {
@@ -257,18 +263,21 @@ describe("App, the website's top bar and footer (QE-27)", () => {
 });
 
 describe("App, the recipe's tabs (QE-28)", () => {
-  it("ACC-048 shows the tabs Mash Process, selected, with the goals, and Mashing; the problems are below them", async () => {
+  it("ACC-048 shows the tabs Ingredients, selected, Mashing and Mash Process with the goals; the problems are below them", async () => {
     const store = new MemoryStore();
     await store.put(newDoc("Kept", { version: 3, name: "Kept", mashing_process: { goals: [{ type: "HeatUp" }] } }));
     await show(store);
     const recipe = root.querySelector("[aria-label=Recipe]")!;
-    const tabs = [...recipe.querySelectorAll<HTMLElement>("[role=tablist] [role=tab]")];
-    expect(tabs.map((t) => [t.textContent, t.getAttribute("aria-selected")])).toEqual([
+    const tabs = () => [...recipe.querySelectorAll<HTMLElement>("[role=tablist] [role=tab]")];
+    expect(tabs().map((t) => [t.textContent, t.getAttribute("aria-selected")])).toEqual([
+      ["Ingredients", "true"],
       ["Mashing", "false"],
-      ["Mash Process", "true"],
+      ["Mash Process", "false"],
     ]);
+    expect(recipe.querySelector("[role=tabpanel] [data-ingredients=malts]")).not.toBeNull();
+    await act(async () => tabs()[2].click());
     const panel = recipe.querySelector<HTMLElement>("[role=tabpanel]")!;
-    expect(panel.getAttribute("aria-labelledby")).toBe(tabs[1].id);
+    expect(panel.getAttribute("aria-labelledby")).toBe(tabs()[2].id);
     expect(panel.querySelector("ol [data-goal-line]")).not.toBeNull();
     expect([...panel.querySelectorAll("button")].some((b) => b.textContent?.trim() === "+ Add goal")).toBe(true);
     expect(panel.textContent).not.toContain("A Heat Up goal needs a temperature.");
@@ -324,7 +333,7 @@ describe("App, reordering goals by drag and drop (EDT-012)", () => {
   async function withThreeGoals() {
     const store = new MemoryStore();
     await store.put(newDoc("Kept", { version: 3, name: "Kept", mashing_process: { goals } }));
-    await show(store);
+    await showMashProcess(store);
   }
 
   const goalTypes = () =>
@@ -444,7 +453,7 @@ describe("App, choosing a goal's type in a dialog (QE-23)", () => {
   it("ACC-043 asks for the type when a goal is added and when the pencil is used; no type dropdowns", async () => {
     const store = new MemoryStore();
     await store.put(newDoc("Kept", { version: 3, name: "Kept", mashing_process: { goals: [{ type: "HeatUp", temperature: 40 }] } }));
-    await show(store);
+    await showMashProcess(store);
     expect(root.querySelectorAll("[aria-label=Recipe] select")).toHaveLength(0);
 
     await act(async () => button("+ Add goal").click());
@@ -482,7 +491,7 @@ describe("App, no technical goal type names (QE-24)", () => {
       { type: "CookWater", name: "Cook", description: "Cook", minutes: 10 },
     ];
     await store.put(newDoc("Kept", { version: 3, name: "Kept", mashing_process: { goals } }));
-    await show(store);
+    await showMashProcess(store);
     expect(root.textContent).toContain("A Heat Up goal needs a temperature.");
     expect(root.textContent).not.toMatch(TECHNICAL);
     await act(async () => button("+ Add goal").click());
@@ -500,7 +509,7 @@ describe("App, one line per goal (QE-26)", () => {
   async function withGoals(goals: { type: string; [field: string]: unknown }[]) {
     const store = new MemoryStore();
     await store.put(newDoc("Kept", { version: 3, name: "Kept", mashing_process: { goals } }));
-    await show(store);
+    await showMashProcess(store);
   }
 
   it("ACC-046 shows each goal as one line; clicking opens it and closes the other; a new goal is open", async () => {
@@ -951,5 +960,141 @@ describe("App, the Mashing tab (QE-32)", () => {
     expect(recipe().textContent).toContain('Mashing, MainRest: Unknown rest "MainRest".');
     await tick("MashOut");
     expect(recipe().textContent).toContain('Unknown rest "MainRest".');
+  });
+});
+
+describe("App, the Ingredients tab (QE-34)", () => {
+  const recipe = () => root.querySelector("[aria-label=Recipe]")!;
+  const section = (kind: string) => recipe().querySelector<HTMLElement>(`[data-ingredients=${kind}]`)!;
+  const rows = (kind: string) => [...section(kind).querySelectorAll<HTMLTableRowElement>("tbody tr[data-ingredient]")];
+  const nameField = (kind: string, i: number) => rows(kind)[i].querySelector<HTMLInputElement>("[data-ingredient-name] input")!;
+  const gramsField = (kind: string, i: number) => rows(kind)[i].querySelector<HTMLInputElement>("input[inputmode=numeric]")!;
+  const shares = (kind: string) => rows(kind).map((r) => r.querySelector("[data-ingredient-share]")!.textContent);
+  const total = (kind: string) =>
+    [...section(kind).querySelectorAll("[data-ingredient-total] td")].map((td) => td.textContent).slice(0, 3);
+  async function open(content: Recipe = { version: 3, name: "Brew", mashing_process: { goals: [{ type: "MashIn" }] } }) {
+    const store = new MemoryStore();
+    await store.put(newDoc("Brew", content));
+    await show(store);
+  }
+  async function type(input: HTMLInputElement, value: string) {
+    await act(async () => {
+      input.value = value;
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+  }
+  async function add(kind: "malts" | "hops", name: string, grams: string) {
+    await act(async () => button(kind === "malts" ? "+ Add malt" : "+ Add hop").click());
+    const i = rows(kind).length - 1;
+    await type(nameField(kind, i), name);
+    await type(gramsField(kind, i), grams);
+  }
+  async function download(): Promise<string> {
+    let blob: Blob | undefined;
+    Object.assign(URL, { createObjectURL: (b: Blob) => ((blob = b), "blob:x"), revokeObjectURL: () => undefined });
+    const click = HTMLAnchorElement.prototype.click;
+    HTMLAnchorElement.prototype.click = () => undefined;
+    await menu("Brew", "Download");
+    HTMLAnchorElement.prototype.click = click;
+    if (!blob) {
+      throw new Error("not downloaded");
+    }
+    const file = blob;
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result));
+      reader.readAsText(file);
+    });
+  }
+
+  it("ACC-067 has the tables Malt and Hops; rows are added and removed, and an empty list leaves the file", async () => {
+    await open();
+    const headings = [...recipe().querySelectorAll("[role=tabpanel] h3")].map((h) => h.textContent?.trim());
+    expect(headings).toEqual(["Malt", "Hops"]);
+    for (const kind of ["malts", "hops"]) {
+      const heads = [...section(kind).querySelectorAll("thead th")].map((th) => th.textContent);
+      expect(heads).toEqual(["Name", "g", "%", "Remove"]);
+      expect(total(kind)[0]).toBe("Total");
+    }
+    expect(section("malts").textContent).toContain("No malt yet.");
+    expect(section("hops").textContent).toContain("No hop yet.");
+    await act(async () => button("+ Add malt").click());
+    expect(rows("malts")).toHaveLength(1);
+    expect(document.activeElement).toBe(nameField("malts", 0));
+    await type(nameField("malts", 0), "Pilsner malt");
+    await type(gramsField("malts", 0), "4500");
+    expect(await download()).toContain('"ingredients"');
+    await act(async () => rows("malts")[0].querySelector<HTMLButtonElement>("button[aria-label='Remove malt 1']")!.click());
+    expect(rows("malts")).toHaveLength(0);
+    expect(await download()).not.toContain("ingredients");
+  });
+
+  it("ACC-068 shows each row's share of the table's total weight and the total", async () => {
+    await open();
+    await add("malts", "Pilsner malt", "4500");
+    await add("malts", "Munich malt", "500");
+    expect(shares("malts")).toEqual(["90 %", "10 %"]);
+    expect(total("malts")).toEqual(["Total", "5000 g", "100 %"]);
+    for (const name of ["Hallertauer", "Saaz", "Tettnanger"]) {
+      await add("hops", name, "10");
+    }
+    expect(shares("hops")).toEqual(["33.3 %", "33.3 %", "33.3 %"]);
+    expect(total("hops")).toEqual(["Total", "30 g", "100 %"]);
+    await type(gramsField("hops", 2), "");
+    expect(shares("hops")).toEqual(["50 %", "50 %", "–"]);
+    expect(total("hops")).toEqual(["Total", "20 g", "100 %"]);
+  });
+
+  it("ACC-069 reports a row without a name or a whole amount, marks its fields, and the problem opens the tab", async () => {
+    await open();
+    await act(async () => button("+ Add malt").click());
+    expect(recipe().textContent).toContain("Ingredients, Malt 1: Malt 1 needs a name.");
+    expect(recipe().textContent).toContain("Ingredients, Malt 1: Malt 1 needs an amount in grams.");
+    expect(nameField("malts", 0).className).toContain("ring-red-400");
+    expect(gramsField("malts", 0).className).toContain("ring-red-400");
+    await type(nameField("malts", 0), "Pilsner malt");
+    await type(gramsField("malts", 0), "12.5");
+    expect(recipe().textContent).toContain("Malt 1: the amount must be a whole number of grams.");
+    await type(gramsField("malts", 0), "0");
+    expect(recipe().textContent).toContain("Malt 1: the amount must be at least 1 g.");
+    await act(async () => recipe().querySelector<HTMLElement>("#tab-mash")!.click());
+    expect(recipe().querySelector("[data-ingredients]")).toBeNull();
+    await act(async () => button("Ingredients, Malt 1").click());
+    expect(recipe().querySelector("#tab-ingredients")!.getAttribute("aria-selected")).toBe("true");
+    await type(gramsField("malts", 0), "4500");
+    expect(recipe().textContent).toContain("Complete: BrewberryPi can load this recipe.");
+  });
+
+  it("ACC-070 writes the ingredients one entry per line, malts before hops, without shares, and reads them back", async () => {
+    await open({
+      version: 3,
+      name: "Brew",
+      mashing_process: { goals: [{ type: "MashIn" }] },
+      mashing: { MashOut: { temperature: 78, minutes: 10 } },
+    });
+    await add("hops", "Hallertauer Tradition", "30");
+    await add("malts", "Pilsner malt", "4500");
+    await add("malts", "Munich malt", "500");
+    const text = await download();
+    expect(text).toContain(
+      '  "mashing": {\n    "MashOut": { "temperature": 78, "minutes": 10 }\n  },\n' +
+        '  "ingredients": {\n' +
+        '    "malts": [\n' +
+        '      { "name": "Pilsner malt", "grams": 4500 },\n' +
+        '      { "name": "Munich malt", "grams": 500 }\n' +
+        "    ],\n" +
+        '    "hops": [\n' +
+        '      { "name": "Hallertauer Tradition", "grams": 30 }\n' +
+        "    ]\n" +
+        "  }\n}\n",
+    );
+    expect(text).not.toContain("%");
+    expect(toRecipe(JSON.parse(text)).ingredients).toEqual({
+      malts: [
+        { name: "Pilsner malt", grams: 4500 },
+        { name: "Munich malt", grams: 500 },
+      ],
+      hops: [{ name: "Hallertauer Tradition", grams: 30 }],
+    });
   });
 });

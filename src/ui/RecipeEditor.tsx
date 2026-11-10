@@ -1,12 +1,13 @@
-/** The selected recipe: file name, name, its tabs (goals, mashing plan), problems and the actions. */
+/** The selected recipe: file name, name, its tabs (ingredients, mashing plan, goals), problems and the actions. */
 
 import type { ComponentChildren } from "preact";
 import { useEffect, useRef, useState } from "preact/hooks";
 import { problemsOf, type Doc } from "../doc";
-import { MASH_RESTS, goalsOf, isMashRestId, newGoal, withGoals, type Goal, type Recipe } from "../model";
-import { GOALS_PATH, MASHING_PATH } from "../validate";
+import { INGREDIENT_LABELS, MASH_RESTS, goalsOf, isMashRestId, newGoal, withGoals, type Goal, type Recipe } from "../model";
+import { GOALS_PATH, INGREDIENTS_PATH, MASHING_PATH } from "../validate";
 import { GoalEditor } from "./GoalEditor";
 import { GoalTypeDialog } from "./GoalTypeDialog";
+import { IngredientsTab } from "./IngredientsTab";
 import { MashingTab } from "./MashingTab";
 import { RecipeTitle } from "./RecipeTitle";
 import { Tabs } from "./Tabs";
@@ -20,12 +21,18 @@ const PATH_LABELS: Record<string, string> = {
   mashing_process: "Mashing process",
   [GOALS_PATH]: "Goals",
   [MASHING_PATH]: "Mashing",
+  [INGREDIENTS_PATH]: "Ingredients",
 };
 
 /** The goal a problem is about, if any (its index). */
 function goalOf(path: string): number | undefined {
   const goal = /^mashing_process\.goals\[(\d+)\](?:\.(\w+))?$/.exec(path);
   return goal ? Number(goal[1]) : undefined;
+}
+
+/** Whether a problem is about the ingredients (the Ingredients tab). */
+function isIngredients(path: string): boolean {
+  return path === INGREDIENTS_PATH || path.startsWith(`${INGREDIENTS_PATH}.`);
 }
 
 /** Whether a problem is about the mashing plan (the Mashing tab). */
@@ -38,6 +45,11 @@ function describePath(path: string): string {
   if (goal !== undefined) {
     return `Goal ${goal + 1}`;
   }
+  const ingredient = /^ingredients\.(malts|hops)(?:\[(\d+)\])?/.exec(path);
+  if (ingredient) {
+    const { title, one } = INGREDIENT_LABELS[ingredient[1] as "malts" | "hops"];
+    return `Ingredients, ${ingredient[2] === undefined ? title : `${one} ${Number(ingredient[2]) + 1}`}`;
+  }
   const rest = /^mashing\.([^.]+)/.exec(path)?.[1];
   if (rest !== undefined) {
     return `Mashing, ${isMashRestId(rest) ? MASH_RESTS[rest].short : rest}`;
@@ -47,9 +59,14 @@ function describePath(path: string): string {
 
 /**
  * The problems (EDT-020); a goal's problem opens that goal when its "Goal n" is clicked, a problem of the mashing
- * plan opens the Mashing tab (EDT-035).
+ * plan opens the Mashing tab (EDT-035), one of the ingredients the Ingredients tab (EDT-045).
  */
-export function ProblemList(props: { doc: Doc; onGoal?: (index: number) => void; onMashing?: () => void }) {
+export function ProblemList(props: {
+  doc: Doc;
+  onGoal?: (index: number) => void;
+  onMashing?: () => void;
+  onIngredients?: () => void;
+}) {
   const problems = problemsOf(props.doc);
   if (props.doc.loadError) {
     return (
@@ -83,6 +100,10 @@ export function ProblemList(props: { doc: Doc; onGoal?: (index: number) => void;
                 <button type="button" class={LINK_STYLE} onClick={props.onMashing}>
                   {describePath(p.path)}
                 </button>
+              ) : isIngredients(p.path) && props.onIngredients ? (
+                <button type="button" class={LINK_STYLE} onClick={props.onIngredients}>
+                  {describePath(p.path)}
+                </button>
               ) : (
                 <span class="font-medium">{describePath(p.path)}</span>
               )}
@@ -96,8 +117,9 @@ export function ProblemList(props: { doc: Doc; onGoal?: (index: number) => void;
   );
 }
 
-/** The recipe's tabs (GUI-032, QE-28, QE-32); more come later. */
+/** The recipe's tabs (GUI-032, QE-28, QE-32, QE-34); more come later. */
 const RECIPE_TABS = [
+  { id: "ingredients", label: "Ingredients" },
   { id: "mashing", label: "Mashing" },
   { id: "mash", label: "Mash Process" },
 ] as const;
@@ -107,7 +129,7 @@ export function RecipeEditor(props: { doc: Doc; onChange: (recipe: Recipe) => vo
   const { doc } = props;
   const problems = problemsOf(doc);
   const [adding, setAdding] = useState(false);
-  const [tab, setTab] = useState<RecipeTab>("mash");
+  const [tab, setTab] = useState<RecipeTab>("ingredients");
   const setRecipe = (recipe: Recipe) => props.onChange(recipe);
   const setGoals = (goals: Goal[]) => setRecipe(withGoals(doc.recipe, goals));
   const goals = goalsOf(doc.recipe);
@@ -211,7 +233,9 @@ export function RecipeEditor(props: { doc: Doc; onChange: (recipe: Recipe) => vo
 
 
       <Tabs label="Recipe sections" tabs={RECIPE_TABS} selected={tab} onSelect={setTab}>
-        {tab === "mashing" ? (
+        {tab === "ingredients" ? (
+          <IngredientsTab recipe={doc.recipe} problems={problems} onChange={setRecipe} />
+        ) : tab === "mashing" ? (
           <MashingTab recipe={doc.recipe} problems={problems} onChange={setRecipe} />
         ) : (
           <>
@@ -286,6 +310,7 @@ export function RecipeEditor(props: { doc: Doc; onChange: (recipe: Recipe) => vo
             setOpen(index, true);
           }}
           onMashing={() => setTab("mashing")}
+          onIngredients={() => setTab("ingredients")}
         />
       </div>
       {props.actions && <div class="mt-4 flex flex-wrap gap-2">{props.actions}</div>}

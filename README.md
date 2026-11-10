@@ -3,10 +3,11 @@
 Web editor for BrewberryPi brewing recipes: **https://recipes.brewberrypi.org**
 
 BrewberryPi is a Raspberry Pi controller for a home-brewing mash kettle. It brews from recipes: JSON files, one per
-recipe, in its recipe folder (`{"version": 3, "name": …, "mashing_process": {"goals": […]}, "mashing": {…}}`; the goals
-may be empty, then the app lists the recipe but can't brew it). A recipe has two tabs: **Mash Process**, the goals the
-app brews, and **Mashing**, the brewer's mashing plan (the rests planned, each with temperature and duration; the app
-keeps it in the file but doesn't use it). The editor writes the
+recipe, in its recipe folder (`{"version": 3, "name": …, "mashing_process": {"goals": […]}, "mashing": {…},
+"ingredients": {"malts": […], "hops": […]}}`; the goals may be empty, then the app lists the recipe but can't brew it).
+A recipe has three tabs: **Ingredients**, the malts and hops with their amounts in grams and shares of the weight;
+**Mashing**, the brewer's mashing plan (the rests planned, each with temperature and duration); and **Mash Process**,
+the goals the app brews. The app keeps the ingredients and the mashing plan in the file but doesn't use them. The editor writes the
 app's current format version. Files in the old format (goals at the top level) are converted when opened; files of a
 newer format version are refused. This editor creates and edits those files in the browser. It is a static site on GitHub
 Pages, with no backend.

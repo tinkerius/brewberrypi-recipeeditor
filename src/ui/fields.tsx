@@ -72,13 +72,15 @@ export function TextField(props: {
   invalid: boolean;
   multiline?: boolean;
   placeholder?: string;
+  /** In a table cell (EDT-042): the label is only for screen readers. */
+  compact?: boolean;
   onChange: (value: string) => void;
 }) {
   const value = typeof props.value === "string" ? props.value : "";
   const cls = `${INPUT_STYLE} py-1.5! ${props.invalid ? INVALID_INPUT : ""}`;
   return (
     <label class="contents">
-      <span class={LABEL_STYLE}>{props.label}</span>
+      <span class={props.compact ? "sr-only" : LABEL_STYLE}>{props.label}</span>
       {props.multiline ? (
         <textarea
           class={cls}

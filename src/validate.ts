@@ -3,20 +3,32 @@
  * under a strict Content-Security-Policy (no eval). tests/validate.test.ts compares the results with Ajv.
  */
 
-import { FORMAT_VERSION, GOAL_INFO, ID_PATTERN, MASH_RESTS, isGoalType, isMashRestId, type GoalField } from "./model";
+import {
+  FORMAT_VERSION,
+  GOAL_INFO,
+  ID_PATTERN,
+  INGREDIENT_KINDS,
+  INGREDIENT_LABELS,
+  MASH_RESTS,
+  isGoalType,
+  isMashRestId,
+  type GoalField,
+  type IngredientKind,
+} from "./model";
 
 export interface Problem {
   /**
-   * Where: "" for the whole recipe, "name", "mashing_process.goals", "mashing_process.goals[2].minutes", "mashing" or
-   * "mashing.MaltoseRest.temperature".
+   * Where: "" for the whole recipe, "name", "mashing_process.goals", "mashing_process.goals[2].minutes", "mashing",
+   * "mashing.MaltoseRest.temperature", "ingredients" or "ingredients.malts[0].grams".
    */
   path: string;
   message: string;
 }
 
-const TOP_LEVEL = new Set(["$schema", "version", "name", "mashing_process", "mashing"]);
+const TOP_LEVEL = new Set(["$schema", "version", "name", "mashing_process", "mashing", "ingredients"]);
 export const GOALS_PATH = "mashing_process.goals";
 export const MASHING_PATH = "mashing";
+export const INGREDIENTS_PATH = "ingredients";
 
 /** Which goal fields are allowed and required, per goal type (the schema's allOf branches). */
 const GOAL_FIELDS: Record<string, { required: GoalField[]; allowed: GoalField[] }> = {
@@ -128,6 +140,54 @@ function checkMashing(plan: unknown, problems: Problem[]) {
   }
 }
 
+function isIngredientKind(key: string): key is IngredientKind {
+  return (INGREDIENT_KINDS as readonly string[]).includes(key);
+}
+
+/** The ingredients (app RCP-013): the lists malts and hops, each entry exactly a name and whole grams ≥ 1. */
+function checkIngredients(ingredients: unknown, problems: Problem[]) {
+  if (!isObject(ingredients)) {
+    problems.push({ path: INGREDIENTS_PATH, message: "The ingredients must be an object with the lists malts and hops." });
+    return;
+  }
+  for (const [kind, list] of Object.entries(ingredients)) {
+    const at = `${INGREDIENTS_PATH}.${kind}`;
+    if (!isIngredientKind(kind)) {
+      problems.push({ path: at, message: `The ingredients have no list "${kind}".` });
+      continue;
+    }
+    const { one, title } = INGREDIENT_LABELS[kind];
+    if (!Array.isArray(list)) {
+      problems.push({ path: at, message: `${title} must be a list.` });
+      continue;
+    }
+    list.forEach((entry, i) => {
+      const item = `${at}[${i}]`;
+      const label = `${one} ${i + 1}`;
+      if (!isObject(entry)) {
+        problems.push({ path: item, message: `${label} must be an object with a name and grams.` });
+        return;
+      }
+      for (const key of Object.keys(entry)) {
+        if (key !== "name" && key !== "grams") {
+          problems.push({ path: `${item}.${key}`, message: `${label} has no field "${key}".` });
+        }
+      }
+      if (typeof entry.name !== "string" || entry.name.length === 0) {
+        problems.push({ path: `${item}.name`, message: `${label} needs a name.` });
+      }
+      const grams = entry.grams;
+      if (grams === undefined) {
+        problems.push({ path: `${item}.grams`, message: `${label} needs an amount in grams.` });
+      } else if (typeof grams !== "number" || !Number.isInteger(grams)) {
+        problems.push({ path: `${item}.grams`, message: `${label}: the amount must be a whole number of grams.` });
+      } else if (grams < 1) {
+        problems.push({ path: `${item}.grams`, message: `${label}: the amount must be at least 1 g.` });
+      }
+    });
+  }
+}
+
 /** All problems of a recipe; an empty list means the app will load it. */
 export function validateRecipe(recipe: unknown): Problem[] {
   const problems: Problem[] = [];
@@ -152,6 +212,9 @@ export function validateRecipe(recipe: unknown): Problem[] {
   }
   if ("mashing" in recipe) {
     checkMashing(recipe.mashing, problems);
+  }
+  if ("ingredients" in recipe) {
+    checkIngredients(recipe.ingredients, problems);
   }
   const process = recipe.mashing_process;
   if (!isObject(process)) {

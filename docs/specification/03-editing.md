@@ -201,3 +201,21 @@ temperature of their own. The typical durations of `EDT-038` and the flags:
 | Saccharification rest | 20–40 | optional, conversion |
 | Mash-out | 5–10 | always |
 
+## 3.7 Ingredients (`QE-34`)
+
+- `EDT-041` The tab **Ingredients** (`GUI-032`) holds the brew's ingredients (app `RCP-013`) in two sections, each
+  with its heading and a table: **Malt** and **Hops**. Like the mashing plan, they are design information for the
+  brewer; they do not change the goals, and the app does not use them.
+- `EDT-042` A table has the columns **Name**, **g** (the amount in grams, a whole number) and **%**, and a button
+  ✕ ("Remove malt" / "Remove hop") per row. Below the table, **+ Add malt** (or **+ Add hop**) adds an empty row at
+  the end, whose name field gets the focus. The rows keep the brewer's order. ✕ removes the row. An empty table
+  says "No malt yet." / "No hop yet."; a table without rows is left out of the file, and `ingredients` too when both
+  are empty.
+- `EDT-043` The **%** column is a row's share of its table's total weight (a hop's of all hops), rounded to one
+  decimal ("90 %", "33.3 %"); it is computed, never stored. A row whose amount is not a whole number ≥ 1 yet shows
+  "–" and does not count. The last line, **Total**, sums the table's amounts ("5000 g") and shows "100 %" while the
+  total is above 0.
+- `EDT-044` A row needs a name and an amount: until it has both, it is a problem (`FMT-004`) and the recipe cannot
+  be saved or downloaded; the field with the problem is marked. The same name may appear twice.
+- `EDT-045` Problems of the ingredients are listed with the others (`EDT-020`) as "Ingredients, Malt n" or
+  "Ingredients, Hop n"; clicking that opens the Ingredients tab.

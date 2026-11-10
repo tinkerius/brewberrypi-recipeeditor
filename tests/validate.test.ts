@@ -85,6 +85,23 @@ const CASES: [string, unknown][] = [
   ["field not allowed for the type", r([{ type: "MashIn", temperature: 50 }])],
   ["IodineTest with a name", r([{ type: "IodineTest", temperature: 68, minutes: 10, name: "I" }])],
   ["CookWater without description", r([{ type: "CookWater", name: "C", minutes: 10 }])],
+  // The ingredients (app RCP-013)
+  ["ingredients: malts and hops", { ...valid, ingredients: { malts: [{ name: "Pilsner malt", grams: 4500 }], hops: [{ name: "Saaz", grams: 30 }] } }],
+  ["ingredients: empty", { ...valid, ingredients: {} }],
+  ["ingredients: empty list", { ...valid, ingredients: { hops: [] } }],
+  ["ingredients: same name twice", { ...valid, ingredients: { malts: [{ name: "M", grams: 1 }, { name: "M", grams: 2 }] } }],
+  ["ingredients not an object", { ...valid, ingredients: [] }],
+  ["ingredients: unknown list", { ...valid, ingredients: { grains: [] } }],
+  ["ingredients: list not an array", { ...valid, ingredients: { malts: {} } }],
+  ["ingredients: entry not an object", { ...valid, ingredients: { malts: ["Pilsner malt"] } }],
+  ["ingredients: no name", { ...valid, ingredients: { malts: [{ grams: 4500 }] } }],
+  ["ingredients: empty name", { ...valid, ingredients: { malts: [{ name: "", grams: 4500 }] } }],
+  ["ingredients: name not a string", { ...valid, ingredients: { malts: [{ name: 1, grams: 4500 }] } }],
+  ["ingredients: no grams", { ...valid, ingredients: { hops: [{ name: "Saaz" }] } }],
+  ["ingredients: 0 g", { ...valid, ingredients: { hops: [{ name: "Saaz", grams: 0 }] } }],
+  ["ingredients: fractional grams", { ...valid, ingredients: { hops: [{ name: "Saaz", grams: 12.5 }] } }],
+  ["ingredients: grams a string", { ...valid, ingredients: { hops: [{ name: "Saaz", grams: "30" }] } }],
+  ["ingredients: extra field", { ...valid, ingredients: { hops: [{ name: "Saaz", grams: 30, percent: 100 }] } }],
 ];
 
 describe("validateRecipe", () => {

@@ -11,7 +11,7 @@ async function setup() {
   return { drive, auth, store };
 }
 
-const recipe = { version: 2, name: "R", mashing_process: { goals: [{ type: "MashIn" }] } };
+const recipe = { version: 3, name: "R", mashing_process: { goals: [{ type: "MashIn" }] } };
 
 describe("DriveStore", () => {
   it("ACC-018 says when the folders were created just now (the first sign-in)", async () => {

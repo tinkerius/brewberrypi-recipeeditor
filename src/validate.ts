@@ -3,16 +3,20 @@
  * under a strict Content-Security-Policy (no eval). tests/validate.test.ts compares the results with Ajv.
  */
 
-import { FORMAT_VERSION, GOAL_INFO, ID_PATTERN, isGoalType, type GoalField } from "./model";
+import { FORMAT_VERSION, GOAL_INFO, ID_PATTERN, MASH_RESTS, isGoalType, isMashRestId, type GoalField } from "./model";
 
 export interface Problem {
-  /** Where: "" for the whole recipe, "name", "mashing_process.goals", or "mashing_process.goals[2].minutes". */
+  /**
+   * Where: "" for the whole recipe, "name", "mashing_process.goals", "mashing_process.goals[2].minutes", "mashing" or
+   * "mashing.MaltoseRest.temperature".
+   */
   path: string;
   message: string;
 }
 
-const TOP_LEVEL = new Set(["$schema", "version", "name", "mashing_process"]);
+const TOP_LEVEL = new Set(["$schema", "version", "name", "mashing_process", "mashing"]);
 export const GOALS_PATH = "mashing_process.goals";
+export const MASHING_PATH = "mashing";
 
 /** Which goal fields are allowed and required, per goal type (the schema's allOf branches). */
 const GOAL_FIELDS: Record<string, { required: GoalField[]; allowed: GoalField[] }> = {
@@ -92,6 +96,38 @@ function checkGoal(goal: unknown, index: number, problems: Problem[]) {
   }
 }
 
+/** The mashing plan (app RCP-012): known rests only, each with exactly a temperature and minutes. */
+function checkMashing(plan: unknown, problems: Problem[]) {
+  if (!isObject(plan)) {
+    problems.push({ path: MASHING_PATH, message: "The mashing plan must be an object of rests." });
+    return;
+  }
+  for (const [id, rest] of Object.entries(plan)) {
+    const at = `${MASHING_PATH}.${id}`;
+    if (!isMashRestId(id)) {
+      problems.push({ path: at, message: `Unknown rest "${id}".` });
+      continue;
+    }
+    const label = MASH_RESTS[id].short;
+    if (!isObject(rest)) {
+      problems.push({ path: at, message: `The ${label} must be an object with a temperature and minutes.` });
+      continue;
+    }
+    for (const key of Object.keys(rest)) {
+      if (key !== "temperature" && key !== "minutes") {
+        problems.push({ path: `${at}.${key}`, message: `A rest has no field "${key}".` });
+      }
+    }
+    for (const field of ["temperature", "minutes"] as const) {
+      if (rest[field] === undefined) {
+        problems.push({ path: `${at}.${field}`, message: `The ${label} needs ${field === "minutes" ? "minutes" : "a temperature"}.` });
+      } else {
+        checkField(field, rest[field], `${at}.${field}`, problems);
+      }
+    }
+  }
+}
+
 /** All problems of a recipe; an empty list means the app will load it. */
 export function validateRecipe(recipe: unknown): Problem[] {
   const problems: Problem[] = [];
@@ -113,6 +149,9 @@ export function validateRecipe(recipe: unknown): Problem[] {
   }
   if (typeof recipe.name !== "string" || recipe.name.length === 0) {
     problems.push({ path: "name", message: "The recipe needs a name." });
+  }
+  if ("mashing" in recipe) {
+    checkMashing(recipe.mashing, problems);
   }
   const process = recipe.mashing_process;
   if (!isObject(process)) {

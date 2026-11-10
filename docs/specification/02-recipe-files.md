@@ -6,17 +6,18 @@ commit (`NFR-030`).
 
 ## 2.1 Format and validation
 
-- `FMT-001` The editor reads and writes the app's **latest recipe file format version** (today 2):
-  `{"version": 2, "name": …, "mashing_process": {"goals": [ … ]}}`, one recipe per file. The goals MAY be empty
-  (app `Q-34`); `mashing_process` is always there.
+- `FMT-001` The editor reads and writes the app's **latest recipe file format version** (today 3):
+  `{"version": 3, "name": …, "mashing_process": {"goals": [ … ]}, "mashing": { … }}`, one recipe per file. The goals
+  MAY be empty (app `Q-34`); `mashing_process` is always there. `mashing`, the mashing plan (app `RCP-012`,
+  `QE-32`), is there only while the brewer plans a rest (`EDT-034`).
 - `FMT-002` The file name is the recipe id: `^[A-Za-z0-9_-]+$` (app `RCP-001`). Files carry no `id` field.
 - `FMT-003` Reading a file:
-  - without `version`, or in version 1 → read as the latest version, content unchanged (app migrator 1 → 2
-    changes nothing but the version);
+  - without `version`, or in version 1 or 2 → read as the latest version, content unchanged (app migrators 1 → 2
+    and 2 → 3 change nothing but the version);
   - old flat format (`goals` at the top level, before app `Q-31`) → the goals are moved into `mashing_process`
     and the editor says so (`EDT-021`);
-  - a `version` that is not 1 or 2 and not a whole number above 2 → written as the latest version, and the editor
-    says so;
+  - a `version` that is not 1, 2 or 3 and not a whole number above 3 → written as the latest version, and the
+    editor says so;
   - a `version` above the latest → **refused**: the recipe cannot be opened, with the message that it was written
     for a newer BrewberryPi app. The editor MUST NOT drop what it does not know.
   - not JSON → refused with the parser's message (upload: listed as not opened; Drive: shown as a load error).
@@ -24,13 +25,17 @@ commit (`NFR-030`).
   problem with where it is (file name, recipe name, goal n and its field). Problems:
   file name missing or invalid; name empty; `mashing_process` or its `goals` missing or not a list; unknown goal
   type; a parameter missing, of the wrong type or out of range (temperature 0…110 °C, minutes a whole number ≥ 0);
-  a Rest with only one of name and description; a field the goal type does not take; any other key.
+  a Rest with only one of name and description; a field the goal type does not take; in the mashing plan
+  (app `RCP-012`): not an object, an unknown rest, a rest that is not an object, a rest without temperature or
+  minutes or with any other field, the same ranges as for goals; any other key. A rest is named by its short name
+  ("Mashing, Maltose rest"). A temperature outside a rest's typical range is not a problem (`EDT-033`).
   Messages name goal types by their display name (e.g. "A Heat Up goal needs a temperature."), never by the type
   name of the file; only a type the editor does not know is quoted as written in the file (`QE-24`).
 - `FMT-005` A file with problems is still opened, keeping every field it had, so the brewer sees and fixes the
   problems (`EDT-020`). Fields a goal type does not take can be removed with one action.
 - `FMT-006` Written files (download, Drive) are formatted like the app's shipped recipes: `version` first, then
-  `name`, then `mashing_process` with one goal per line; no `$schema`. Reading a written file gives the same recipe.
+  `name`, then `mashing_process` with one goal per line, then `mashing` (if any) with one rest per line in the
+  order of the rest table (`EDT-031`); no `$schema`. Reading a written file gives the same recipe.
 - `FMT-007` The samples are exactly the app's shipped recipes (app `RCP-002`; today `BENIWEISS` and `WaterBoil`);
   `EDT-016` uses `BENIWEISS`.
   The editor MUST NOT contain other recipes, not even in tests (app `Q-32`).

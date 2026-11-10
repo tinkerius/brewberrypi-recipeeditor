@@ -1,11 +1,12 @@
 /**
  * Recipe and goal types: the recipe file format of brewberrypi-app (data/recipe.schema.json, spec 04 and 07 §7.2):
- * { "version": 2, "name": …, "mashing_process": { "goals": […] } }, one recipe per file, the file name is the id.
- * The goals may be empty (app Q-34): the app then lists the recipe but can't load it.
+ * { "version": 3, "name": …, "mashing_process": { "goals": […] }, "mashing": { … } }, one recipe per file, the file
+ * name is the id. The goals may be empty (app Q-34): the app then lists the recipe but can't load it. "mashing" is
+ * the optional mashing plan (app Q-37, RCP-012): the rests the brewer plans, keyed by rest id; the app doesn't use it.
  */
 
 /** The recipe file format version this editor reads and writes (RCP-008: the app's latest version). */
-export const FORMAT_VERSION = 2;
+export const FORMAT_VERSION = 3;
 
 export const GOAL_TYPES = [
   "PourInBrewingWater",
@@ -34,7 +35,228 @@ export interface Recipe {
   version?: unknown;
   name: string;
   mashing_process: MashingProcess;
+  /** The mashing plan (app RCP-012); absent while no rest is planned. */
+  mashing?: unknown;
   [key: string]: unknown;
+}
+
+/** The rests of a mashing plan, in the order the editor shows and writes them (app RCP-012, QE-32). */
+export const MASH_REST_IDS = [
+  "PreMash",
+  "AcidRest",
+  "BetaGlucanRest",
+  "FerulicAcidRest",
+  "ProteinRest",
+  "MaltoseRest",
+  "CombinedRest",
+  "SaccharificationRest",
+  "MashOut",
+] as const;
+
+export type MashRestId = (typeof MASH_REST_IDS)[number];
+
+/** A planned rest as it is edited: temperature and minutes, plus whatever an uploaded file contained. */
+export type MashRest = { temperature?: unknown; minutes?: unknown } & Record<string, unknown>;
+
+export interface MashRestInfo {
+  /** The full name, as in the product owner's table (EDT-031). */
+  label: string;
+  /** A short name, for problems ("Mashing, Maltose rest"). */
+  short: string;
+  /** The typical temperature range, as text. */
+  range: string;
+  /** Outside this range (°C, inclusive) the editor warns (EDT-033). */
+  min: number;
+  max: number;
+  /** The typical duration, as text. */
+  duration: string;
+  /** Preset when the rest is ticked (EDT-032). */
+  temperature: number;
+  minutes: number;
+  /** What the rest does: enzymes, effect, when it is useful. */
+  about: [string, string][];
+}
+
+export const MASH_RESTS: Record<MashRestId, MashRestInfo> = {
+  PreMash: {
+    label: "Pre-mash / Dough-in rest (soaking)",
+    short: "Pre-mash",
+    range: "Room temp. to 40 °C, typ. ~35 °C",
+    min: 15,
+    max: 40,
+    duration: "15–30 min (cold: up to several hours)",
+    temperature: 35,
+    minutes: 20,
+    about: [
+      ["Enzymes", "no targeted enzyme activity; amylases and proteases dissolve from the malt into the mash. Phytase and β-glucanase are slightly active at ~35–40 °C."],
+      ["Effect", "hydrates the grist, softens the endosperm, prevents dough balls; enzymes are already in solution when the actual rests begin."],
+      ["When useful", "coarse crush (e.g. lauter tun systems), poorly modified malts, before decoction, or to slightly increase efficiency. Cold pre-mashing also extracts fewer tannins and husk flavors."],
+    ],
+  },
+  AcidRest: {
+    label: "Acid rest / Phytase rest",
+    short: "Acid rest",
+    range: "30–35 °C (up to 52 °C), typ. ~35 °C",
+    min: 30,
+    max: 52,
+    duration: "30–120 min",
+    temperature: 35,
+    minutes: 30,
+    about: [
+      ["Enzyme", "phytase."],
+      ["Effect", "releases phosphates and lowers mash pH."],
+      ["When useful", "practically never today (historically for low-acid malt); pH adjustment is easier with lactic acid or acidulated malt."],
+    ],
+  },
+  BetaGlucanRest: {
+    label: "Beta-glucan rest (gum rest)",
+    short: "Beta-glucan rest",
+    range: "35–45 °C, typ. ~40 °C",
+    min: 35,
+    max: 45,
+    duration: "15–20 min",
+    temperature: 40,
+    minutes: 15,
+    about: [
+      ["Enzyme", "β-glucanase."],
+      ["Effect", "breaks down beta-glucans (gums), lowers viscosity, improves lautering and filterability."],
+      ["When useful", "high share of rye, oats, unmalted adjuncts, or poorly modified malts. Rapidly denatured above ~50 °C."],
+    ],
+  },
+  FerulicAcidRest: {
+    label: "Ferulic acid rest",
+    short: "Ferulic acid rest",
+    range: "43–45 °C, typ. ~45 °C",
+    min: 43,
+    max: 45,
+    duration: "15–20 min",
+    temperature: 45,
+    minutes: 15,
+    about: [
+      ["Enzyme", "feruloyl esterase."],
+      ["Effect", "releases ferulic acid, which phenolic (POF+) yeast converts to 4-vinyl guaiacol (clove aroma)."],
+      ["When useful", "wheat beer and other styles with POF+ yeast when more clove character is desired."],
+    ],
+  },
+  ProteinRest: {
+    label: "Protein rest (protease rest)",
+    short: "Protein rest",
+    range: "45–55 °C, typ. ~52 °C",
+    min: 45,
+    max: 55,
+    duration: "10–20 min",
+    temperature: 52,
+    minutes: 10,
+    about: [
+      ["Enzymes", "peptidases (~45–50 °C), proteinases (~50–55 °C)."],
+      ["Effect", "lower range produces free amino nitrogen (FAN) as yeast nutrient; upper range breaks down large proteins, reducing haze."],
+      ["When useful", "wheat, unmalted adjuncts, poorly modified malts. With modern well-modified malts keep it short or skip it, otherwise foam and body suffer."],
+    ],
+  },
+  MaltoseRest: {
+    label: "Maltose rest (beta-amylase rest)",
+    short: "Maltose rest",
+    range: "60–65 °C, typ. ~63 °C",
+    min: 60,
+    max: 65,
+    duration: "30–60 min",
+    temperature: 63,
+    minutes: 45,
+    about: [
+      ["Enzyme", "β-amylase."],
+      ["Effect", "cleaves maltose from starch chains, producing highly fermentable wort, high attenuation, lean and dry beer."],
+      ["When useful", "almost always; extend for dry beers (Pils, Saison, Tripel). Heat-sensitive; prefers pH ~5.4 and a thick mash."],
+    ],
+  },
+  CombinedRest: {
+    label: "Combined rest (single infusion)",
+    short: "Combined rest",
+    range: "65–68 °C, typ. ~67 °C",
+    min: 65,
+    max: 68,
+    duration: "60 min",
+    temperature: 67,
+    minutes: 60,
+    about: [
+      ["Enzymes", "β- and α-amylase simultaneously."],
+      ["Effect", "compromise between attenuation and body; lower temperature gives a drier beer, higher a fuller one."],
+      ["When useful", "simple brewing (infusion, BIAB) with well-modified malts."],
+    ],
+  },
+  SaccharificationRest: {
+    label: "Saccharification rest (dextrinization / alpha-amylase rest)",
+    short: "Saccharification rest",
+    range: "70–75 °C, typ. ~72 °C",
+    min: 70,
+    max: 75,
+    duration: "20–40 min, until iodine-negative",
+    temperature: 72,
+    minutes: 30,
+    about: [
+      ["Enzyme", "α-amylase."],
+      ["Effect", "breaks down starch into (unfermentable) dextrins, giving body, mouthfeel, and foam stability."],
+      ["When useful", "almost always; extend for full-bodied beers (Bock, Märzen, Stout). Check for complete starch conversion with an iodine test before mash-out."],
+    ],
+  },
+  MashOut: {
+    label: "Mash-out",
+    short: "Mash-out",
+    range: "76–78 °C, typ. ~78 °C",
+    min: 76,
+    max: 78,
+    duration: "Heat up + 5–10 min",
+    temperature: 78,
+    minutes: 10,
+    about: [
+      ["Enzymes", "none (inactivation)."],
+      ["Effect", "fixes the sugar profile, lowers viscosity for better lautering."],
+      ["When useful", "always. Do not exceed 78 °C, otherwise α-amylase is also destroyed and starch dissolved during lautering stays unconverted (starch haze)."],
+    ],
+  },
+};
+
+export function isMashRestId(id: unknown): id is MashRestId {
+  return typeof id === "string" && (MASH_REST_IDS as readonly string[]).includes(id);
+}
+
+/** The mashing plan as an object (an uploaded file's non-object plan reads as empty here; the validator reports it). */
+export function mashingOf(recipe: Recipe): Record<string, unknown> {
+  return isObject(recipe.mashing) ? recipe.mashing : {};
+}
+
+/** The rest ids of a plan first in catalogue order, then whatever else it holds. */
+function inPlanOrder(plan: Record<string, unknown>): Record<string, unknown> {
+  const ordered: Record<string, unknown> = {};
+  for (const id of MASH_REST_IDS) {
+    if (id in plan) {
+      ordered[id] = plan[id];
+    }
+  }
+  return { ...ordered, ...plan };
+}
+
+/**
+ * Plans a rest (or, with undefined, drops it) (EDT-032). Without any rest left, the recipe has no "mashing" (EDT-034).
+ */
+export function withMashRest(recipe: Recipe, id: MashRestId, rest: MashRest | undefined): Recipe {
+  const plan = { ...mashingOf(recipe) };
+  if (rest === undefined) {
+    delete plan[id];
+  } else {
+    plan[id] = rest;
+  }
+  const { mashing: _old, ...others } = recipe;
+  return Object.keys(plan).length === 0 ? others : { ...others, mashing: inPlanOrder(plan) };
+}
+
+/** A new planned rest, with the preset temperature and minutes (EDT-032). */
+export function newMashRest(id: MashRestId): MashRest {
+  return { temperature: MASH_RESTS[id].temperature, minutes: MASH_RESTS[id].minutes };
+}
+
+/** Whether a rest's temperature is outside its typical range (EDT-033); only for numbers. */
+export function outsideTypicalRange(id: MashRestId, temperature: unknown): boolean {
+  return typeof temperature === "number" && (temperature < MASH_RESTS[id].min || temperature > MASH_RESTS[id].max);
 }
 
 export function goalsOf(recipe: Recipe): Goal[] {
@@ -214,8 +436,9 @@ export function readRecipe(json: unknown): ReadRecipe {
         "It was written for a newer BrewberryPi app. Reload the editor to get the latest version.",
     };
   }
-  // Version 1 (or none) differs from version 2 only in that goals may now be empty: written as version 2 as is.
-  if (version !== undefined && version !== 1 && version !== FORMAT_VERSION) {
+  // Versions 1 (or none) and 2 differ from version 3 only in what they don't allow yet (empty goals, the mashing
+  // plan; app migrators 1 → 2 → 3): written as version 3 as they are.
+  if (version !== undefined && version !== 1 && version !== 2 && version !== FORMAT_VERSION) {
     changes.push(`its format version ${JSON.stringify(version)} is not valid; it is written as version ${FORMAT_VERSION}`);
   }
   let process: MashingProcess;
@@ -254,11 +477,12 @@ const indentGoal = (goal: Goal) =>
     .join(", ")} }`;
 
 /**
- * The file content, formatted like the app's shipped recipes: "version" first (RCP-008), one line per goal. The
- * editor does not write "$schema" (optional, ignored by the app).
+ * The file content, formatted like the app's shipped recipes: "version" first (RCP-008), one line per goal, then the
+ * mashing plan, one line per rest in catalogue order (FMT-006). The editor does not write "$schema" (optional,
+ * ignored by the app).
  */
 export function serializeRecipe(recipe: Recipe): string {
-  const { $schema: _schema, version, name, mashing_process: process, ...rest } = recipe;
+  const { $schema: _schema, version, name, mashing_process: process, mashing, ...rest } = recipe;
   const { goals, ...processRest } = process;
   const lines: string[] = [];
   if (version !== undefined) {
@@ -278,6 +502,24 @@ export function serializeRecipe(recipe: Recipe): string {
     processLines.push(`    ${JSON.stringify(key)}: ${JSON.stringify(value)}`);
   }
   lines.push(`  "mashing_process": {`, ...processLines, `  }`);
+  if (isObject(mashing)) {
+    const entries = Object.entries(inPlanOrder(mashing));
+    if (entries.length === 0) {
+      lines[lines.length - 1] += ",";
+      lines.push(`  "mashing": {}`);
+    } else {
+      lines[lines.length - 1] += ",";
+      lines.push(`  "mashing": {`);
+      entries.forEach(([id, value], i) => {
+        const text = isObject(value) ? indentGoal(value as Goal) : JSON.stringify(value);
+        lines.push(`    ${JSON.stringify(id)}: ${text}${i < entries.length - 1 ? "," : ""}`);
+      });
+      lines.push(`  }`);
+    }
+  } else if (mashing !== undefined) {
+    lines[lines.length - 1] += ",";
+    lines.push(`  "mashing": ${JSON.stringify(mashing)}`);
+  }
   for (const [key, value] of Object.entries(rest)) {
     lines[lines.length - 1] += ",";
     lines.push(`  ${JSON.stringify(key)}: ${JSON.stringify(value)}`);

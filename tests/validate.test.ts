@@ -1,6 +1,6 @@
 import Ajv2020 from "ajv/dist/2020";
 import { describe, expect, it } from "vitest";
-import { GOAL_TYPES } from "../src/model";
+import { GOAL_TYPES, MASH_REST_IDS } from "../src/model";
 import { validateId, validateRecipe } from "../src/validate";
 import schema from "../src/data/recipe.schema.json";
 import { SAMPLES } from "../src/samples";
@@ -16,15 +16,31 @@ function expectSameVerdict(recipe: unknown) {
 }
 
 /** A recipe with these goals. */
-const r = (goals: unknown, extra: object = {}) => ({ version: 2, name: "x", mashing_process: { goals }, ...extra });
+const r = (goals: unknown, extra: object = {}) => ({ version: 3, name: "x", mashing_process: { goals }, ...extra });
 
 const valid = r([{ type: "HeatUp", temperature: 62 }]);
 
 const CASES: [string, unknown][] = [
   ["valid", valid],
   ["without version", { name: "x", mashing_process: { goals: [{ type: "MashIn" }] } }],
-  ["version 1 (the editor writes 2)", { ...valid, version: 1 }],
-  ["version 3", { ...valid, version: 3 }],
+  ["version 1 (the editor writes 3)", { ...valid, version: 1 }],
+  ["version 2 (the editor writes 3)", { ...valid, version: 2 }],
+  ["version 4", { ...valid, version: 4 }],
+  ["mashing plan (app RCP-012)", { ...valid, mashing: { MaltoseRest: { temperature: 63, minutes: 45 }, MashOut: { temperature: 78, minutes: 10 } } }],
+  ["mashing plan with every rest", { ...valid, mashing: Object.fromEntries(MASH_REST_IDS.map((id) => [id, { temperature: 0, minutes: 0 }])) }],
+  ["empty mashing plan", { ...valid, mashing: {} }],
+  ["rest outside its typical range (only a warning)", { ...valid, mashing: { MashOut: { temperature: 95, minutes: 10 } } }],
+  ["mashing plan not an object", { ...valid, mashing: [] }],
+  ["mashing plan as a string", { ...valid, mashing: "MaltoseRest" }],
+  ["unknown rest", { ...valid, mashing: { MainRest: { temperature: 63, minutes: 45 } } }],
+  ["rest not an object", { ...valid, mashing: { MaltoseRest: 63 } }],
+  ["rest without temperature", { ...valid, mashing: { MaltoseRest: { minutes: 45 } } }],
+  ["rest without minutes", { ...valid, mashing: { MaltoseRest: { temperature: 63 } } }],
+  ["rest temperature above 110", { ...valid, mashing: { MaltoseRest: { temperature: 111, minutes: 45 } } }],
+  ["rest temperature as string", { ...valid, mashing: { MaltoseRest: { temperature: "63", minutes: 45 } } }],
+  ["rest minutes not whole", { ...valid, mashing: { MaltoseRest: { temperature: 63, minutes: 4.5 } } }],
+  ["rest minutes negative", { ...valid, mashing: { MaltoseRest: { temperature: 63, minutes: -1 } } }],
+  ["extra field in a rest", { ...valid, mashing: { MaltoseRest: { temperature: 63, minutes: 45, name: "Maltoserast" } } }],
   ["with $schema", { $schema: "../recipe.schema.json", ...valid }],
   ["all goal types", r([
     { type: "PourInBrewingWater" },
@@ -43,13 +59,13 @@ const CASES: [string, unknown][] = [
   ["version as string", { ...valid, version: "1" }],
   ["old flat format", { name: "x", goals: [{ type: "MashIn" }] }],
   ["old goals next to mashing_process", { ...valid, goals: [{ type: "MashIn" }] }],
-  ["no name", { version: 2, mashing_process: valid.mashing_process }],
+  ["no name", { version: 3, mashing_process: valid.mashing_process }],
   ["empty name", { ...valid, name: "" }],
   ["name not a string", { ...valid, name: 3 }],
-  ["no mashing_process", { version: 2, name: "x" }],
-  ["mashing_process not an object", { version: 2, name: "x", mashing_process: [] }],
-  ["mashing_process without goals", { version: 2, name: "x", mashing_process: {} }],
-  ["extra field in mashing_process", { version: 2, name: "x", mashing_process: { goals: [{ type: "MashIn" }], hops: [] } }],
+  ["no mashing_process", { version: 3, name: "x" }],
+  ["mashing_process not an object", { version: 3, name: "x", mashing_process: [] }],
+  ["mashing_process without goals", { version: 3, name: "x", mashing_process: {} }],
+  ["extra field in mashing_process", { version: 3, name: "x", mashing_process: { goals: [{ type: "MashIn" }], hops: [] } }],
   ["empty goals (app Q-34)", r([])],
   ["goals not an array", r({})],
   ["extra top-level field", { ...valid, grain_bill: {} }],

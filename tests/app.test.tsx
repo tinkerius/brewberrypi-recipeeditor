@@ -11,6 +11,7 @@ import { FakeAuth, FakeDrive } from "./fakeDrive";
 import { BROWSER_STORAGE_WARNING, MEMORY_STORAGE_WARNING } from "../src/ui/Banners";
 import { SIDEBAR_KEY } from "../src/ui/sidebar";
 import { CHANGE_POLL_MS } from "../src/driveSync";
+import { MASH_RESTS, MASH_REST_IDS, type MashRestId, type Recipe } from "../src/model";
 
 let root: HTMLElement;
 
@@ -107,7 +108,7 @@ describe("App, signed out", () => {
 
   it("ACC-011 refuses a file name that is invalid or taken", async () => {
     const store = new MemoryStore();
-    await store.put(newDoc("Kept", { version: 2, name: "Kept", mashing_process: { goals: [] } }));
+    await store.put(newDoc("Kept", { version: 3, name: "Kept", mashing_process: { goals: [] } }));
     await show(store);
     await act(async () => button("New recipe").click());
     await nameAs("Kept", "Create");
@@ -119,7 +120,7 @@ describe("App, signed out", () => {
 
   it("ACC-023 shows the drafts kept in the browser, marked when not downloaded", async () => {
     const store = new MemoryStore();
-    await store.put(newDoc("Kept", { version: 2, name: "Kept recipe", mashing_process: { goals: [{ type: "MashIn" }] } }));
+    await store.put(newDoc("Kept", { version: 3, name: "Kept recipe", mashing_process: { goals: [{ type: "MashIn" }] } }));
     await show(store);
     expect(root.querySelector("[aria-label=Recipes]")?.textContent).toContain("Kept recipe");
     expect(root.querySelector("[aria-label=Recipes]")?.textContent).toContain("not downloaded");
@@ -130,7 +131,7 @@ describe("App, signed out", () => {
 describe("App, a recipe without goals (app Q-34)", () => {
   it("ACC-009 is valid and can be downloaded, with a note that the app can't brew it yet", async () => {
     const store = new MemoryStore();
-    await store.put(newDoc("Draft", { version: 2, name: "Draft", mashing_process: { goals: [] } }));
+    await store.put(newDoc("Draft", { version: 3, name: "Draft", mashing_process: { goals: [] } }));
     await show(store);
     expect(root.textContent).toContain("It has no goals yet, so BrewberryPi lists it but can't brew it.");
     // jsdom has no object URLs: count the downloads instead.
@@ -153,7 +154,7 @@ describe("App, a recipe without goals (app Q-34)", () => {
 describe("App, the recipe menu", () => {
   async function withKept() {
     const store = new MemoryStore();
-    await store.put(newDoc("Kept", { version: 2, name: "Kept recipe", mashing_process: { goals: [{ type: "MashIn" }] } }));
+    await store.put(newDoc("Kept", { version: 3, name: "Kept recipe", mashing_process: { goals: [{ type: "MashIn" }] } }));
     await show(store);
     return store;
   }
@@ -256,13 +257,16 @@ describe("App, the website's top bar and footer (QE-27)", () => {
 });
 
 describe("App, the recipe's tabs (QE-28)", () => {
-  it("ACC-048 shows one selected tab Mash Process with the goals; the problems are below it", async () => {
+  it("ACC-048 shows the tabs Mash Process, selected, with the goals, and Mashing; the problems are below them", async () => {
     const store = new MemoryStore();
-    await store.put(newDoc("Kept", { version: 2, name: "Kept", mashing_process: { goals: [{ type: "HeatUp" }] } }));
+    await store.put(newDoc("Kept", { version: 3, name: "Kept", mashing_process: { goals: [{ type: "HeatUp" }] } }));
     await show(store);
     const recipe = root.querySelector("[aria-label=Recipe]")!;
     const tabs = [...recipe.querySelectorAll<HTMLElement>("[role=tablist] [role=tab]")];
-    expect(tabs.map((t) => [t.textContent, t.getAttribute("aria-selected")])).toEqual([["Mash Process", "true"]]);
+    expect(tabs.map((t) => [t.textContent, t.getAttribute("aria-selected")])).toEqual([
+      ["Mash Process", "true"],
+      ["Mashing", "false"],
+    ]);
     const panel = recipe.querySelector<HTMLElement>("[role=tabpanel]")!;
     expect(panel.getAttribute("aria-labelledby")).toBe(tabs[0].id);
     expect(panel.querySelector("ol [data-goal-line]")).not.toBeNull();
@@ -281,7 +285,7 @@ describe("App, the collapsible recipe list (QE-29)", () => {
 
   it("ACC-049 collapses to a strip, is remembered, shows unsaved work, and Ctrl+B expands it", async () => {
     const store = new MemoryStore();
-    await store.put(newDoc("Kept", { version: 2, name: "Kept recipe", mashing_process: { goals: [{ type: "MashIn" }] } }));
+    await store.put(newDoc("Kept", { version: 3, name: "Kept recipe", mashing_process: { goals: [{ type: "MashIn" }] } }));
     await show(store);
     expect(listText()).toHaveLength(1);
     await act(async () => sidebar().querySelector<HTMLButtonElement>("[aria-label='Hide sidebar']")!.click());
@@ -319,7 +323,7 @@ describe("App, reordering goals by drag and drop (EDT-012)", () => {
 
   async function withThreeGoals() {
     const store = new MemoryStore();
-    await store.put(newDoc("Kept", { version: 2, name: "Kept", mashing_process: { goals } }));
+    await store.put(newDoc("Kept", { version: 3, name: "Kept", mashing_process: { goals } }));
     await show(store);
   }
 
@@ -400,7 +404,7 @@ describe("App, editing the recipe name in the title (EDT-010)", () => {
 
   it("ACC-042 clicking the name opens a field; Enter keeps the new name, Escape restores the old one", async () => {
     const store = new MemoryStore();
-    await store.put(newDoc("Kept", { version: 2, name: "Kept recipe", mashing_process: { goals: [{ type: "MashIn" }] } }));
+    await store.put(newDoc("Kept", { version: 3, name: "Kept recipe", mashing_process: { goals: [{ type: "MashIn" }] } }));
     await show(store);
     expect(nameInput()).toBeNull(); // no separate name field
     expect(titleButton()?.textContent).toContain("Kept recipe");
@@ -439,7 +443,7 @@ describe("App, choosing a goal's type in a dialog (QE-23)", () => {
 
   it("ACC-043 asks for the type when a goal is added and when the pencil is used; no type dropdowns", async () => {
     const store = new MemoryStore();
-    await store.put(newDoc("Kept", { version: 2, name: "Kept", mashing_process: { goals: [{ type: "HeatUp", temperature: 40 }] } }));
+    await store.put(newDoc("Kept", { version: 3, name: "Kept", mashing_process: { goals: [{ type: "HeatUp", temperature: 40 }] } }));
     await show(store);
     expect(root.querySelectorAll("[aria-label=Recipe] select")).toHaveLength(0);
 
@@ -477,7 +481,7 @@ describe("App, no technical goal type names (QE-24)", () => {
       { type: "HeatUpForHopsCooking" },
       { type: "CookWater", name: "Cook", description: "Cook", minutes: 10 },
     ];
-    await store.put(newDoc("Kept", { version: 2, name: "Kept", mashing_process: { goals } }));
+    await store.put(newDoc("Kept", { version: 3, name: "Kept", mashing_process: { goals } }));
     await show(store);
     expect(root.textContent).toContain("A Heat Up goal needs a temperature.");
     expect(root.textContent).not.toMatch(TECHNICAL);
@@ -495,7 +499,7 @@ describe("App, one line per goal (QE-26)", () => {
 
   async function withGoals(goals: { type: string; [field: string]: unknown }[]) {
     const store = new MemoryStore();
-    await store.put(newDoc("Kept", { version: 2, name: "Kept", mashing_process: { goals } }));
+    await store.put(newDoc("Kept", { version: 3, name: "Kept", mashing_process: { goals } }));
     await show(store);
   }
 
@@ -535,7 +539,7 @@ describe("App, one line per goal (QE-26)", () => {
 });
 
 describe("App, signed in: recipe names in the list (QE-31)", () => {
-  const recipe = (name: string) => JSON.stringify({ version: 2, name, mashing_process: { goals: [{ type: "MashIn" }] } });
+  const recipe = (name: string) => JSON.stringify({ version: 3, name, mashing_process: { goals: [{ type: "MashIn" }] } });
 
   async function until(check: () => boolean) {
     for (let i = 0; i < 50 && !check(); i++) {
@@ -594,7 +598,7 @@ describe("App, signed in: recipe names in the list (QE-31)", () => {
 });
 
 describe("App, signed in: Discard changes (QE-25)", () => {
-  const recipe = { version: 2, name: "Kept recipe", mashing_process: { goals: [{ type: "MashIn" }] } };
+  const recipe = { version: 3, name: "Kept recipe", mashing_process: { goals: [{ type: "MashIn" }] } };
 
   /** A Google Drive holding Kept.json, and a browser that is still signed in (DRV-011). */
   async function signedIn() {
@@ -695,5 +699,120 @@ describe("App, signed in: Discard changes (QE-25)", () => {
     } finally {
       restore();
     }
+  });
+});
+
+describe("App, the Mashing tab (QE-32)", () => {
+  const recipe = () => root.querySelector("[aria-label=Recipe]")!;
+  const panel = () => recipe().querySelector<HTMLElement>("[role=tabpanel]")!;
+  const row = (id: string) => panel().querySelector<HTMLElement>(`[data-mash-rest=${id}]`)!;
+  const field = (id: string, label: string) =>
+    [...row(id).querySelectorAll("label")].find((l) => l.textContent?.startsWith(label))!.querySelector("input")!;
+  async function openMashing(content: Recipe = { version: 3, name: "Plan", mashing_process: { goals: [{ type: "MashIn" }] } }) {
+    const store = new MemoryStore();
+    await store.put(newDoc("Plan", content));
+    await show(store);
+    await act(async () => recipe().querySelector<HTMLElement>("#tab-mashing")!.click());
+  }
+  async function tick(id: string) {
+    await act(async () => row(id).querySelector<HTMLInputElement>("input[type=checkbox]")!.click());
+  }
+  async function type(input: HTMLInputElement, value: string) {
+    await act(async () => {
+      input.value = value;
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+  }
+  /** Downloads the recipe from its menu and returns the file's text. */
+  async function download(): Promise<string> {
+    let blob: Blob | undefined;
+    Object.assign(URL, { createObjectURL: (b: Blob) => ((blob = b), "blob:x"), revokeObjectURL: () => undefined });
+    const click = HTMLAnchorElement.prototype.click;
+    HTMLAnchorElement.prototype.click = () => undefined;
+    await menu("Plan", "Download");
+    HTMLAnchorElement.prototype.click = click;
+    if (!blob) {
+      throw new Error("not downloaded");
+    }
+    const file = blob;
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result));
+      reader.readAsText(file);
+    });
+  }
+
+  it("ACC-058 lists the 9 rests in order with range, duration, an unticked box and what each does", async () => {
+    await openMashing();
+    expect(recipe().querySelector("#tab-mashing")!.getAttribute("aria-selected")).toBe("true");
+    const rows = [...panel().querySelectorAll<HTMLElement>("[data-mash-rest]")];
+    expect(rows.map((r) => r.dataset.mashRest)).toEqual([...MASH_REST_IDS]);
+    for (const r of rows) {
+      const info = MASH_RESTS[r.dataset.mashRest as MashRestId];
+      expect(r.textContent).toContain(info.label);
+      expect(r.textContent).toContain(info.range);
+      expect(r.textContent).toContain(info.duration);
+      expect(r.querySelector<HTMLInputElement>("input[type=checkbox]")!.checked).toBe(false);
+      expect(r.querySelector("details summary")!.textContent).toBe("About this rest");
+      for (const [term, text] of info.about) {
+        expect(r.querySelector("details")!.textContent).toContain(`${term}: ${text}`);
+      }
+    }
+    expect(rows[5].textContent).toContain("Maltose rest (beta-amylase rest)");
+    expect(rows[5].textContent).toContain("60–65 °C, typ. ~63 °C");
+    expect(panel().querySelector("[data-goal-line]")).toBeNull();
+  });
+
+  it("ACC-059 ticking plans a rest with its presets, its fields change it, unticking removes it", async () => {
+    await openMashing();
+    await tick("MashOut");
+    await tick("MaltoseRest");
+    expect([field("MaltoseRest", "Temperature").value, field("MaltoseRest", "Duration").value]).toEqual(["63", "45"]);
+    expect([field("MashOut", "Temperature").value, field("MashOut", "Duration").value]).toEqual(["78", "10"]);
+    expect(recipe().textContent).toContain("Complete: BrewberryPi can load this recipe.");
+    await type(field("MaltoseRest", "Duration"), "50");
+    const text = await download();
+    expect(text).toContain(
+      '  },\n  "mashing": {\n    "MaltoseRest": { "temperature": 63, "minutes": 50 },\n    "MashOut": { "temperature": 78, "minutes": 10 }\n  }\n}\n',
+    );
+    await tick("MaltoseRest");
+    await tick("MashOut");
+    expect(row("MaltoseRest").querySelector("input:not([type=checkbox])")).toBeNull();
+    expect(await download()).not.toContain("mashing\"");
+  });
+
+  it("ACC-060 warns outside the typical range, and the recipe stays complete", async () => {
+    await openMashing();
+    await tick("MaltoseRest");
+    const warning = () => row("MaltoseRest").querySelector("[data-mash-warning]")?.textContent;
+    expect(warning()).toBeUndefined();
+    await type(field("MaltoseRest", "Temperature"), "70");
+    expect(warning()).toContain("60–65 °C, typ. ~63 °C");
+    expect(recipe().textContent).toContain("Complete: BrewberryPi can load this recipe.");
+    expect(await download()).toContain('"MaltoseRest": { "temperature": 70, "minutes": 45 }');
+    await type(field("MaltoseRest", "Temperature"), "60");
+    expect(warning()).toBeUndefined();
+    await type(field("MaltoseRest", "Temperature"), "65");
+    expect(warning()).toBeUndefined();
+  });
+
+  it("ACC-061 reports a rest's problem, marks its field, and the problem opens the Mashing tab", async () => {
+    await openMashing();
+    await tick("MaltoseRest");
+    await type(field("MaltoseRest", "Temperature"), "");
+    expect(recipe().textContent).toContain("Mashing, Maltose rest: The Maltose rest needs a temperature.");
+    expect(field("MaltoseRest", "Temperature").className).toContain("ring-red-400");
+    await act(async () => recipe().querySelector<HTMLElement>("#tab-mash")!.click());
+    expect(panel().querySelector("[data-mash-rest]")).toBeNull();
+    await act(async () => button("Mashing, Maltose rest").click());
+    expect(recipe().querySelector("#tab-mashing")!.getAttribute("aria-selected")).toBe("true");
+    expect(row("MaltoseRest")).not.toBeNull();
+  });
+
+  it("ACC-061 keeps and reports an unknown rest of an opened file", async () => {
+    await openMashing({ version: 3, name: "Plan", mashing_process: { goals: [] }, mashing: { MainRest: { temperature: 63, minutes: 45 } } });
+    expect(recipe().textContent).toContain('Mashing, MainRest: Unknown rest "MainRest".');
+    await tick("MashOut");
+    expect(recipe().textContent).toContain('Unknown rest "MainRest".');
   });
 });

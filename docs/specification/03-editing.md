@@ -75,3 +75,67 @@ Applies signed out (drafts, §4) and signed in (Drive recipes, §5) alike, unles
   marked. A goal's problem names the goal ("Goal 2"); clicking that opens the goal (`EDT-011`). For an invalid file name the message says to rename it from the recipe's menu.
 - `EDT-021` When the editor changed a file while reading it (`FMT-003`), it says what it changed until the recipe
   is downloaded or saved.
+
+## 3.5 Mashing plan (`QE-32`)
+
+- `EDT-030` The tab **Mashing** (`GUI-032`) is the brewer's mashing plan (app `RCP-012`): which rests the mash
+  gets, each with its temperature and duration. It is design information for the brewer; it does not change the
+  goals (**Mash Process**), and the app does not use it. (Goals made from the plan may follow later.)
+- `EDT-031` The tab lists every rest of the table below, each once, in this order. Each row shows the rest's name,
+  its typical temperature range and duration, and a check box; **About this rest** opens what the rest does
+  (enzymes, effect, when useful). The texts are the product owner's (2026-11-10), verbatim.
+
+| Rest id | Name | Temperature range | Typ. duration | Warning outside | Preset |
+|---|---|---|---|---|---|
+| `PreMash` | Pre-mash / Dough-in rest (soaking) | Room temp. to 40 °C, typ. ~35 °C | 15–30 min (cold: up to several hours) | 15–40 °C | 35 °C, 20 min |
+| `AcidRest` | Acid rest / Phytase rest | 30–35 °C (up to 52 °C), typ. ~35 °C | 30–120 min | 30–52 °C | 35 °C, 30 min |
+| `BetaGlucanRest` | Beta-glucan rest (gum rest) | 35–45 °C, typ. ~40 °C | 15–20 min | 35–45 °C | 40 °C, 15 min |
+| `FerulicAcidRest` | Ferulic acid rest | 43–45 °C, typ. ~45 °C | 15–20 min | 43–45 °C | 45 °C, 15 min |
+| `ProteinRest` | Protein rest (protease rest) | 45–55 °C, typ. ~52 °C | 10–20 min | 45–55 °C | 52 °C, 10 min |
+| `MaltoseRest` | Maltose rest (beta-amylase rest) | 60–65 °C, typ. ~63 °C | 30–60 min | 60–65 °C | 63 °C, 45 min |
+| `CombinedRest` | Combined rest (single infusion) | 65–68 °C, typ. ~67 °C | 60 min | 65–68 °C | 67 °C, 60 min |
+| `SaccharificationRest` | Saccharification rest (dextrinization / alpha-amylase rest) | 70–75 °C, typ. ~72 °C | 20–40 min, until iodine-negative | 70–75 °C | 72 °C, 30 min |
+| `MashOut` | Mash-out | 76–78 °C, typ. ~78 °C | Heat up + 5–10 min | 76–78 °C | 78 °C, 10 min |
+
+  What each rest does (**About this rest**):
+  - Pre-mash / Dough-in rest: **Enzymes:** no targeted enzyme activity; amylases and proteases dissolve from the
+    malt into the mash. Phytase and β-glucanase are slightly active at ~35–40 °C. **Effect:** hydrates the grist,
+    softens the endosperm, prevents dough balls; enzymes are already in solution when the actual rests begin.
+    **When useful:** coarse crush (e.g. lauter tun systems), poorly modified malts, before decoction, or to slightly
+    increase efficiency. Cold pre-mashing also extracts fewer tannins and husk flavors.
+  - Acid rest / Phytase rest: **Enzyme:** phytase. **Effect:** releases phosphates and lowers mash pH. **When
+    useful:** practically never today (historically for low-acid malt); pH adjustment is easier with lactic acid or
+    acidulated malt.
+  - Beta-glucan rest: **Enzyme:** β-glucanase. **Effect:** breaks down beta-glucans (gums), lowers viscosity,
+    improves lautering and filterability. **When useful:** high share of rye, oats, unmalted adjuncts, or poorly
+    modified malts. Rapidly denatured above ~50 °C.
+  - Ferulic acid rest: **Enzyme:** feruloyl esterase. **Effect:** releases ferulic acid, which phenolic (POF+)
+    yeast converts to 4-vinyl guaiacol (clove aroma). **When useful:** wheat beer and other styles with POF+ yeast
+    when more clove character is desired.
+  - Protein rest: **Enzymes:** peptidases (~45–50 °C), proteinases (~50–55 °C). **Effect:** lower range produces
+    free amino nitrogen (FAN) as yeast nutrient; upper range breaks down large proteins, reducing haze. **When
+    useful:** wheat, unmalted adjuncts, poorly modified malts. With modern well-modified malts keep it short or skip
+    it, otherwise foam and body suffer.
+  - Maltose rest: **Enzyme:** β-amylase. **Effect:** cleaves maltose from starch chains, producing highly
+    fermentable wort, high attenuation, lean and dry beer. **When useful:** almost always; extend for dry beers
+    (Pils, Saison, Tripel). Heat-sensitive; prefers pH ~5.4 and a thick mash.
+  - Combined rest: **Enzymes:** β- and α-amylase simultaneously. **Effect:** compromise between attenuation and
+    body; lower temperature gives a drier beer, higher a fuller one. **When useful:** simple brewing (infusion,
+    BIAB) with well-modified malts.
+  - Saccharification rest: **Enzyme:** α-amylase. **Effect:** breaks down starch into (unfermentable) dextrins,
+    giving body, mouthfeel, and foam stability. **When useful:** almost always; extend for full-bodied beers (Bock,
+    Märzen, Stout). Check for complete starch conversion with an iodine test before mash-out.
+  - Mash-out: **Enzymes:** none (inactivation). **Effect:** fixes the sugar profile, lowers viscosity for better
+    lautering. **When useful:** always. Do not exceed 78 °C, otherwise α-amylase is also destroyed and starch
+    dissolved during lautering stays unconverted (starch haze).
+- `EDT-032` Ticking a rest plans it with its preset temperature and duration (table above); its **Temperature**
+  (°C) and **Duration** (min, a whole number) fields appear and can be changed (`EDT-015`). Unticking it removes the
+  rest from the plan, with its values.
+- `EDT-033` A planned rest whose temperature is outside its "warning outside" range (inclusive) shows a warning
+  that names the rest's typical range. It is only a warning: the recipe stays complete and can be saved and
+  downloaded (`FMT-010`).
+- `EDT-034` The plan holds only ticked rests. When no rest is ticked, the recipe file has no `mashing`; a file read
+  with an empty `mashing` (`{}`) keeps it until a rest is ticked and unticked.
+- `EDT-035` Problems of the plan (`FMT-004`) are listed with the others (`EDT-020`) as "Mashing, <rest>"; clicking
+  that opens the Mashing tab, and the field with the problem is marked. Clicking a goal's "Goal n" opens the Mash
+  Process tab with that goal open.

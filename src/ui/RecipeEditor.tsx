@@ -1,12 +1,13 @@
-/** The selected recipe: file name, name, goals, problems and the actions. */
+/** The selected recipe: file name, name, its tabs (goals, mashing plan), problems and the actions. */
 
 import type { ComponentChildren } from "preact";
 import { useEffect, useRef, useState } from "preact/hooks";
 import { problemsOf, type Doc } from "../doc";
-import { goalsOf, newGoal, withGoals, type Goal, type Recipe } from "../model";
-import { GOALS_PATH } from "../validate";
+import { MASH_RESTS, goalsOf, isMashRestId, newGoal, withGoals, type Goal, type Recipe } from "../model";
+import { GOALS_PATH, MASHING_PATH } from "../validate";
 import { GoalEditor } from "./GoalEditor";
 import { GoalTypeDialog } from "./GoalTypeDialog";
+import { MashingTab } from "./MashingTab";
 import { RecipeTitle } from "./RecipeTitle";
 import { Tabs } from "./Tabs";
 import { dropSlot, moveItem, targetIndex } from "./reorder";
@@ -18,6 +19,7 @@ const PATH_LABELS: Record<string, string> = {
   version: "Format version",
   mashing_process: "Mashing process",
   [GOALS_PATH]: "Goals",
+  [MASHING_PATH]: "Mashing",
 };
 
 /** The goal a problem is about, if any (its index). */
@@ -26,13 +28,28 @@ function goalOf(path: string): number | undefined {
   return goal ? Number(goal[1]) : undefined;
 }
 
-function describePath(path: string): string {
-  const goal = goalOf(path);
-  return goal !== undefined ? `Goal ${goal + 1}` : (PATH_LABELS[path] ?? (path || "Recipe"));
+/** Whether a problem is about the mashing plan (the Mashing tab). */
+function isMashing(path: string): boolean {
+  return path === MASHING_PATH || path.startsWith(`${MASHING_PATH}.`);
 }
 
-/** The problems (EDT-020); a goal's problem opens that goal when its "Goal n" is clicked. */
-export function ProblemList(props: { doc: Doc; onGoal?: (index: number) => void }) {
+function describePath(path: string): string {
+  const goal = goalOf(path);
+  if (goal !== undefined) {
+    return `Goal ${goal + 1}`;
+  }
+  const rest = /^mashing\.([^.]+)/.exec(path)?.[1];
+  if (rest !== undefined) {
+    return `Mashing, ${isMashRestId(rest) ? MASH_RESTS[rest].short : rest}`;
+  }
+  return PATH_LABELS[path] ?? (path || "Recipe");
+}
+
+/**
+ * The problems (EDT-020); a goal's problem opens that goal when its "Goal n" is clicked, a problem of the mashing
+ * plan opens the Mashing tab (EDT-035).
+ */
+export function ProblemList(props: { doc: Doc; onGoal?: (index: number) => void; onMashing?: () => void }) {
   const problems = problemsOf(props.doc);
   if (props.doc.loadError) {
     return (
@@ -62,6 +79,10 @@ export function ProblemList(props: { doc: Doc; onGoal?: (index: number) => void 
                 <button type="button" class={LINK_STYLE} onClick={() => props.onGoal!(goal)}>
                   {describePath(p.path)}
                 </button>
+              ) : isMashing(p.path) && props.onMashing ? (
+                <button type="button" class={LINK_STYLE} onClick={props.onMashing}>
+                  {describePath(p.path)}
+                </button>
               ) : (
                 <span class="font-medium">{describePath(p.path)}</span>
               )}
@@ -75,8 +96,11 @@ export function ProblemList(props: { doc: Doc; onGoal?: (index: number) => void 
   );
 }
 
-/** The recipe's tabs (GUI-032, QE-28); more come later. */
-const RECIPE_TABS = [{ id: "mash", label: "Mash Process" }] as const;
+/** The recipe's tabs (GUI-032, QE-28, QE-32); more come later. */
+const RECIPE_TABS = [
+  { id: "mash", label: "Mash Process" },
+  { id: "mashing", label: "Mashing" },
+] as const;
 type RecipeTab = (typeof RECIPE_TABS)[number]["id"];
 
 export function RecipeEditor(props: { doc: Doc; onChange: (recipe: Recipe) => void; actions?: ComponentChildren; status?: ComponentChildren }) {
@@ -187,59 +211,65 @@ export function RecipeEditor(props: { doc: Doc; onChange: (recipe: Recipe) => vo
 
 
       <Tabs label="Recipe sections" tabs={RECIPE_TABS} selected={tab} onSelect={setTab}>
-        <p class={HINT_STYLE}>The goals in brewing order.</p>
-        {goals.length === 0 ? (
-          <p class={`${HINT_STYLE} mt-2`}>No goals yet. Add them below; until then the BrewberryPi app lists this recipe but can't brew it.</p>
+        {tab === "mashing" ? (
+          <MashingTab recipe={doc.recipe} problems={problems} onChange={setRecipe} />
         ) : (
-          <ol
-            ref={list}
-            class="mt-2 divide-y divide-line rounded-lg ring-1 ring-line dark:divide-white/10 dark:ring-white/10"
-          >
-            {goals.map((goal, i) => (
-              <GoalEditor
-                key={`${doc.key}-${i}`}
-                goal={goal}
-                index={i}
-                count={goals.length}
-                problems={problems}
-                open={open === i}
-                onToggle={() => setOpen(open === i ? undefined : i)}
-                onChange={(g) => setGoals(goals.map((x, j) => (j === i ? g : x)))}
-                onDragStart={(e) => startDrag(i, e)}
-                onMoveKey={(delta) => {
-                  const to = i + delta;
-                  if (to >= 0 && to < goals.length) {
-                    moveGoal(i, to);
-                    setFocusHandle(to);
-                  }
-                }}
-                dragging={drag?.from === i}
-                dropLine={dropLine(i)}
-                onRemove={() => {
-                  setGoals(goals.filter((_, j) => j !== i));
-                  if (open !== undefined && open >= i) {
-                    setOpen(open === i ? undefined : open - 1);
-                  }
+          <>
+            <p class={HINT_STYLE}>The goals in brewing order.</p>
+            {goals.length === 0 ? (
+              <p class={`${HINT_STYLE} mt-2`}>No goals yet. Add them below; until then the BrewberryPi app lists this recipe but can't brew it.</p>
+            ) : (
+              <ol
+                ref={list}
+                class="mt-2 divide-y divide-line rounded-lg ring-1 ring-line dark:divide-white/10 dark:ring-white/10"
+              >
+                {goals.map((goal, i) => (
+                  <GoalEditor
+                    key={`${doc.key}-${i}`}
+                    goal={goal}
+                    index={i}
+                    count={goals.length}
+                    problems={problems}
+                    open={open === i}
+                    onToggle={() => setOpen(open === i ? undefined : i)}
+                    onChange={(g) => setGoals(goals.map((x, j) => (j === i ? g : x)))}
+                    onDragStart={(e) => startDrag(i, e)}
+                    onMoveKey={(delta) => {
+                      const to = i + delta;
+                      if (to >= 0 && to < goals.length) {
+                        moveGoal(i, to);
+                        setFocusHandle(to);
+                      }
+                    }}
+                    dragging={drag?.from === i}
+                    dropLine={dropLine(i)}
+                    onRemove={() => {
+                      setGoals(goals.filter((_, j) => j !== i));
+                      if (open !== undefined && open >= i) {
+                        setOpen(open === i ? undefined : open - 1);
+                      }
+                    }}
+                  />
+                ))}
+              </ol>
+            )}
+            <div class="mt-3">
+              <button type="button" class={BUTTON_STYLES.secondary} onClick={() => setAdding(true)}>
+                + Add goal
+              </button>
+            </div>
+            {adding && (
+              <GoalTypeDialog
+                title="Add a goal"
+                onCancel={() => setAdding(false)}
+                onChoose={(type) => {
+                  setAdding(false);
+                  setGoals([...goals, newGoal(type)]);
+                  setOpen(goals.length);
                 }}
               />
-            ))}
-          </ol>
-        )}
-        <div class="mt-3">
-          <button type="button" class={BUTTON_STYLES.secondary} onClick={() => setAdding(true)}>
-            + Add goal
-          </button>
-        </div>
-        {adding && (
-          <GoalTypeDialog
-            title="Add a goal"
-            onCancel={() => setAdding(false)}
-            onChoose={(type) => {
-              setAdding(false);
-              setGoals([...goals, newGoal(type)]);
-              setOpen(goals.length);
-            }}
-          />
+            )}
+          </>
         )}
       </Tabs>
 
@@ -249,7 +279,14 @@ export function RecipeEditor(props: { doc: Doc; onChange: (recipe: Recipe) => vo
             {doc.notice} Download or save it to write the file in the current format.
           </p>
         )}
-        <ProblemList doc={doc} onGoal={(index) => setOpen(index, true)} />
+        <ProblemList
+          doc={doc}
+          onGoal={(index) => {
+            setTab("mash");
+            setOpen(index, true);
+          }}
+          onMashing={() => setTab("mashing")}
+        />
       </div>
       {props.actions && <div class="mt-4 flex flex-wrap gap-2">{props.actions}</div>}
     </section>

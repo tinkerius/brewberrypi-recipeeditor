@@ -7,17 +7,18 @@ a release that changes sign-in or Drive behaviour.
 ## 9.1 Recipe files
 
 - `ACC-001` (FMT-004) For each case of a list of valid and invalid recipes (every goal type, missing and wrong
-  fields, out-of-range values, Rest with only a name, unknown keys, old format, versions 0, 1, 2, 3, `"1"`), the
-  editor's validation and the app's schema agree on valid / not valid; the editor names the goal and field.
+  fields, out-of-range values, Rest with only a name, unknown keys, old format, versions 0, 1, 2, 3, 4, `"1"`,
+  mashing plans valid and invalid as in `FMT-004`), the editor's validation and the app's schema agree on valid /
+  not valid; the editor names the goal and field.
 - `ACC-002` (FMT-002) File names `BENIWEISS`, `WaterBoil`, `my-recipe_2` are accepted; ``, `with space`, `umlaut-ä`,
   `dot.json`, `../x` are refused.
 - `ACC-003` (FMT-006) Each shipped recipe written by the editor equals its file without the `$schema` line; any
   recipe written and read again is the same; an empty recipe is written as `version`, `name`, `mashing_process`.
-- `ACC-004` (FMT-003) A file without `version` or with `"version": 1` is read as version 2 with the same content,
-  without a notice.
+- `ACC-004` (FMT-003) A file without `version` or with `"version": 1` or `2` is read as version 3 with the same
+  content, without a notice.
 - `ACC-005` (FMT-003) A file with `goals` at the top level is read with the goals in `mashing_process`, with a notice
   saying so, and is valid.
-- `ACC-006` (FMT-003) A file with `"version": 3` cannot be opened; the message names format version 3.
+- `ACC-006` (FMT-003) A file with `"version": 4` cannot be opened; the message names format version 4.
 - `ACC-007` (FMT-005) A file with an `id` field and a goal field the type does not take is opened with both kept and
   both reported as problems.
 - `ACC-008` (FMT-007) The samples are exactly `BENIWEISS` and `WaterBoil`, and both are valid.
@@ -66,8 +67,8 @@ a release that changes sign-in or Drive behaviour.
   it.
 - `ACC-047` (QE-27, GUI-001, GUI-004) The top bar shows "BrewberryPi" as a link to https://brewberrypi.org/, "Recipe
   Editor" and Cloud Sync; the footer links to brewberrypi.org, the privacy policy, the terms and the source code.
-- `ACC-048` (QE-28, GUI-032) Below the recipe's title is a tab list with one tab, **Mash Process**, selected; its
-  panel holds the goals and + Add goal; the problems are below the panel, not in it.
+- `ACC-048` (QE-28, GUI-032) Below the recipe's title is a tab list with the tabs **Mash Process**, selected, and
+  **Mashing**; the Mash Process panel holds the goals and + Add goal; the problems are below the panel, not in it.
 - `ACC-049` (QE-29, GUI-024, NFR-002) "Hide sidebar" collapses the recipe list to a strip with "Show sidebar" and
   New recipe, the recipe stays shown, and the browser remembers it (also after the page is shown again); with a
   recipe not downloaded, the strip shows "1 recipe not downloaded". Ctrl+B expands it again and the browser forgets
@@ -85,6 +86,19 @@ a release that changes sign-in or Drive behaviour.
   a later sign-in (the folders exist) adds nothing.
 - `ACC-019` (GUI-020) The list is titled "My Recipes"; "New recipe" and "Upload recipe" come after the recipes;
   there is no "New from a sample recipe".
+- `ACC-058` (QE-32, EDT-030, EDT-031, GUI-032) The Mashing tab lists the 9 rests of `EDT-031` in its order, each
+  with its name, typical range and duration, an unticked check box (for a recipe without `mashing`) and **About this
+  rest** with its texts; the goals are not shown in it.
+- `ACC-059` (EDT-032, EDT-034, FMT-006) Ticking Mash-out and then Maltose rest plans them with 78 °C, 10 min and
+  63 °C, 45 min; the recipe is complete, and the written file has `"mashing"` after `"mashing_process"` with
+  `MaltoseRest` before `MashOut`, one rest per line, and reads back the same. Changing the Maltose rest's fields
+  changes the plan; unticking both rests removes `mashing` from the recipe.
+- `ACC-060` (EDT-033) A Maltose rest at 70 °C shows a warning naming its typical range "60–65 °C, typ. ~63 °C"; the
+  recipe stays complete and can be downloaded. At 60 °C and 65 °C there is no warning.
+- `ACC-061` (EDT-035, FMT-004) A planned Maltose rest whose temperature is cleared is reported as "Mashing, Maltose
+  rest: The Maltose rest needs a temperature." and its field is marked; clicking "Mashing, Maltose rest" from the
+  Mash Process tab opens the Mashing tab. A file with an unknown rest in `mashing` is opened with it kept and
+  reported.
 
 ## 9.3 Browser drafts
 

@@ -100,6 +100,27 @@ a release that changes sign-in or Drive behaviour.
   rest: The Maltose rest needs a temperature." and its field is marked; clicking "Mashing, Maltose rest" from the
   Mash Process tab opens the Mashing tab. A file with an unknown rest in `mashing` is opened with it kept and
   reported.
+- `ACC-062` (QE-33, EDT-036) The rest data holds every rest once, with its typical temperature inside its range and
+  not above 78 °C, presets inside the typical duration, enzymes, effect and texts; sorted by typical temperature
+  the rests are 35, 35, 40, 45, 52, 63, 67, 72, 78 °C (pre-mash before acid rest); rests whose ranges overlap or
+  touch never share a lane; labels spread by the ladder keep their gap and stay inside the chart.
+- `ACC-063` (EDT-039) Pre-mash 35 °C 15 min → Maltose rest 63 °C 45 min → Saccharification rest 72 °C 30 min →
+  Mash-out 78 °C 5 min at 1 °C/min gives the step profile 0/35, 15/35, 43/63, 88/63, 97/72, 127/72, 133/78,
+  138/78 (minute/°C): 95 min of rests, 43 min heating, 138 min in total, and no warnings; at 2 °C/min the heating
+  takes 21.5 min. A start temperature of 20 °C before a maltose rest adds 43 min. A plan's steps are taken in table
+  order, without rests whose values are not valid numbers.
+- `ACC-064` (EDT-038) Warnings for: Maltose rest 66 °C then Saccharification rest 64 °C (lower than the step
+  before); Mash-out at 80 °C (above 78 °C); Protein rest and Maltose rest only (no conversion); Maltose rest 90 min
+  and Saccharification rest 10 min (outside their typical durations). None for a Combined rest of 60 min, or a
+  pre-mash of 240 min. The warnings are listed below the ladder and the recipe stays complete.
+- `ACC-065` (EDT-036, EDT-037) The ladder is above the table; it has a band and a label for each of the 9 rests,
+  sorted by typical temperature, each label with its short name, typical temperature and effect, and a tooltip
+  with its enzymes; the acid rest says "(obsolete)"; the limit reads "max 78 °C". Without planned rests it says "No
+  rests planned yet." and "Tick rests below to draw the schedule." Clicking the Protein rest in the ladder opens its
+  texts in the table.
+- `ACC-066` (EDT-039, EDT-040) Planning the steps of `ACC-063` in the table shows "Total mash time 2 h 18 min: 1 h
+  35 min of rests, 43 min heating at 1 °C/min." and the profile; a heating rate of 2 shows "Total mash time 1 h 57
+  min: 1 h 35 min of rests, 22 min heating at 2 °C/min."
 
 ## 9.3 Browser drafts
 

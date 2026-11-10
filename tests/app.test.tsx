@@ -828,6 +828,88 @@ describe("App, the Mashing tab (QE-32)", () => {
     expect(row("MaltoseRest")).not.toBeNull();
   });
 
+  const ladder = () => panel().querySelector<HTMLElement>("[data-mash-ladder]")!;
+  const total = () => ladder().querySelector("[data-mash-total]")!.textContent;
+  const scheduleWarningsShown = () =>
+    [...ladder().querySelectorAll("[data-mash-schedule-warnings] li")].map((li) => li.textContent);
+  async function plan(steps: [string, string, string][]) {
+    for (const [id, temperature, minutes] of steps) {
+      await tick(id);
+      await type(field(id, "Temperature"), temperature);
+      await type(field(id, "Duration"), minutes);
+    }
+  }
+
+  it("ACC-065 shows the ladder above the table: every rest labelled by typical temperature, the 78 °C limit", async () => {
+    await openMashing();
+    const l = ladder();
+    expect(l.compareDocumentPosition(panel().querySelector("table")!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    const rests = [...l.querySelectorAll<SVGGElement>("[data-ladder-rest]")];
+    expect(rests.map((g) => g.dataset.ladderRest)).toEqual([
+      "PreMash",
+      "AcidRest",
+      "BetaGlucanRest",
+      "FerulicAcidRest",
+      "ProteinRest",
+      "MaltoseRest",
+      "CombinedRest",
+      "SaccharificationRest",
+      "MashOut",
+    ]);
+    for (const g of rests) {
+      const info = MASH_RESTS[g.dataset.ladderRest as MashRestId];
+      expect(g.textContent).toContain(`${info.short}`);
+      expect(g.textContent).toContain(`${info.tempTypical} °C`);
+      expect(g.textContent).toContain(info.summary);
+      expect(g.querySelector("title")!.textContent).toContain(`Enzyme`);
+    }
+    expect(l.querySelector("[data-ladder-rest=AcidRest]")!.textContent).toContain("(obsolete)");
+    expect(l.querySelector("[data-ladder-limit]")!.textContent).toBe("max 78 °C");
+    expect(total()).toBe("No rests planned yet.");
+    expect(l.textContent).toContain("Tick rests below to draw the schedule.");
+    expect(l.querySelector("[data-ladder-profile]")).toBeNull();
+  });
+
+  it("ACC-065 clicking a rest in the ladder opens what it does in the table", async () => {
+    await openMashing();
+    await act(async () => {
+      ladder().querySelector<SVGGElement>("[data-ladder-rest=ProteinRest]")!.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    expect(panel().querySelector("[data-mash-about=ProteinRest]")).not.toBeNull();
+    expect(row("ProteinRest").querySelector("button[aria-expanded]")!.getAttribute("aria-expanded")).toBe("true");
+  });
+
+  it("ACC-066 draws the planned schedule with its total time; the heating rate changes the ramps", async () => {
+    await openMashing();
+    await plan([
+      ["PreMash", "35", "15"],
+      ["MaltoseRest", "63", "45"],
+      ["SaccharificationRest", "72", "30"],
+      ["MashOut", "78", "5"],
+    ]);
+    expect(total()).toBe("Total mash time 2 h 18 min: 1 h 35 min of rests, 43 min heating at 1 °C/min.");
+    expect(ladder().querySelectorAll("[data-ladder-profile] polyline")).toHaveLength(1);
+    expect(ladder().querySelector("[data-ladder-profile] polyline")!.getAttribute("points")!.split(" ")).toHaveLength(8);
+    expect(scheduleWarningsShown()).toEqual([]);
+    const rate = [...ladder().querySelectorAll("label")].find((l) => l.textContent?.startsWith("Heating rate"))!.querySelector("input")!;
+    await type(rate, "2");
+    expect(total()).toBe("Total mash time 1 h 57 min: 1 h 35 min of rests, 22 min heating at 2 °C/min.");
+  });
+
+  it("ACC-064 shows the schedule's warnings, and the recipe stays complete", async () => {
+    await openMashing();
+    await plan([
+      ["MaltoseRest", "66", "90"],
+      ["MashOut", "80", "5"],
+    ]);
+    expect(scheduleWarningsShown()).toEqual([
+      "⚠ Maltose rest for 90 min is outside its typical duration (30–60 min).",
+      "⚠ Mash-out at 80 °C is above 78 °C: α-amylase is destroyed and unconverted starch stays in the wort.",
+      "⚠ No Combined rest or Saccharification rest: the starch may not be converted completely.",
+    ]);
+    expect(recipe().textContent).toContain("Complete: BrewberryPi can load this recipe.");
+  });
+
   it("ACC-061 keeps and reports an unknown rest of an opened file", async () => {
     await openMashing({ version: 3, name: "Plan", mashing_process: { goals: [] }, mashing: { MainRest: { temperature: 63, minutes: 45 } } });
     expect(recipe().textContent).toContain('Mashing, MainRest: Unknown rest "MainRest".');

@@ -5,7 +5,7 @@
  * the rest's typical range is a warning, not a problem: the file stays valid.
  */
 
-import { useState } from "preact/hooks";
+import { useRef, useState } from "preact/hooks";
 import type { Problem } from "../validate";
 import {
   MASH_REST_IDS,
@@ -19,6 +19,7 @@ import {
   type Recipe,
 } from "../model";
 import { NumberField } from "./fields";
+import { MashLadder } from "./MashLadder";
 import { HINT_STYLE } from "./styles";
 
 function isObject(value: unknown): value is Record<string, unknown> {
@@ -156,14 +157,23 @@ function RestRows(props: {
 export function MashingTab(props: { recipe: Recipe; problems: Problem[]; onChange: (recipe: Recipe) => void }) {
   const plan = mashingOf(props.recipe);
   const [open, setOpen] = useState<MashRestId>();
+  const table = useRef<HTMLTableElement>(null);
+  /** From the ladder: the rest's details open in the table, and its row comes into view (EDT-037). */
+  const showRest = (id: MashRestId) => {
+    setOpen(id);
+    table.current?.querySelector(`[data-mash-rest=${id}]`)?.scrollIntoView?.({ block: "nearest", behavior: "smooth" });
+  };
   return (
     <>
       <p class={HINT_STYLE}>
         Tick the rests of your mash and set their temperature and duration. The plan is kept in the recipe file; it
         doesn't change the goals of the mash process.
       </p>
-      <div class="mt-2 overflow-x-auto rounded-lg ring-1 ring-line dark:ring-white/10">
-        <table class="w-full border-collapse">
+      <div class="mt-3">
+        <MashLadder plan={plan} selected={open} onSelect={showRest} />
+      </div>
+      <div class="overflow-x-auto rounded-lg ring-1 ring-line dark:ring-white/10">
+        <table ref={table} class="w-full border-collapse">
           <thead class="bg-stone-50 dark:bg-white/5">
             <tr>
               <th class={HEAD}>

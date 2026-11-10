@@ -144,3 +144,56 @@ Applies signed out (drafts, §4) and signed in (Drive recipes, §5) alike, unles
 - `EDT-035` Problems of the plan (`FMT-004`) are listed with the others (`EDT-020`) as "Mashing, <rest>"; clicking
   that opens the Mashing tab, and the field with the problem is marked. Clicking a goal's "Goal n" opens the Mash
   Process tab with that goal open.
+
+## 3.6 Mash temperature ladder (`QE-33`)
+
+- `EDT-036` Above the table of the Mashing tab is the **temperature ladder**, a chart whose y-axis is the mash
+  temperature (°C):
+  - every rest of `EDT-031` is a **band** over its typical temperature range, in its own lane wherever ranges
+    overlap or touch, so no two bands cover each other; its typical temperature is ticked on the band;
+  - beside the bands, a **label** per rest, sorted by typical temperature: its short name, typical temperature and
+    a few words on its effect (`summary` in the rest data); labels are moved apart where they would collide, with a
+    line to their band; an obsolete rest (the acid rest) is greyed and says "(obsolete)"; planned rests are in the
+    brand colour;
+  - the **limit of 78 °C** is a red dashed line with "max 78 °C" (above it α-amylase is destroyed, `EDT-031`
+    Mash-out);
+  - the scale spans every band, the limit and every planned temperature.
+  On narrow screens the schedule (`EDT-039`) is drawn below the ladder, on the same temperature scale, instead of
+  beside it.
+- `EDT-037` A rest's band and label show its name, range, enzymes, effect and when it is useful as a tooltip;
+  clicking one (or Enter on it) opens that rest's texts in the table (`EDT-031`).
+- `EDT-038` The schedule's **warnings** are listed below the ladder; they are warnings, not problems: the recipe
+  stays complete (`FMT-010`). A warning is given for:
+  - a step whose temperature is lower than the step before it (the steps should rise);
+  - a step above 78 °C;
+  - a plan with steps but none that converts the starch (Combined rest or Saccharification rest; flag
+    `conversion`), as the starch may not be converted completely;
+  - a hold outside the rest's typical duration (`durationMin`..`durationMax`; table below).
+- `EDT-039` The **schedule** is the planned rests in the table's order (a rest whose temperature or duration is not a
+  valid number yet is left out until it is), drawn as the temperature profile over time over the bands of the
+  planned rests: it starts at the first step's temperature and heats to each step's temperature at the heating
+  rate, then holds it for the step's minutes. A step lower than the one before is reached at the same rate. The
+  time axis is in minutes. Above the chart: "Total mash time <total>: <holds> of rests, <ramps> heating at <rate>
+  °C/min." (times as "45 min" or "2 h 18 min"); "No rests planned yet." and, in the chart, "Tick rests below to
+  draw the schedule." while there are no steps.
+- `EDT-040` The **heating rate** (°C/min, default 1) is a field next to the total. It is not stored: the recipe
+  file has no place for it, and the editor keeps nothing else in the browser (`NFR-002`); a value that is not a
+  number above 0 counts as 1.
+
+All rest values live in one file, the rest data (`src/mashRests.ts`): names, typical temperature range and
+temperature, typical duration (text and `durationMin`/`durationMax`), presets, enzymes, effect, when useful and the
+flags `obsolete`, `optional`, `always` and `conversion`; neither the table, the ladder nor the warnings write a
+temperature of their own. The ladder's labels and the typical durations of `EDT-038`:
+
+| Rest | Label (effect) | Typical duration (min) | Flags |
+|---|---|---|---|
+| Pre-mash | hydration | 15– (no upper limit: cold, up to several hours) | optional |
+| Acid rest | phytase, lowers pH | 30–120 | obsolete |
+| Beta-glucan rest | β-glucanase, viscosity | 15–20 | optional |
+| Ferulic acid rest | clove precursor, POF+ yeast | 15–20 | optional |
+| Protein rest | proteinases / peptidases | 10–20 | optional |
+| Maltose rest | β-amylase → maltose, attenuation | 30–60 | optional |
+| Combined rest | β + α, single infusion | 60 | optional, conversion |
+| Saccharification rest | α-amylase → dextrins, body | 20–40 | optional, conversion |
+| Mash-out | enzyme stop, lautering aid | 5–10 | always |
+

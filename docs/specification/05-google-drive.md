@@ -25,7 +25,8 @@ never "Drive" alone.
 ## 5.2 Recipes in Drive
 
 - `DRV-005` The list shows the `.json` files in `BrewberryPi/recipes` that the editor may see (`DRV-002`), not
-  trashed. A recipe's content is read when it is first opened.
+  trashed. After the list is read, the editor reads the recipes' content in the background, a few at a time, so the
+  list shows their names (`QE-31`); until then a recipe shows its file name.
 - `DRV-006` Saving is explicit (**Save to Google Drive**), only for complete recipes with pending changes (`FMT-010`). A new
   recipe is created as `<id>.json`; a file name already used in the folder is refused with a message.
   **Discard changes** (`QE-25`) is its counterpart: for a recipe already saved in Drive with pending changes it asks

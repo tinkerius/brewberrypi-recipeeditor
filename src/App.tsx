@@ -8,7 +8,7 @@ import { GoogleAuth, SignInError, TOKEN_KEY, rememberHint } from "./auth/google"
 import { googleConfigured, pickerConfigured } from "./config";
 import { fingerprint, freeId, hasPendingChanges, newDoc, problemsOf, type Doc } from "./doc";
 import { pickRecipeFiles } from "./drive/picker";
-import { CHANGE_POLL_MS, FULL_SYNC_MS, driveDoc, mergeDriveList } from "./driveSync";
+import { CHANGE_POLL_MS, FULL_SYNC_MS, driveDoc, inPool, mergeDriveList } from "./driveSync";
 import { downloadRecipe, readRecipeFile } from "./file";
 import { emptyRecipe, readRecipe, type Recipe } from "./model";
 import { firstSample } from "./samples";
@@ -515,6 +515,11 @@ export function App(props: { openDrafts?: () => Promise<DraftStore>; auth?: Goog
       for (const key of toLoad) {
         await loadDoc(key, background);
       }
+      // DRV-005, QE-31: read the other recipes too, a few at a time, so the list shows their names; once read, a
+      // change in Drive puts them into merge.reload, so their rows follow it whether they are open or not. Not
+      // awaited: sign-in and the "Loading…" overlay don't wait for them.
+      const unread = docsRef.current.filter((d) => d.fileId && !d.loaded && !toLoad.has(d.key)).map((d) => d.key);
+      void inPool(unread, 3, (key) => loadDoc(key, true));
     } catch (e) {
       if (!background) {
         throw e;

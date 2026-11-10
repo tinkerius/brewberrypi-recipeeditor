@@ -152,8 +152,9 @@ Applies signed out (drafts, §4) and signed in (Drive recipes, §5) alike, unles
 - `EDT-036` Above the table of the Mashing tab is the **temperature ladder**, a chart whose y-axis is the mash
   temperature (°C):
   - every rest of `EDT-031` is a **band** over its typical temperature range, in its own lane wherever ranges
-    overlap or touch, so no two bands cover each other; its typical temperature is ticked on the band;
-  - beside the bands, a **label** per rest, sorted by typical temperature: its short name and typical temperature
+    overlap or touch, so no two bands cover each other; its temperature is ticked on the band: the planned
+    temperature when the rest is planned (with a valid number), else the typical one;
+  - beside the bands, a **label** per rest, sorted by typical temperature: its short name and the same temperature as its tick
     (one line; what the rest does is in its tooltip, `EDT-037`); labels are moved apart where they would collide,
     with a line to their band; an obsolete rest (the acid rest) is greyed and says "(obsolete)"; planned rests are in the
     brand colour;

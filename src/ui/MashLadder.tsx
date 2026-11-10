@@ -1,7 +1,8 @@
 /**
  * The mash temperature ladder (EDT-036..040, QE-33), above the Mashing table: the y-axis is the mash temperature.
  * At the left, every rest is a band over its typical temperature range in its own lane (overlapping ranges never
- * share one), its typical temperature ticked and its label beside it (labels are spread so they never collide).
+ * share one), its temperature ticked (the planned one when planned, else the typical) and its label beside it
+ * (labels are spread so they never collide).
  * At the right, the planned rests are drawn as the temperature profile over time: heating ramps at the heating
  * rate and the holds, over the bands of the planned rests, so it shows which enzymes work when. The limit of
  * 78 °C is a red line. Every value comes from `mashRests.ts` and the plan.
@@ -18,6 +19,7 @@ import {
   scheduleWarnings,
   spreadLabels,
   stepsOf,
+  type MashStep,
 } from "../mashSchedule";
 import { NumberField } from "./fields";
 import { HINT_STYLE } from "./styles";
@@ -36,9 +38,17 @@ export function formatMinutes(minutes: number): string {
   return m >= 60 ? `${Math.floor(m / 60)} h${m % 60 ? ` ${m % 60} min` : ""}` : `${m} min`;
 }
 
-function tooltip(id: MashRestId): string {
+function tooltip(id: MashRestId, step?: MashStep): string {
   const info = MASH_RESTS[id];
-  return [`${info.label}: ${info.range}`, ...info.about.map(([term, text]) => `${term}: ${text}`)].join("\n");
+  return [
+    `${info.label}: ${info.range}`,
+    ...(step ? [plannedText(step)] : []),
+    ...info.about.map(([term, text]) => `${term}: ${text}`),
+  ].join("\n");
+}
+
+function plannedText(step: MashStep): string {
+  return `Planned: ${step.targetTemp} °C for ${formatMinutes(step.holdMinutes)}`;
 }
 
 function useWidth() {
@@ -64,6 +74,9 @@ export function MashLadder(props: { plan: Record<string, unknown>; selected?: Ma
   const profile = mashProfile(steps, rate);
   const warnings = scheduleWarnings(steps);
   const planned = new Set(steps.map((s) => s.restId));
+  const stepOf = new Map(steps.map((s) => [s.restId, s]));
+  /** The temperature a rest shows in the ladder: the planned one when it is planned, else the typical (EDT-036). */
+  const shown = (id: MashRestId) => stepOf.get(id)?.targetTemp ?? MASH_RESTS[id].tempTypical;
 
   // Temperature scale: every band, the limit and every step fit, in 5 °C steps.
   const temps = [
@@ -89,7 +102,7 @@ export function MashLadder(props: { plan: Record<string, unknown>; selected?: Ma
 
   const order = restsByTypical();
   const labelY = spreadLabels(
-    order.map((id) => y(MASH_RESTS[id].tempTypical)),
+    order.map((id) => y(shown(id))),
     15,
     TOP + 4,
     HEIGHT - BOTTOM - 4,
@@ -130,7 +143,8 @@ export function MashLadder(props: { plan: Record<string, unknown>; selected?: Ma
           {order.map((id, k) => {
             const info = MASH_RESTS[id];
             const bx = railX + lanes[id] * LANE;
-            const ty = y(info.tempTypical);
+            const step = stepOf.get(id);
+            const ty = y(shown(id));
             const ly = labelY[k];
             const isPlanned = planned.has(id);
             const isSelected = props.selected === id;
@@ -141,7 +155,7 @@ export function MashLadder(props: { plan: Record<string, unknown>; selected?: Ma
                 data-ladder-rest={id}
                 role="button"
                 tabIndex={0}
-                aria-label={`${info.label}, ${info.range}: about this rest`}
+                aria-label={`${info.label}, ${info.range}${step ? `, ${plannedText(step).toLowerCase()}` : ""}: about this rest`}
                 aria-pressed={isSelected}
                 class="cursor-pointer focus:outline-none [&:focus-visible_.ladder-name]:underline"
                 onClick={() => props.onSelect(id)}
@@ -152,7 +166,7 @@ export function MashLadder(props: { plan: Record<string, unknown>; selected?: Ma
                   }
                 }}
               >
-                <title>{tooltip(id)}</title>
+                <title>{tooltip(id, step)}</title>
                 <rect
                   x={bx}
                   y={y(info.tempMax)}
@@ -162,7 +176,7 @@ export function MashLadder(props: { plan: Record<string, unknown>; selected?: Ma
                   class={isPlanned ? "fill-berry dark:fill-berry-light" : "fill-stone-400 dark:fill-stone-500"}
                   opacity={obsolete ? 0.35 : 0.85}
                 />
-                <line x1={bx - 2} x2={bx + LANE} y1={ty} y2={ty} stroke-width={2} class="stroke-ink dark:stroke-ink-light" />
+                <line data-ladder-tick x1={bx - 2} x2={bx + LANE} y1={ty} y2={ty} stroke-width={2} class="stroke-ink dark:stroke-ink-light" />
                 <path
                   d={`M ${railX + railW + 2} ${ty} L ${labelX - 4} ${ly}`}
                   fill="none"
@@ -179,7 +193,7 @@ export function MashLadder(props: { plan: Record<string, unknown>; selected?: Ma
                 >
                   {info.short}
                   {obsolete ? " (obsolete)" : ""}
-                  <tspan class="font-normal fill-stone-500 dark:fill-stone-400"> {info.tempTypical} °C</tspan>
+                  <tspan class="font-normal fill-stone-500 dark:fill-stone-400"> {shown(id)} °C</tspan>
                 </text>
               </g>
             );

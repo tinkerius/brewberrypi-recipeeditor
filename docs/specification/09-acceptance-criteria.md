@@ -116,7 +116,8 @@ a release that changes sign-in or Drive behaviour.
   pre-mash of 240 min. The warnings are listed below the ladder and the recipe stays complete.
 - `ACC-065` (EDT-036, EDT-037) The ladder is above the table; it has a band and a label for each of the 9 rests,
   sorted by typical temperature, each label with its short name and typical temperature only (no effect), and
-  a tooltip with its enzymes; the acid rest says "(obsolete)"; the limit reads "max 78 °C". Without planned rests it says "No
+  a tooltip with its enzymes; the acid rest says "(obsolete)"; the limit reads "max 78 °C". Planning the pre-mash at 30 °C shows "Pre-mash 30 °C" with its tick
+  at 30 °C and "Planned: 30 °C for 20 min" in its tooltip; unticking it shows "Pre-mash 25 °C" again. Without planned rests it says "No
   rests planned yet." and "Tick rests below to draw the schedule." Clicking the Protein rest in the ladder opens its
   texts in the table.
 - `ACC-066` (EDT-039, EDT-040) Planning the steps of `ACC-063` in the table shows "Total mash time 2 h 18 min: 1 h

@@ -893,6 +893,21 @@ describe("App, the Mashing tab (QE-32)", () => {
     expect(row("ProteinRest").querySelector("button[aria-expanded]")!.getAttribute("aria-expanded")).toBe("true");
   });
 
+  it("ACC-065 a planned rest's label and tick show its planned temperature", async () => {
+    await openMashing();
+    const preMash = () => ladder().querySelector<SVGGElement>("[data-ladder-rest=PreMash]")!;
+    expect(preMash().querySelector("text")!.textContent).toBe("Pre-mash 25 °C");
+    await plan([["PreMash", "30", "20"]]);
+    expect(preMash().querySelector("text")!.textContent).toBe("Pre-mash 30 °C");
+    expect(preMash().querySelector("title")!.textContent).toContain("Planned: 30 °C for 20 min");
+    // The tick sits where the profile holds 30 °C.
+    const hold = ladder().querySelector("[data-ladder-profile] line[stroke=transparent]")!;
+    expect(preMash().querySelector("[data-ladder-tick]")!.getAttribute("y1")).toBe(hold.getAttribute("y1"));
+    await tick("PreMash");
+    expect(preMash().querySelector("text")!.textContent).toBe("Pre-mash 25 °C");
+    expect(preMash().querySelector("title")!.textContent).not.toContain("Planned");
+  });
+
   it("ACC-066 draws the planned schedule with its total time; the heating rate changes the ramps", async () => {
     await openMashing();
     await plan([

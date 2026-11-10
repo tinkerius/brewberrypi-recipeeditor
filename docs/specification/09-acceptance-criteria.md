@@ -68,7 +68,7 @@ a release that changes sign-in or Drive behaviour.
 - `ACC-047` (QE-27, GUI-001, GUI-004) The top bar shows "BrewberryPi" as a link to https://brewberrypi.org/, "Recipe
   Editor" and Cloud Sync; the footer links to brewberrypi.org, the privacy policy, the terms and the source code.
 - `ACC-048` (QE-28, QE-34, GUI-032) Below the recipe's title is a tab list with the tabs **Ingredients**,
-  **Mashing** and **Mash Process**, in this order, Ingredients selected (it shows the malt table); the Mash Process panel holds the goals and + Add goal; the problems are below the panel, not in it.
+  **Mashing** and **Mash Process**, in this order, Ingredients selected (it shows the malt table); the Mash Process panel holds the goals and, as the list's last row, + Add goal; the problems are below the panel, not in it.
 - `ACC-049` (QE-29, GUI-024, NFR-002) "Hide sidebar" collapses the recipe list to a strip with "Show sidebar" and
   New recipe, the recipe stays shown, and the browser remembers it (also after the page is shown again); with a
   recipe not downloaded, the strip shows "1 recipe not downloaded". Ctrl+B expands it again and the browser forgets
@@ -124,8 +124,8 @@ a release that changes sign-in or Drive behaviour.
   35 min of rests, 43 min heating at 1 °C/min." and the profile; a heating rate of 2 shows "Total mash time 1 h 57
   min: 1 h 35 min of rests, 22 min heating at 2 °C/min."
 - `ACC-067` (QE-34, EDT-041, EDT-042) The Ingredients tab has the sections Malt and Hops, each a table with Name, g,
-  % and a Total line, saying "No malt yet." / "No hop yet." for a recipe without `ingredients`. + Add malt adds
-  an empty row whose name field has the focus; ✕ removes a row; removing the last row of both tables removes
+  % and a Total line, saying "No malt yet." / "No hop yet." for a recipe without `ingredients`; + Add malt / + Add
+  hop is the table's last row before the Total line, and adds an empty row above it whose name field has the focus; ✕ removes a row; removing the last row of both tables removes
   `ingredients` from the recipe.
 - `ACC-068` (EDT-043) Malts Pilsner malt 4500 g and Munich malt 500 g show 90 % and 10 % and the total 5000 g, 100 %;
   three hops of 10 g each show 33.3 % each and 30 g; a row without an amount shows "–" and doesn't count.
@@ -136,6 +136,9 @@ a release that changes sign-in or Drive behaviour.
 - `ACC-070` (FMT-006, EDT-042) Two malts and a hop are written as `"ingredients"` after `"mashing"` (or after
   `"mashing_process"`), `malts` before `hops`, one entry per line in the brewer's order
   (`{ "name": "Pilsner malt", "grams": 4500 }`), without shares; the file reads back the same.
+- `ACC-071` (EDT-046) Malts Pilsner malt, Munich malt, Caramunich: dragging the first handle below the third shows a
+  drop line and gives Munich malt, Caramunich, Pilsner malt, with the shares moved along; ArrowUp on the third handle
+  moves Pilsner malt up one, its handle keeping the focus; the file has the new order.
 
 ## 9.3 Browser drafts
 

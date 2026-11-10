@@ -1,10 +1,10 @@
 /**
  * The Ingredients tab (EDT-041..045, QE-34): the malts and the hops of the brew, each a table the brewer adds rows
- * to. A row is a name and an amount in whole grams; its share of the table's total weight is computed (not stored,
- * app RCP-013), and the last line sums the weight.
+ * to with its "+ Add" row, below the entries. A row is a name and an amount in whole grams; its share of the table's
+ * total weight is computed (not stored, app RCP-013), and the last line sums the weight.
  */
 
-import { useEffect, useRef, useState } from "preact/hooks";
+import { useEffect, useState } from "preact/hooks";
 import type { Problem } from "../validate";
 import {
   INGREDIENT_KINDS,
@@ -18,12 +18,16 @@ import {
   type IngredientKind,
   type Recipe,
 } from "../model";
+import { ADD_ROW_LINE, AddRowButton } from "./AddRow";
+import { DragHandle, DropLine } from "./DragHandle";
+import { moveItem } from "./reorder";
+import { useReorder } from "./useReorder";
 import { NumberField, TextField } from "./fields";
 import { BUTTON_STYLES, HINT_STYLE, SECTION_TITLE_STYLE } from "./styles";
 
 const CELL = "px-1 py-2 align-middle first:pl-2 last:pr-2 sm:px-2 sm:first:pl-3 sm:last:pr-3";
 const HEAD = `${CELL} text-[11px] font-semibold text-stone-600 sm:text-xs dark:text-stone-300`;
-const NUMBER = "text-right tabular-nums";
+const NUMBER = "whitespace-nowrap text-right tabular-nums";
 
 function IngredientTable(props: { kind: IngredientKind; recipe: Recipe; problems: Problem[]; onChange: (recipe: Recipe) => void }) {
   const { kind } = props;
@@ -32,7 +36,9 @@ function IngredientTable(props: { kind: IngredientKind; recipe: Recipe; problems
   const total = totalGrams(list);
   const set = (next: Ingredient[]) => props.onChange(withIngredients(props.recipe, kind, next));
   const invalid = (i: number, field: string) => props.problems.some((p) => p.path === `ingredients.${kind}[${i}].${field}`);
-  const body = useRef<HTMLTableSectionElement>(null);
+  // Drag and drop with the handle, or the arrow keys on it (EDT-046), like the goals.
+  const reorder = useReorder<HTMLTableSectionElement>(list.length, (from, to) => set(moveItem(list, from, to)));
+  const body = reorder.container;
   // A new row's name field gets the focus (EDT-042).
   const [focusRow, setFocusRow] = useState<number>();
   useEffect(() => {
@@ -51,9 +57,12 @@ function IngredientTable(props: { kind: IngredientKind; recipe: Recipe; problems
         <table aria-labelledby={heading} class="w-full border-collapse text-sm">
           <thead class="bg-stone-50 dark:bg-white/5">
             <tr>
+              <th class={`${HEAD} w-8`}>
+                <span class="sr-only">Move</span>
+              </th>
               <th class={`${HEAD} text-left`}>Name</th>
-              <th class={`${HEAD} w-20 text-right sm:w-28`}>g</th>
-              <th class={`${HEAD} w-16 text-right sm:w-20`}>%</th>
+              <th class={`${HEAD} w-16 text-right sm:w-28`}>g</th>
+              <th class={`${HEAD} w-12 text-right sm:w-20`}>%</th>
               <th class={`${HEAD} w-10`}>
                 <span class="sr-only">Remove</span>
               </th>
@@ -62,7 +71,7 @@ function IngredientTable(props: { kind: IngredientKind; recipe: Recipe; problems
           <tbody ref={body}>
             {list.length === 0 ? (
               <tr class="border-t border-line dark:border-white/10">
-                <td colSpan={4} class={`${CELL} ${HINT_STYLE}`}>
+                <td colSpan={5} class={`${CELL} ${HINT_STYLE}`}>
                   No {one.toLowerCase()} yet.
                 </td>
               </tr>
@@ -70,7 +79,24 @@ function IngredientTable(props: { kind: IngredientKind; recipe: Recipe; problems
               list.map((entry, i) => {
                 const share = shareOf(entry, list);
                 return (
-                  <tr key={i} class="border-t border-line dark:border-white/10" data-ingredient={i}>
+                  <tr
+                    key={i}
+                    class={
+                      "relative border-t border-line dark:border-white/10 " +
+                      (reorder.dragging(i) ? "bg-berry/10 opacity-60 dark:bg-berry-light/10" : "")
+                    }
+                    data-ingredient={i}
+                  >
+                    <td class={`${CELL} pr-0!`}>
+                      {reorder.dropLine(i) && <DropLine at={reorder.dropLine(i)!} />}
+                      <DragHandle
+                        label={`Move ${one.toLowerCase()} ${i + 1}`}
+                        title={`Drag to move the ${one.toLowerCase()} (or use the arrow keys)`}
+                        count={list.length}
+                        onDragStart={(e) => reorder.startDrag(i, e)}
+                        onMoveKey={(delta) => reorder.moveKey(i, delta)}
+                      />
+                    </td>
                     <td class={CELL} data-ingredient-name>
                       <TextField
                         label={`Name, ${one} ${i + 1}`}
@@ -108,9 +134,21 @@ function IngredientTable(props: { kind: IngredientKind; recipe: Recipe; problems
                 );
               })
             )}
+            <tr class={ADD_ROW_LINE}>
+              <td colSpan={5} class="p-0">
+                <AddRowButton
+                  label={`Add ${one.toLowerCase()}`}
+                  onClick={() => {
+                    set([...list, { name: "" }]);
+                    setFocusRow(list.length);
+                  }}
+                />
+              </td>
+            </tr>
           </tbody>
           <tfoot class="border-t-2 border-line font-semibold text-ink dark:border-white/20 dark:text-ink-light">
             <tr data-ingredient-total>
+              <td class={CELL} />
               <td class={CELL}>Total</td>
               <td class={`${CELL} ${NUMBER}`}>{total} g</td>
               <td class={`${CELL} ${NUMBER}`}>{total > 0 ? "100 %" : ""}</td>
@@ -118,18 +156,6 @@ function IngredientTable(props: { kind: IngredientKind; recipe: Recipe; problems
             </tr>
           </tfoot>
         </table>
-      </div>
-      <div class="mt-3">
-        <button
-          type="button"
-          class={BUTTON_STYLES.secondary}
-          onClick={() => {
-            set([...list, { name: "" }]);
-            setFocusRow(list.length);
-          }}
-        >
-          + Add {one.toLowerCase()}
-        </button>
       </div>
     </section>
   );

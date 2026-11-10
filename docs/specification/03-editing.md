@@ -53,7 +53,8 @@ Applies signed out (drafts, §4) and signed in (Drive recipes, §5) alike, unles
   closes it): the one-line explanation of its type, the pencil to change the type (`EDT-014`), and the fields its
   type takes (app `RCP` §7.3 table): temperature, minutes, and for Rest optionally both name and description (one
   switch adds or removes both); CookWater always has name and description. A goal added with **+ Add goal** opens.
-- `EDT-012` **+ Add goal** asks for the type first (`EDT-017`) and adds a goal of that type at the end. Goals can be
+- `EDT-012` **+ Add goal**, the last row of the goal list (an add row: the full width, in the brand colour, below a
+  dashed line; `QE-34`), asks for the type first (`EDT-017`) and adds a goal of that type at the end. Goals can be
   removed, and reordered by **drag and drop**
   (`QE-20`): each goal has a drag handle; dragging it with the mouse or a finger moves the goal, a line shows where it
   will be dropped, and releasing puts it there. With the keyboard, the arrow keys on the focused handle move the goal
@@ -206,9 +207,10 @@ temperature of their own. The typical durations of `EDT-038` and the flags:
 - `EDT-041` The tab **Ingredients** (`GUI-032`) holds the brew's ingredients (app `RCP-013`) in two sections, each
   with its heading and a table: **Malt** and **Hops**. Like the mashing plan, they are design information for the
   brewer; they do not change the goals, and the app does not use them.
-- `EDT-042` A table has the columns **Name**, **g** (the amount in grams, a whole number) and **%**, and a button
-  ✕ ("Remove malt" / "Remove hop") per row. Below the table, **+ Add malt** (or **+ Add hop**) adds an empty row at
-  the end, whose name field gets the focus. The rows keep the brewer's order. ✕ removes the row. An empty table
+- `EDT-042` A table has a drag handle, the columns **Name**, **g** (the amount in grams, a whole number) and **%**,
+  and a button ✕ ("Remove malt" / "Remove hop") per row. After the last row and before the Total line, an add row
+  like the goal list's (`EDT-012`), **+ Add malt** (or **+ Add hop**), adds an empty row at the end, whose name field
+  gets the focus. The rows keep the brewer's order. ✕ removes the row. An empty table
   says "No malt yet." / "No hop yet."; a table without rows is left out of the file, and `ingredients` too when both
   are empty.
 - `EDT-043` The **%** column is a row's share of its table's total weight (a hop's of all hops), rounded to one
@@ -219,3 +221,6 @@ temperature of their own. The typical durations of `EDT-038` and the flags:
   be saved or downloaded; the field with the problem is marked. The same name may appear twice.
 - `EDT-045` Problems of the ingredients are listed with the others (`EDT-020`) as "Ingredients, Malt n" or
   "Ingredients, Hop n"; clicking that opens the Ingredients tab.
+- `EDT-046` The rows of each table are reordered like the goals (`EDT-012`): by dragging the handle, with a line
+  where the row will be dropped, or with the arrow keys on the focused handle (the handle keeps the focus). The
+  shares move with their rows; the file keeps the new order.

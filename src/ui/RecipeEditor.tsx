@@ -5,13 +5,15 @@ import { useEffect, useRef, useState } from "preact/hooks";
 import { problemsOf, type Doc } from "../doc";
 import { INGREDIENT_LABELS, MASH_RESTS, goalsOf, isMashRestId, newGoal, withGoals, type Goal, type Recipe } from "../model";
 import { GOALS_PATH, INGREDIENTS_PATH, MASHING_PATH } from "../validate";
+import { ADD_ROW_LINE, AddRowButton } from "./AddRow";
 import { GoalEditor } from "./GoalEditor";
 import { GoalTypeDialog } from "./GoalTypeDialog";
 import { IngredientsTab } from "./IngredientsTab";
 import { MashingTab } from "./MashingTab";
 import { RecipeTitle } from "./RecipeTitle";
 import { Tabs } from "./Tabs";
-import { dropSlot, moveItem, targetIndex } from "./reorder";
+import { moveItem } from "./reorder";
+import { useReorder } from "./useReorder";
 import { BUTTON_STYLES, CARD_STYLE, HINT_STYLE, LINK_STYLE } from "./styles";
 
 const PATH_LABELS: Record<string, string> = {
@@ -134,9 +136,6 @@ export function RecipeEditor(props: { doc: Doc; onChange: (recipe: Recipe) => vo
   const setGoals = (goals: Goal[]) => setRecipe(withGoals(doc.recipe, goals));
   const goals = goalsOf(doc.recipe);
   const has = (path: string) => problems.some((p) => p.path === path);
-  const list = useRef<HTMLOListElement>(null);
-  const [drag, setDrag] = useState<{ from: number; slot: number }>();
-  const [focusHandle, setFocusHandle] = useState<number>();
   // The open goal (EDT-011, one at a time), for this recipe only.
   const [opened, setOpened] = useState<{ key: string; index: number; focus?: boolean }>();
   const open = opened?.key === doc.key ? opened.index : undefined;
@@ -159,60 +158,8 @@ export function RecipeEditor(props: { doc: Doc; onChange: (recipe: Recipe) => vo
     }
   }, [opened]);
 
-  // Keyboard reordering: the moved goal's handle keeps the focus.
-  useEffect(() => {
-    if (focusHandle !== undefined) {
-      list.current?.children[focusHandle]?.querySelector<HTMLButtonElement>("[data-drag-handle]")?.focus();
-      setFocusHandle(undefined);
-    }
-  }, [focusHandle]);
-
-  /** Drag and drop with the handle (EDT-012): pointer events, so mouse, pen and touch all work. */
-  const startDrag = (from: number, event: PointerEvent) => {
-    event.preventDefault();
-    const handle = event.currentTarget as HTMLElement;
-    handle.setPointerCapture?.(event.pointerId);
-    const midpoints = () =>
-      [...(list.current?.children ?? [])].map((item) => {
-        const r = item.getBoundingClientRect();
-        return r.top + r.height / 2;
-      });
-    setDrag({ from, slot: from });
-    const move = (e: PointerEvent) => {
-      if (e.clientY < 60) {
-        window.scrollBy(0, -16);
-      } else if (e.clientY > window.innerHeight - 60) {
-        window.scrollBy(0, 16);
-      }
-      setDrag({ from, slot: dropSlot(e.clientY, midpoints()) });
-    };
-    const finish = (e: PointerEvent) => {
-      handle.removeEventListener("pointermove", move);
-      handle.removeEventListener("pointerup", finish);
-      handle.removeEventListener("pointercancel", finish);
-      setDrag(undefined);
-      if (e.type === "pointerup") {
-        const to = targetIndex(from, dropSlot(e.clientY, midpoints()));
-        if (to !== from) {
-          moveGoal(from, to);
-        }
-      }
-    };
-    handle.addEventListener("pointermove", move);
-    handle.addEventListener("pointerup", finish);
-    handle.addEventListener("pointercancel", finish);
-  };
-
-  /** Where the drop line goes: none while the goal would stay where it is. */
-  const dropLine = (i: number): "before" | "after" | undefined => {
-    if (!drag || targetIndex(drag.from, drag.slot) === drag.from) {
-      return undefined;
-    }
-    if (drag.slot === i) {
-      return "before";
-    }
-    return drag.slot === goals.length && i === goals.length - 1 ? "after" : undefined;
-  };
+  const reorder = useReorder<HTMLOListElement>(goals.length, moveGoal);
+  const list = reorder.container;
 
   return (
     <section class={CARD_STYLE} aria-label="Recipe">
@@ -240,47 +187,39 @@ export function RecipeEditor(props: { doc: Doc; onChange: (recipe: Recipe) => vo
         ) : (
           <>
             <p class={HINT_STYLE}>The goals in brewing order.</p>
-            {goals.length === 0 ? (
+            {goals.length === 0 && (
               <p class={`${HINT_STYLE} mt-2`}>No goals yet. Add them below; until then the BrewberryPi app lists this recipe but can't brew it.</p>
-            ) : (
-              <ol
-                ref={list}
-                class="mt-2 divide-y divide-line rounded-lg ring-1 ring-line dark:divide-white/10 dark:ring-white/10"
-              >
-                {goals.map((goal, i) => (
-                  <GoalEditor
-                    key={`${doc.key}-${i}`}
-                    goal={goal}
-                    index={i}
-                    count={goals.length}
-                    problems={problems}
-                    open={open === i}
-                    onToggle={() => setOpen(open === i ? undefined : i)}
-                    onChange={(g) => setGoals(goals.map((x, j) => (j === i ? g : x)))}
-                    onDragStart={(e) => startDrag(i, e)}
-                    onMoveKey={(delta) => {
-                      const to = i + delta;
-                      if (to >= 0 && to < goals.length) {
-                        moveGoal(i, to);
-                        setFocusHandle(to);
-                      }
-                    }}
-                    dragging={drag?.from === i}
-                    dropLine={dropLine(i)}
-                    onRemove={() => {
-                      setGoals(goals.filter((_, j) => j !== i));
-                      if (open !== undefined && open >= i) {
-                        setOpen(open === i ? undefined : open - 1);
-                      }
-                    }}
-                  />
-                ))}
-              </ol>
             )}
-            <div class="mt-3">
-              <button type="button" class={BUTTON_STYLES.secondary} onClick={() => setAdding(true)}>
-                + Add goal
-              </button>
+            <div class="mt-2 rounded-lg ring-1 ring-line dark:ring-white/10">
+              {goals.length > 0 && (
+                <ol ref={list} class="divide-y divide-line dark:divide-white/10">
+                  {goals.map((goal, i) => (
+                    <GoalEditor
+                      key={`${doc.key}-${i}`}
+                      goal={goal}
+                      index={i}
+                      count={goals.length}
+                      problems={problems}
+                      open={open === i}
+                      onToggle={() => setOpen(open === i ? undefined : i)}
+                      onChange={(g) => setGoals(goals.map((x, j) => (j === i ? g : x)))}
+                      onDragStart={(e) => reorder.startDrag(i, e)}
+                      onMoveKey={(delta) => reorder.moveKey(i, delta)}
+                      dragging={reorder.dragging(i)}
+                      dropLine={reorder.dropLine(i)}
+                      onRemove={() => {
+                        setGoals(goals.filter((_, j) => j !== i));
+                        if (open !== undefined && open >= i) {
+                          setOpen(open === i ? undefined : open - 1);
+                        }
+                      }}
+                    />
+                  ))}
+                </ol>
+              )}
+              <div class={goals.length > 0 ? ADD_ROW_LINE : ""}>
+                <AddRowButton label="Add goal" class={goals.length > 0 ? "rounded-b-lg" : "rounded-lg"} onClick={() => setAdding(true)} />
+              </div>
             </div>
             {adding && (
               <GoalTypeDialog

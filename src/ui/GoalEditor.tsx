@@ -9,6 +9,7 @@ import { GOALS_PATH, type Problem } from "../validate";
 import { NumberField, TextField } from "./fields";
 import { GoalTypeDialog } from "./GoalTypeDialog";
 import { BUTTON_STYLES, HINT_STYLE } from "./styles";
+import { DragHandle, DropLine } from "./DragHandle";
 
 const PART_STYLES = {
   type: "font-semibold text-ink dark:text-ink-light",
@@ -65,46 +66,15 @@ export function GoalEditor(props: {
         (props.dragging ? "bg-berry/10 opacity-60 dark:bg-berry-light/10" : open ? "bg-berry/5 dark:bg-berry-light/5" : "")
       }
     >
-      {props.dropLine && (
-        <span
-          aria-hidden="true"
-          data-drop-line
-          class={`absolute right-0 left-0 z-10 h-1 rounded-full bg-berry dark:bg-berry-light ${props.dropLine === "before" ? "-top-0.5" : "-bottom-0.5"}`}
-        />
-      )}
+      {props.dropLine && <DropLine at={props.dropLine} />}
       <div class="flex items-center gap-1 px-1.5 py-1 sm:gap-2">
-        <button
-          type="button"
-          data-drag-handle
-          aria-label={`Move goal ${index + 1}`}
+        <DragHandle
+          label={`Move goal ${index + 1}`}
           title="Drag to move the goal (or use the arrow keys)"
-          disabled={props.count < 2}
-          class={
-            "flex h-8 w-6 shrink-0 cursor-grab touch-none items-center justify-center rounded-md text-stone-400 " +
-            "hover:enabled:bg-stone-100 hover:enabled:text-stone-600 active:cursor-grabbing disabled:cursor-default disabled:opacity-30 " +
-            "focus-visible:outline-2 focus-visible:outline-berry-light dark:hover:enabled:bg-white/10 dark:hover:enabled:text-stone-200"
-          }
-          onPointerDown={(e) => {
-            if (e.button === 0 && props.count > 1) {
-              props.onDragStart(e);
-            }
-          }}
-          onKeyDown={(e) => {
-            if (e.key === "ArrowUp" || e.key === "ArrowDown") {
-              e.preventDefault();
-              props.onMoveKey(e.key === "ArrowUp" ? -1 : 1);
-            }
-          }}
-        >
-          <svg viewBox="0 0 12 20" aria-hidden="true" class="h-4 w-3 fill-current">
-            <circle cx="3" cy="4" r="1.5" />
-            <circle cx="9" cy="4" r="1.5" />
-            <circle cx="3" cy="10" r="1.5" />
-            <circle cx="9" cy="10" r="1.5" />
-            <circle cx="3" cy="16" r="1.5" />
-            <circle cx="9" cy="16" r="1.5" />
-          </svg>
-        </button>
+          count={props.count}
+          onDragStart={props.onDragStart}
+          onMoveKey={props.onMoveKey}
+        />
         <span class="w-6 shrink-0 text-sm text-stone-500 tabular-nums dark:text-stone-400">{index + 1}.</span>
         <button
           type="button"

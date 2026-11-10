@@ -279,7 +279,10 @@ describe("App, the recipe's tabs (QE-28)", () => {
     const panel = recipe.querySelector<HTMLElement>("[role=tabpanel]")!;
     expect(panel.getAttribute("aria-labelledby")).toBe(tabs()[2].id);
     expect(panel.querySelector("ol [data-goal-line]")).not.toBeNull();
-    expect([...panel.querySelectorAll("button")].some((b) => b.textContent?.trim() === "+ Add goal")).toBe(true);
+    const addGoal = [...panel.querySelectorAll("button")].find((b) => b.textContent?.trim() === "+ Add goal")!;
+    expect(addGoal.hasAttribute("data-add-row")).toBe(true);
+    // The goal list's last row: right after the goals, inside the same frame.
+    expect(panel.querySelector("ol")!.nextElementSibling!.contains(addGoal)).toBe(true);
     expect(panel.textContent).not.toContain("A Heat Up goal needs a temperature.");
     expect(recipe.textContent).toContain("A Heat Up goal needs a temperature.");
   });
@@ -971,7 +974,7 @@ describe("App, the Ingredients tab (QE-34)", () => {
   const gramsField = (kind: string, i: number) => rows(kind)[i].querySelector<HTMLInputElement>("input[inputmode=numeric]")!;
   const shares = (kind: string) => rows(kind).map((r) => r.querySelector("[data-ingredient-share]")!.textContent);
   const total = (kind: string) =>
-    [...section(kind).querySelectorAll("[data-ingredient-total] td")].map((td) => td.textContent).slice(0, 3);
+    [...section(kind).querySelectorAll("[data-ingredient-total] td")].map((td) => td.textContent).slice(1, 4);
   async function open(content: Recipe = { version: 3, name: "Brew", mashing_process: { goals: [{ type: "MashIn" }] } }) {
     const store = new MemoryStore();
     await store.put(newDoc("Brew", content));
@@ -1013,14 +1016,19 @@ describe("App, the Ingredients tab (QE-34)", () => {
     expect(headings).toEqual(["Malt", "Hops"]);
     for (const kind of ["malts", "hops"]) {
       const heads = [...section(kind).querySelectorAll("thead th")].map((th) => th.textContent);
-      expect(heads).toEqual(["Name", "g", "%", "Remove"]);
+      expect(heads).toEqual(["Move", "Name", "g", "%", "Remove"]);
       expect(total(kind)[0]).toBe("Total");
+      // The add row is part of the table: after the entries, before the Total line.
+      const addRow = section(kind).querySelector("tbody tr:last-child [data-add-row]")!;
+      expect(addRow.textContent).toBe(kind === "malts" ? "+ Add malt" : "+ Add hop");
+      expect(section(kind).querySelector("tfoot [data-ingredient-total]")).not.toBeNull();
     }
     expect(section("malts").textContent).toContain("No malt yet.");
     expect(section("hops").textContent).toContain("No hop yet.");
     await act(async () => button("+ Add malt").click());
     expect(rows("malts")).toHaveLength(1);
     expect(document.activeElement).toBe(nameField("malts", 0));
+    expect(rows("malts")[0].nextElementSibling!.querySelector("[data-add-row]")).not.toBeNull();
     await type(nameField("malts", 0), "Pilsner malt");
     await type(gramsField("malts", 0), "4500");
     expect(await download()).toContain('"ingredients"');
@@ -1096,5 +1104,39 @@ describe("App, the Ingredients tab (QE-34)", () => {
       ],
       hops: [{ name: "Hallertauer Tradition", grams: 30 }],
     });
+  });
+
+  it("ACC-071 reorders malts and hops by dragging the handle or with the arrow keys on it", async () => {
+    await open();
+    for (const [name, grams] of [["Pilsner malt", "4500"], ["Munich malt", "500"], ["Caramunich", "200"]]) {
+      await add("malts", name, grams);
+    }
+    const names = () => rows("malts").map((_, i) => nameField("malts", i).value);
+    const handles = () => rows("malts").map((r) => r.querySelector<HTMLButtonElement>("[data-drag-handle]")!);
+    expect(handles()[0].getAttribute("aria-label")).toBe("Move malt 1");
+    // jsdom has no layout: row i spans y = 100·i … 100·i + 80.
+    rows("malts").forEach((tr, i) => {
+      tr.getBoundingClientRect = () => ({ top: i * 100, height: 80, bottom: i * 100 + 80, left: 0, right: 100, width: 100, x: 0, y: i * 100, toJSON: () => ({}) });
+    });
+    const pointer = (target: Element, type: string, clientY: number) => {
+      target.dispatchEvent(new MouseEvent(type, { bubbles: true, cancelable: true, clientY, button: 0 }));
+    };
+    const handle = handles()[0];
+    await act(async () => pointer(handle, "pointerdown", 40));
+    await act(async () => pointer(handle, "pointermove", 270));
+    expect(section("malts").querySelectorAll("[data-drop-line]")).toHaveLength(1);
+    await act(async () => pointer(handle, "pointerup", 270));
+    expect(names()).toEqual(["Munich malt", "Caramunich", "Pilsner malt"]);
+    expect(section("malts").querySelectorAll("[data-drop-line]")).toHaveLength(0);
+    expect(shares("malts")).toEqual(["9.6 %", "3.8 %", "86.5 %"]); // the shares move with their rows (total 5200 g)
+    handles()[2].focus();
+    await act(async () => {
+      handles()[2].dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowUp", bubbles: true }));
+    });
+    expect(names()).toEqual(["Munich malt", "Pilsner malt", "Caramunich"]);
+    expect(document.activeElement).toBe(handles()[1]);
+    expect(await download()).toContain(
+      '      { "name": "Munich malt", "grams": 500 },\n      { "name": "Pilsner malt", "grams": 4500 },\n      { "name": "Caramunich", "grams": 200 }\n',
+    );
   });
 });

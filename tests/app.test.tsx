@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { render } from "preact";
 import { act } from "preact/test-utils";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { App } from "../src/App";
 import { newDoc } from "../src/doc";
 import { MemoryStore, type DraftStore } from "../src/store/BrowserStore";
@@ -10,6 +10,7 @@ import { DriveStore } from "../src/store/DriveStore";
 import { FakeAuth, FakeDrive } from "./fakeDrive";
 import { BROWSER_STORAGE_WARNING, MEMORY_STORAGE_WARNING } from "../src/ui/Banners";
 import { SIDEBAR_KEY } from "../src/ui/sidebar";
+import { CHANGE_POLL_MS } from "../src/driveSync";
 
 let root: HTMLElement;
 
@@ -530,6 +531,65 @@ describe("App, one line per goal (QE-26)", () => {
     await act(async () => button("Goal 2").click());
     expect(openGoals()).toEqual([1]);
     expect(document.activeElement).toBe(items()[1].querySelector("input"));
+  });
+});
+
+describe("App, signed in: recipe names in the list (QE-31)", () => {
+  const recipe = (name: string) => JSON.stringify({ version: 2, name, mashing_process: { goals: [{ type: "MashIn" }] } });
+
+  async function until(check: () => boolean) {
+    for (let i = 0; i < 50 && !check(); i++) {
+      await act(async () => new Promise((r) => setTimeout(r, 0)));
+    }
+  }
+
+  it("ACC-057 shows the names of recipes not opened, and follows their changes in Google Drive", async () => {
+    vi.useFakeTimers({ toFake: ["setInterval", "clearInterval"] });
+    const visibility = Object.getOwnPropertyDescriptor(Document.prototype, "visibilityState");
+    Object.defineProperty(document, "visibilityState", { value: "visible", configurable: true });
+    const drive = new FakeDrive();
+    drive.validTokens = new Set(["t1", "tok"]);
+    const store = new DriveStore(new FakeAuth(), drive.fetch);
+    await store.init();
+    await store.create("Kept", JSON.parse(recipe("Kept recipe")));
+    const other = await store.create("Other", JSON.parse(recipe("Other recipe")));
+    const storage = new Map([[TOKEN_KEY, JSON.stringify({ token: "tok", expiresAt: Date.now() + 3_600_000 })]]);
+    const auth = new GoogleAuth("test-client", {
+      getItem: (k: string) => storage.get(k) ?? null,
+      setItem: (k: string, v: string) => void storage.set(k, v),
+      removeItem: (k: string) => void storage.delete(k),
+    } as unknown as Storage);
+    const fetchBefore = globalThis.fetch;
+    globalThis.fetch = drive.fetch;
+    try {
+      const drafts = new MemoryStore();
+      Object.defineProperty(drafts, "firstUse", { value: false });
+      await act(async () => {
+        render(<App openDrafts={async () => drafts} auth={auth} />, root);
+      });
+      const names = () => listText().join(" | ");
+      await until(() => names().includes("Other recipe"));
+      expect(names()).toContain("Kept recipe");
+      expect(names()).toContain("Other recipe"); // not opened, but read
+
+      const file = drive.files.find((f) => f.id === other.fileId)!;
+      Object.assign(file, { content: recipe("Renamed in Drive"), version: file.version + 1 });
+      drive.changed(file);
+      drive.add({ name: "New.json", parents: [store.recipesFolderId], content: recipe("New from Drive") });
+      await act(async () => {
+        vi.advanceTimersByTime(CHANGE_POLL_MS); // the next check of the changes feed
+      });
+      await until(() => names().includes("Renamed in Drive") && names().includes("New from Drive"));
+      expect(names()).toContain("Renamed in Drive");
+      expect(names()).toContain("New from Drive");
+      expect(names()).not.toContain("Other recipe");
+    } finally {
+      globalThis.fetch = fetchBefore;
+      vi.useRealTimers();
+      if (visibility) {
+        delete (document as unknown as Record<string, unknown>).visibilityState;
+      }
+    }
   });
 });
 

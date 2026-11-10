@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { fingerprint, newDoc, type Doc } from "../src/doc";
-import { driveDoc, mergeDriveList } from "../src/driveSync";
+import { driveDoc, inPool, mergeDriveList } from "../src/driveSync";
 import type { DriveFile } from "../src/store/DriveStore";
 
 const recipe = { version: 2, name: "R", mashing_process: { goals: [{ type: "MashIn" }] } };
@@ -65,5 +65,31 @@ describe("mergeDriveList", () => {
   it("ACC-041 keeps recipes not saved to Drive yet", () => {
     const draft = newDoc("New", recipe);
     expect(mergeDriveList([draft], []).docs).toEqual([draft]);
+  });
+});
+
+describe("reading all recipes (QE-31)", () => {
+  it("ACC-057 reads every recipe, at most 3 at a time", async () => {
+    let running = 0;
+    let most = 0;
+    const done: number[] = [];
+    await inPool([1, 2, 3, 4, 5, 6, 7], 3, async (n) => {
+      running++;
+      most = Math.max(most, running);
+      await new Promise((r) => setTimeout(r, 1));
+      running--;
+      done.push(n);
+    });
+    expect(most).toBe(3);
+    expect(done.sort()).toEqual([1, 2, 3, 4, 5, 6, 7]);
+    await inPool([], 3, async () => {
+      throw new Error("not called");
+    });
+  });
+
+  it("ACC-057 a read recipe that is not open is read again when it changed in Drive", () => {
+    const notOpen = opened(file("b", "B", "1")); // read in the background, not selected
+    const merge = mergeDriveList([notOpen], [file("b", "B", "2")]);
+    expect(merge.reload).toEqual(["b"]);
   });
 });

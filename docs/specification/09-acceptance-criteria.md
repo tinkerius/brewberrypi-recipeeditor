@@ -75,6 +75,9 @@ a release that changes sign-in or Drive behaviour.
 - `ACC-056` (QE-30, GUI-002, GUI-020) Signed in, no notice above the columns says "Cloud Sync is on"; the recipe list
   says, below "Add untracked file from cloud storage", that the recipes are files in the Google Drive folder
   BrewberryPi/recipes.
+- `ACC-057` (QE-31, DRV-005, SYN-003) Signed in with two recipes in Google Drive, both list rows show the recipe
+  names without opening them. When the name in the recipe that is not open changes in Google Drive and a new recipe
+  file is added there, after the next check of the changes both rows show the new names.
 - `ACC-017` (BRW-004, DRV-010) A recipe has pending changes until it is downloaded (draft) or saved (Drive), and again
   after a change.
 - `ACC-018` (EDT-016) On the first visit (new browser storage) the list holds the draft `BENIWEISS`; on a later visit

@@ -23,6 +23,17 @@ export interface DriveChange {
   file?: { parents?: string[]; trashed?: boolean };
 }
 
+/** Runs task for every item, at most limit at a time (DRV-005: the recipes are read a few at a time). */
+export async function inPool<T>(items: readonly T[], limit: number, task: (item: T) => Promise<void>): Promise<void> {
+  let next = 0;
+  const worker = async () => {
+    while (next < items.length) {
+      await task(items[next++]);
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
+}
+
 /** A change matters if it concerns a listed recipe (edited, renamed, trashed, moved away) or a file in the folder. */
 export function isRelevantChange(change: DriveChange, recipesFolderId: string, listedFileIds: ReadonlySet<string>): boolean {
   return listedFileIds.has(change.fileId) || (change.file?.parents?.includes(recipesFolderId) ?? false);
@@ -40,7 +51,7 @@ export interface DriveMerge {
   removed: Doc[];
   /** Gone from the folder, with unsaved changes: kept as a new, unsaved recipe. */
   orphaned: Doc[];
-  /** Open and unchanged here, but changed in Drive: read again. */
+  /** Read and unchanged here (open or not), but changed in Drive: read again. */
   reload: string[];
 }
 

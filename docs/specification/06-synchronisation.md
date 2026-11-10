@@ -10,11 +10,12 @@ server (a webhook); the editor has none (`SCO-003`), so it asks Drive.
   back into view (at most every 5 s). Only a change that concerns a listed recipe (edited, renamed, trashed, moved
   away) or a file in the recipes folder reads the list again; the whole list is also read every **5 minutes**. A
   position in the feed that Drive no longer accepts starts the feed again and counts as a change.
-- `SYN-003` Reading the list again merges it with the open recipes; unsaved changes are never thrown away:
-  - a new file appears in the list;
-  - a recipe not opened yet follows a rename or change at once;
-  - an opened recipe without pending changes is read again (an edit made while it is read wins);
-  - an opened recipe with pending changes is left as it is; the check on save decides (`DRV-007`);
+- `SYN-003` Reading the list again merges it with the recipes; unsaved changes are never thrown away:
+  - a new file appears in the list and is read (`DRV-005`);
+  - a recipe not read yet follows a rename at once and is read;
+  - a recipe that was read and has no pending changes is read again when it changed in Google Drive, whether it is
+    open or not, so its row shows the new name (`QE-31`; an edit made while it is read wins);
+  - a recipe with pending changes is left as it is; the check on save decides (`DRV-007`);
   - a recipe deleted or moved away is dropped from the list, with the notice "Deleted or moved in your Google
     Drive: …"; one with pending changes stays as a recipe not saved yet, saying so, so Save creates it again;
   - recipes not saved yet stay.

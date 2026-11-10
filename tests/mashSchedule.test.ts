@@ -29,7 +29,7 @@ describe("rest data (QE-33)", () => {
 
   it("ACC-062 sorts the rests by typical temperature, ties in table order", () => {
     const order = restsByTypical();
-    expect(order.map((id) => MASH_RESTS[id].tempTypical)).toEqual([35, 35, 40, 45, 52, 63, 67, 72, 78]);
+    expect(order.map((id) => MASH_RESTS[id].tempTypical)).toEqual([25, 35, 40, 45, 52, 63, 67, 72, 78]);
     expect(order.slice(0, 2)).toEqual(["PreMash", "AcidRest"]);
   });
 

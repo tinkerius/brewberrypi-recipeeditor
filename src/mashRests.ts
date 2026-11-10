@@ -56,11 +56,11 @@ export const MASH_RESTS: Record<MashRestId, MashRestInfo> = {
   PreMash: {
     label: "Pre-mash / Dough-in rest (soaking)",
     short: "Pre-mash",
-    range: "Room temp. to 40 °C, typ. ~35 °C",
+    range: "Room temp. to 40 °C, typ. ~25 °C",
     tempMin: 15,
     tempMax: 40,
     duration: "15–30 min (cold: up to several hours)",
-    tempTypical: 35,
+    tempTypical: 25,
     minutes: 20,
     durationMin: 15,
     durationMax: null,

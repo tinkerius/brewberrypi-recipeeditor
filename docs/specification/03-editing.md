@@ -93,7 +93,7 @@ Applies signed out (drafts, §4) and signed in (Drive recipes, §5) alike, unles
 
 | Rest id | Name | Temperature range | Typ. duration | Warning outside | Preset |
 |---|---|---|---|---|---|
-| `PreMash` | Pre-mash / Dough-in rest (soaking) | Room temp. to 40 °C, typ. ~35 °C | 15–30 min (cold: up to several hours) | 15–40 °C | 35 °C, 20 min |
+| `PreMash` | Pre-mash / Dough-in rest (soaking) | Room temp. to 40 °C, typ. ~25 °C | 15–30 min (cold: up to several hours) | 15–40 °C | 25 °C, 20 min |
 | `AcidRest` | Acid rest / Phytase rest | 30–35 °C (up to 52 °C), typ. ~35 °C | 30–120 min | 30–52 °C | 35 °C, 30 min |
 | `BetaGlucanRest` | Beta-glucan rest (gum rest) | 35–45 °C, typ. ~40 °C | 15–20 min | 35–45 °C | 40 °C, 15 min |
 | `FerulicAcidRest` | Ferulic acid rest | 43–45 °C, typ. ~45 °C | 15–20 min | 43–45 °C | 45 °C, 15 min |
@@ -185,17 +185,17 @@ Applies signed out (drafts, §4) and signed in (Drive recipes, §5) alike, unles
 All rest values live in one file, the rest data (`src/mashRests.ts`): names, typical temperature range and
 temperature, typical duration (text and `durationMin`/`durationMax`), presets, enzymes, effect, when useful and the
 flags `obsolete`, `optional`, `always` and `conversion`; neither the table, the ladder nor the warnings write a
-temperature of their own. The ladder's labels and the typical durations of `EDT-038`:
+temperature of their own. The typical durations of `EDT-038` and the flags:
 
-| Rest | Label (effect) | Typical duration (min) | Flags |
-|---|---|---|---|
-| Pre-mash | hydration | 15– (no upper limit: cold, up to several hours) | optional |
-| Acid rest | phytase, lowers pH | 30–120 | obsolete |
-| Beta-glucan rest | β-glucanase, viscosity | 15–20 | optional |
-| Ferulic acid rest | clove precursor, POF+ yeast | 15–20 | optional |
-| Protein rest | proteinases / peptidases | 10–20 | optional |
-| Maltose rest | β-amylase → maltose, attenuation | 30–60 | optional |
-| Combined rest | β + α, single infusion | 60 | optional, conversion |
-| Saccharification rest | α-amylase → dextrins, body | 20–40 | optional, conversion |
-| Mash-out | enzyme stop, lautering aid | 5–10 | always |
+| Rest | Typical duration (min) | Flags |
+|---|---|---|
+| Pre-mash | 15– (no upper limit: cold, up to several hours) | optional |
+| Acid rest | 30–120 | obsolete |
+| Beta-glucan rest | 15–20 | optional |
+| Ferulic acid rest | 15–20 | optional |
+| Protein rest | 10–20 | optional |
+| Maltose rest | 30–60 | optional |
+| Combined rest | 60 | optional, conversion |
+| Saccharification rest | 20–40 | optional, conversion |
+| Mash-out | 5–10 | always |
 

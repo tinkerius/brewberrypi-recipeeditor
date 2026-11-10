@@ -92,7 +92,7 @@ a release that changes sign-in or Drive behaviour.
   `mashing`); a ticked rest shows its fields in the °C and min columns, the typical values staying in theirs; and an ⓘ button "About this rest" that expands the rest's texts below the row (one at a time)
   and collapses them again; the goals are not shown in it.
 - `ACC-059` (EDT-032, EDT-034, FMT-006) Ticking Mash-out and then Maltose rest plans them with 78 °C, 10 min and
-  63 °C, 45 min; the recipe is complete, and the written file has `"mashing"` after `"mashing_process"` with
+  63 °C, 45 min (a pre-mash with 25 °C, 20 min); the recipe is complete, and the written file has `"mashing"` after `"mashing_process"` with
   `MaltoseRest` before `MashOut`, one rest per line, and reads back the same. Changing the Maltose rest's fields
   changes the plan; unticking both rests removes `mashing` from the recipe.
 - `ACC-060` (EDT-033) A Maltose rest at 70 °C shows "⚠ Outside the typical range" after the typical range
@@ -103,7 +103,7 @@ a release that changes sign-in or Drive behaviour.
   reported.
 - `ACC-062` (QE-33, EDT-036) The rest data holds every rest once, with its typical temperature inside its range and
   not above 78 °C, presets inside the typical duration, enzymes and texts; sorted by typical temperature
-  the rests are 35, 35, 40, 45, 52, 63, 67, 72, 78 °C (pre-mash before acid rest); rests whose ranges overlap or
+  the rests are 25, 35, 40, 45, 52, 63, 67, 72, 78 °C; rests whose ranges overlap or
   touch never share a lane; labels spread by the ladder keep their gap and stay inside the chart.
 - `ACC-063` (EDT-039) Pre-mash 35 °C 15 min → Maltose rest 63 °C 45 min → Saccharification rest 72 °C 30 min →
   Mash-out 78 °C 5 min at 1 °C/min gives the step profile 0/35, 15/35, 43/63, 88/63, 97/72, 127/72, 133/78,

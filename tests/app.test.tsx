@@ -802,6 +802,8 @@ describe("App, the Mashing tab (QE-32)", () => {
     await tick("MashOut");
     expect(row("MaltoseRest").querySelector("input:not([type=checkbox])")).toBeNull();
     expect(await download()).not.toContain("mashing\"");
+    await tick("PreMash");
+    expect([field("PreMash", "Temperature").value, field("PreMash", "Duration").value]).toEqual(["25", "20"]);
   });
 
   it("ACC-060 warns outside the typical range, and the recipe stays complete", async () => {

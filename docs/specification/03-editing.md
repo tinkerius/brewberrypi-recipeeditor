@@ -84,8 +84,9 @@ Applies signed out (drafts, §4) and signed in (Drive recipes, §5) alike, unles
 - `EDT-031` The tab is a **table** with one row per rest of the table below, each once, in this order. Its columns:
   a check box, the rest's name, the planned **°C** and **min**, and an **ⓘ** button. The planned values are fields
   in their own columns, so the plan reads at a glance; a ticked row is highlighted, an unticked one has no fields.
-  Below each field (or in its place while the rest is not ticked) is the rest's typical value for it: the typical
-  temperature range under °C, the typical duration under min. The ⓘ
+  Right beside each field (or in its place while the rest is not ticked) is the rest's typical value for it: under
+  °C the "warning outside" range as "typ. <from>–<to> °C" (e.g. "typ. 60–65 °C"), under min the typical duration.
+  The ⓘ
   button ("About this rest") expands what the rest does (enzymes, effect, when useful) below its row, one rest at
   a time; pressing it again collapses it. The texts are the product owner's (2026-11-10), verbatim.
 
@@ -136,8 +137,8 @@ Applies signed out (drafts, §4) and signed in (Drive recipes, §5) alike, unles
   (°C) and **Duration** (min, a whole number) fields appear and can be changed (`EDT-015`). Unticking it removes the
   rest from the plan, with its values.
 - `EDT-033` A planned rest whose temperature is outside its "warning outside" range (inclusive) shows a warning:
-  its temperature field and the typical range below it are marked amber, and the row says "⚠ Outside the typical
-  range". It is only a warning: the recipe stays complete and can be saved and
+  its temperature field and the typical range beside it are marked amber, and "⚠ Outside the typical range" follows
+  that range. It is only a warning: the recipe stays complete and can be saved and
   downloaded (`FMT-010`).
 - `EDT-034` The plan holds only ticked rests. When no rest is ticked, the recipe file has no `mashing`; a file read
   with an empty `mashing` (`{}`) keeps it until a rest is ticked and unticked.
@@ -151,9 +152,9 @@ Applies signed out (drafts, §4) and signed in (Drive recipes, §5) alike, unles
   temperature (°C):
   - every rest of `EDT-031` is a **band** over its typical temperature range, in its own lane wherever ranges
     overlap or touch, so no two bands cover each other; its typical temperature is ticked on the band;
-  - beside the bands, a **label** per rest, sorted by typical temperature: its short name, typical temperature and
-    a few words on its effect (`summary` in the rest data); labels are moved apart where they would collide, with a
-    line to their band; an obsolete rest (the acid rest) is greyed and says "(obsolete)"; planned rests are in the
+  - beside the bands, a **label** per rest, sorted by typical temperature: its short name and typical temperature
+    (one line; what the rest does is in its tooltip, `EDT-037`); labels are moved apart where they would collide,
+    with a line to their band; an obsolete rest (the acid rest) is greyed and says "(obsolete)"; planned rests are in the
     brand colour;
   - the **limit of 78 °C** is a red dashed line with "max 78 °C" (above it α-amylase is destroyed, `EDT-031`
     Mash-out);

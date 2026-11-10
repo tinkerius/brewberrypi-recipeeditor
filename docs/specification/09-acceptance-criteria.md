@@ -87,21 +87,22 @@ a release that changes sign-in or Drive behaviour.
 - `ACC-019` (GUI-020) The list is titled "My Recipes"; "New recipe" and "Upload recipe" come after the recipes;
   there is no "New from a sample recipe".
 - `ACC-058` (QE-32, EDT-030, EDT-031, GUI-032) The Mashing tab is a table of the 9 rests of `EDT-031` in its
-  order, each row with its name, the typical range in the °C column and the typical duration in the min column, an
-  unticked check box and no fields (for a recipe without `mashing`); a ticked rest shows them below its fields; and an ⓘ button "About this rest" that expands the rest's texts below the row (one at a time)
+  order, each row with its name, the typical range ("typ. 60–65 °C" for the Maltose rest) in the °C column and the
+  typical duration in the min column, an unticked check box and no fields (for a recipe without `mashing`); a ticked
+  rest shows them right beside its fields; and an ⓘ button "About this rest" that expands the rest's texts below the row (one at a time)
   and collapses them again; the goals are not shown in it.
 - `ACC-059` (EDT-032, EDT-034, FMT-006) Ticking Mash-out and then Maltose rest plans them with 78 °C, 10 min and
   63 °C, 45 min; the recipe is complete, and the written file has `"mashing"` after `"mashing_process"` with
   `MaltoseRest` before `MashOut`, one rest per line, and reads back the same. Changing the Maltose rest's fields
   changes the plan; unticking both rests removes `mashing` from the recipe.
-- `ACC-060` (EDT-033) A Maltose rest at 70 °C shows "⚠ Outside the typical range", and its temperature field and
-  the typical range "60–65 °C, typ. ~63 °C" below it are marked; the recipe stays complete and can be downloaded. At 60 °C and 65 °C there is no warning.
+- `ACC-060` (EDT-033) A Maltose rest at 70 °C shows "⚠ Outside the typical range" after the typical range "typ.
+  60–65 °C" beside its temperature field, and the field and the range are marked; the recipe stays complete and can be downloaded. At 60 °C and 65 °C there is no warning.
 - `ACC-061` (EDT-035, FMT-004) A planned Maltose rest whose temperature is cleared is reported as "Mashing, Maltose
   rest: The Maltose rest needs a temperature." and its field is marked; clicking "Mashing, Maltose rest" from the
   Mash Process tab opens the Mashing tab. A file with an unknown rest in `mashing` is opened with it kept and
   reported.
 - `ACC-062` (QE-33, EDT-036) The rest data holds every rest once, with its typical temperature inside its range and
-  not above 78 °C, presets inside the typical duration, enzymes, effect and texts; sorted by typical temperature
+  not above 78 °C, presets inside the typical duration, enzymes and texts; sorted by typical temperature
   the rests are 35, 35, 40, 45, 52, 63, 67, 72, 78 °C (pre-mash before acid rest); rests whose ranges overlap or
   touch never share a lane; labels spread by the ladder keep their gap and stay inside the chart.
 - `ACC-063` (EDT-039) Pre-mash 35 °C 15 min → Maltose rest 63 °C 45 min → Saccharification rest 72 °C 30 min →
@@ -114,8 +115,8 @@ a release that changes sign-in or Drive behaviour.
   and Saccharification rest 10 min (outside their typical durations). None for a Combined rest of 60 min, or a
   pre-mash of 240 min. The warnings are listed below the ladder and the recipe stays complete.
 - `ACC-065` (EDT-036, EDT-037) The ladder is above the table; it has a band and a label for each of the 9 rests,
-  sorted by typical temperature, each label with its short name, typical temperature and effect, and a tooltip
-  with its enzymes; the acid rest says "(obsolete)"; the limit reads "max 78 °C". Without planned rests it says "No
+  sorted by typical temperature, each label with its short name and typical temperature only (no effect), and
+  a tooltip with its enzymes; the acid rest says "(obsolete)"; the limit reads "max 78 °C". Without planned rests it says "No
   rests planned yet." and "Tick rests below to draw the schedule." Clicking the Protein rest in the ladder opens its
   texts in the table.
 - `ACC-066` (EDT-039, EDT-040) Planning the steps of `ACC-063` in the table shows "Total mash time 2 h 18 min: 1 h

@@ -30,7 +30,7 @@ export interface MashRestInfo {
   label: string;
   /** A short name, for problems ("Mashing, Maltose rest"). */
   short: string;
-  /** The typical temperature range, as text. */
+  /** The typical temperature range, as text (the ladder's tooltip, EDT-037). */
   range: string;
   /** The typical temperature range (°C, inclusive); outside it the editor warns (EDT-033). */
   tempMin: number;
@@ -46,8 +46,6 @@ export interface MashRestInfo {
   durationMax: number | null;
   /** The active enzymes, short (the ladder's details, EDT-037). */
   enzymes: string[];
-  /** A few words on the effect, the ladder's label (EDT-036). */
-  summary: string;
   /** obsolete: hardly used today; always: belongs in every mash; conversion: converts the starch (EDT-038). */
   flags: MashRestFlag[];
   /** What the rest does: enzymes, effect, when it is useful. */
@@ -67,7 +65,6 @@ export const MASH_RESTS: Record<MashRestId, MashRestInfo> = {
     durationMin: 15,
     durationMax: null,
     enzymes: ["amylases and proteases dissolve", "phytase, β-glucanase (slightly)"],
-    summary: "hydration",
     flags: ["optional"],
     about: [
       ["Enzymes", "no targeted enzyme activity; amylases and proteases dissolve from the malt into the mash. Phytase and β-glucanase are slightly active at ~35–40 °C."],
@@ -87,7 +84,6 @@ export const MASH_RESTS: Record<MashRestId, MashRestInfo> = {
     durationMin: 30,
     durationMax: 120,
     enzymes: ["phytase"],
-    summary: "phytase, lowers pH",
     flags: ["obsolete"],
     about: [
       ["Enzyme", "phytase."],
@@ -107,7 +103,6 @@ export const MASH_RESTS: Record<MashRestId, MashRestInfo> = {
     durationMin: 15,
     durationMax: 20,
     enzymes: ["β-glucanase"],
-    summary: "β-glucanase, viscosity",
     flags: ["optional"],
     about: [
       ["Enzyme", "β-glucanase."],
@@ -127,7 +122,6 @@ export const MASH_RESTS: Record<MashRestId, MashRestInfo> = {
     durationMin: 15,
     durationMax: 20,
     enzymes: ["feruloyl esterase"],
-    summary: "clove precursor, POF+ yeast",
     flags: ["optional"],
     about: [
       ["Enzyme", "feruloyl esterase."],
@@ -147,7 +141,6 @@ export const MASH_RESTS: Record<MashRestId, MashRestInfo> = {
     durationMin: 10,
     durationMax: 20,
     enzymes: ["peptidases", "proteinases"],
-    summary: "proteinases / peptidases",
     flags: ["optional"],
     about: [
       ["Enzymes", "peptidases (~45–50 °C), proteinases (~50–55 °C)."],
@@ -167,7 +160,6 @@ export const MASH_RESTS: Record<MashRestId, MashRestInfo> = {
     durationMin: 30,
     durationMax: 60,
     enzymes: ["β-amylase"],
-    summary: "β-amylase → maltose, attenuation",
     flags: ["optional"],
     about: [
       ["Enzyme", "β-amylase."],
@@ -187,7 +179,6 @@ export const MASH_RESTS: Record<MashRestId, MashRestInfo> = {
     durationMin: 60,
     durationMax: 60,
     enzymes: ["β-amylase", "α-amylase"],
-    summary: "β + α, single infusion",
     flags: ["optional", "conversion"],
     about: [
       ["Enzymes", "β- and α-amylase simultaneously."],
@@ -207,7 +198,6 @@ export const MASH_RESTS: Record<MashRestId, MashRestInfo> = {
     durationMin: 20,
     durationMax: 40,
     enzymes: ["α-amylase"],
-    summary: "α-amylase → dextrins, body",
     flags: ["optional", "conversion"],
     about: [
       ["Enzyme", "α-amylase."],
@@ -227,7 +217,6 @@ export const MASH_RESTS: Record<MashRestId, MashRestInfo> = {
     durationMin: 5,
     durationMax: 10,
     enzymes: ["none (inactivation)"],
-    summary: "enzyme stop, lautering aid",
     flags: ["always"],
     about: [
       ["Enzymes", "none (inactivation)."],

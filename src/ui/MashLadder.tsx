@@ -83,16 +83,16 @@ export function MashLadder(props: { plan: Record<string, unknown>; selected?: Ma
   const railX = AXIS + 4;
   const railW = laneCount * LANE;
   const labelX = railX + railW + 14;
-  const labelW = 210;
+  const labelW = 190;
   const plotX = narrow ? AXIS + 6 : labelX + labelW + 10;
   const plotW = Math.max(40, width - plotX - 8);
 
   const order = restsByTypical();
   const labelY = spreadLabels(
     order.map((id) => y(MASH_RESTS[id].tempTypical)),
-    24,
+    15,
     TOP + 4,
-    HEIGHT - BOTTOM - 14,
+    HEIGHT - BOTTOM - 4,
   );
 
   const total = Math.max(profile.totalMinutes, 1);
@@ -180,9 +180,6 @@ export function MashLadder(props: { plan: Record<string, unknown>; selected?: Ma
                   {info.short}
                   {obsolete ? " (obsolete)" : ""}
                   <tspan class="font-normal fill-stone-500 dark:fill-stone-400"> {info.tempTypical} °C</tspan>
-                </text>
-                <text x={labelX} y={ly + 11} dy="0.32em" class="fill-stone-500 text-[10px] dark:fill-stone-400">
-                  {info.summary}
                 </text>
               </g>
             );

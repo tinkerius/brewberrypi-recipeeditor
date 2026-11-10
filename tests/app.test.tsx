@@ -752,8 +752,8 @@ describe("App, the Mashing tab (QE-32)", () => {
       expect(r.textContent).toContain(info.label);
       const typical = (f: string) => r.querySelector(`[data-mash-typical=${f}]`)!;
       expect([typical("temperature").textContent, typical("minutes").textContent]).toEqual([
-        `Typical: ${info.range}`,
-        `Typical: ${info.duration}`,
+        `typ. ${info.tempMin}–${info.tempMax} °C`,
+        info.duration,
       ]);
       expect(typical("temperature").closest("td")!.cellIndex).toBe(2); // the °C column
       expect(typical("minutes").closest("td")!.cellIndex).toBe(3); // the min column
@@ -773,7 +773,13 @@ describe("App, the Mashing tab (QE-32)", () => {
     await act(async () => row("MashOut").querySelector<HTMLButtonElement>("button[aria-expanded]")!.click());
     expect(panel().querySelector("[data-mash-about]")).toBeNull();
     expect(rows[5].textContent).toContain("Maltose rest (beta-amylase rest)");
-    expect(rows[5].textContent).toContain("60–65 °C, typ. ~63 °C");
+    expect(rows[5].textContent).toContain("typ. 60–65 °C");
+    // A ticked rest: the typical values right beside its fields.
+    await tick("MaltoseRest");
+    for (const f of ["temperature", "minutes"]) {
+      const t = row("MaltoseRest").querySelector(`[data-mash-typical=${f}]`)!;
+      expect(t.previousElementSibling?.querySelector("input")).not.toBeNull();
+    }
     expect(panel().querySelector("[data-goal-line]")).toBeNull();
   });
 
@@ -799,13 +805,16 @@ describe("App, the Mashing tab (QE-32)", () => {
     await openMashing();
     await tick("MaltoseRest");
     const warning = () => row("MaltoseRest").querySelector("[data-mash-warning]")?.textContent;
+    const typicalOf = () => row("MaltoseRest").querySelector("[data-mash-typical=temperature]")!;
     expect(warning()).toBeUndefined();
     await type(field("MaltoseRest", "Temperature"), "70");
     expect(warning()).toBe("⚠ Outside the typical range");
+    expect(typicalOf().nextElementSibling!.matches("[data-mash-warning]")).toBe(true); // right after the range
     const input = field("MaltoseRest", "Temperature");
     expect(input.className).toContain("ring-amber-500!");
     const typical = document.getElementById(input.getAttribute("aria-describedby")!)!;
-    expect(typical.textContent).toBe("Typical: 60–65 °C, typ. ~63 °C");
+    expect(typical).toBe(typicalOf());
+    expect(typical.textContent).toBe("typ. 60–65 °C");
     expect(typical.className).toContain("text-amber-700");
     expect(recipe().textContent).toContain("Complete: BrewberryPi can load this recipe.");
     expect(await download()).toContain('"MaltoseRest": { "temperature": 70, "minutes": 45 }');
@@ -860,7 +869,7 @@ describe("App, the Mashing tab (QE-32)", () => {
       const info = MASH_RESTS[g.dataset.ladderRest as MashRestId];
       expect(g.textContent).toContain(`${info.short}`);
       expect(g.textContent).toContain(`${info.tempTypical} °C`);
-      expect(g.textContent).toContain(info.summary);
+      expect(g.querySelectorAll("text")).toHaveLength(1); // name and typical temperature only
       expect(g.querySelector("title")!.textContent).toContain(`Enzyme`);
     }
     expect(l.querySelector("[data-ladder-rest=AcidRest]")!.textContent).toContain("(obsolete)");

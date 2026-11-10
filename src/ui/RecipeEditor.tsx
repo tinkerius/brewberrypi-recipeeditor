@@ -1,10 +1,10 @@
-/** The selected recipe: file name, name, its tabs (ingredients, mashing plan, goals), problems and the actions. */
+/** The selected recipe: file name, name, its tabs (malt, hops, mashing plan, goals), problems and the actions. */
 
 import type { ComponentChildren } from "preact";
 import { useEffect, useRef, useState } from "preact/hooks";
 import { problemsOf, type Doc } from "../doc";
 import { INGREDIENT_LABELS, MASH_RESTS, goalsOf, isMashRestId, newGoal, withGoals, type Goal, type Recipe } from "../model";
-import { GOALS_PATH, INGREDIENTS_PATH, MASHING_PATH } from "../validate";
+import { BATCH_PATH, GOALS_PATH, INGREDIENTS_PATH, MASHING_PATH } from "../validate";
 import { ADD_ROW_LINE, AddRowButton } from "./AddRow";
 import { GoalEditor } from "./GoalEditor";
 import { GoalTypeDialog } from "./GoalTypeDialog";
@@ -24,6 +24,9 @@ const PATH_LABELS: Record<string, string> = {
   [GOALS_PATH]: "Goals",
   [MASHING_PATH]: "Mashing",
   [INGREDIENTS_PATH]: "Ingredients",
+  [BATCH_PATH]: "Batch",
+  [`${BATCH_PATH}.liters`]: "Batch volume",
+  [`${BATCH_PATH}.plato`]: "Original gravity",
 };
 
 /** The goal a problem is about, if any (its index). */
@@ -32,9 +35,13 @@ function goalOf(path: string): number | undefined {
   return goal ? Number(goal[1]) : undefined;
 }
 
-/** Whether a problem is about the ingredients (the Ingredients tab). */
-function isIngredients(path: string): boolean {
-  return path === INGREDIENTS_PATH || path.startsWith(`${INGREDIENTS_PATH}.`);
+/** The tab a problem of the ingredients or the batch is on (EDT-045): the hops and the gravity on Hops, else Malt. */
+function ingredientsTab(path: string): "malts" | "hops" | undefined {
+  if (path.startsWith(`${INGREDIENTS_PATH}.hops`) || path === `${BATCH_PATH}.plato`) {
+    return "hops";
+  }
+  const about = (prefix: string) => path === prefix || path.startsWith(`${prefix}.`);
+  return about(INGREDIENTS_PATH) || about(BATCH_PATH) ? "malts" : undefined;
 }
 
 /** Whether a problem is about the mashing plan (the Mashing tab). */
@@ -50,7 +57,7 @@ function describePath(path: string): string {
   const ingredient = /^ingredients\.(malts|hops)(?:\[(\d+)\])?/.exec(path);
   if (ingredient) {
     const { title, one } = INGREDIENT_LABELS[ingredient[1] as "malts" | "hops"];
-    return `Ingredients, ${ingredient[2] === undefined ? title : `${one} ${Number(ingredient[2]) + 1}`}`;
+    return ingredient[2] === undefined ? title : `${one} ${Number(ingredient[2]) + 1}`;
   }
   const rest = /^mashing\.([^.]+)/.exec(path)?.[1];
   if (rest !== undefined) {
@@ -61,13 +68,13 @@ function describePath(path: string): string {
 
 /**
  * The problems (EDT-020); a goal's problem opens that goal when its "Goal n" is clicked, a problem of the mashing
- * plan opens the Mashing tab (EDT-035), one of the ingredients the Ingredients tab (EDT-045).
+ * plan opens the Mashing tab (EDT-035), one of the malts, hops or batch the Malt or Hops tab (EDT-045).
  */
 export function ProblemList(props: {
   doc: Doc;
   onGoal?: (index: number) => void;
   onMashing?: () => void;
-  onIngredients?: () => void;
+  onIngredients?: (tab: "malts" | "hops") => void;
 }) {
   const problems = problemsOf(props.doc);
   if (props.doc.loadError) {
@@ -102,8 +109,8 @@ export function ProblemList(props: {
                 <button type="button" class={LINK_STYLE} onClick={props.onMashing}>
                   {describePath(p.path)}
                 </button>
-              ) : isIngredients(p.path) && props.onIngredients ? (
-                <button type="button" class={LINK_STYLE} onClick={props.onIngredients}>
+              ) : ingredientsTab(p.path) && props.onIngredients ? (
+                <button type="button" class={LINK_STYLE} onClick={() => props.onIngredients!(ingredientsTab(p.path)!)}>
                   {describePath(p.path)}
                 </button>
               ) : (
@@ -119,9 +126,10 @@ export function ProblemList(props: {
   );
 }
 
-/** The recipe's tabs (GUI-032, QE-28, QE-32, QE-34); more come later. */
+/** The recipe's tabs (GUI-032, QE-28, QE-32, QE-34, QE-35); more come later. */
 const RECIPE_TABS = [
-  { id: "ingredients", label: "Ingredients" },
+  { id: "malts", label: "Malt" },
+  { id: "hops", label: "Hops" },
   { id: "mashing", label: "Mashing" },
   { id: "mash", label: "Mash Process" },
 ] as const;
@@ -131,7 +139,7 @@ export function RecipeEditor(props: { doc: Doc; onChange: (recipe: Recipe) => vo
   const { doc } = props;
   const problems = problemsOf(doc);
   const [adding, setAdding] = useState(false);
-  const [tab, setTab] = useState<RecipeTab>("ingredients");
+  const [tab, setTab] = useState<RecipeTab>("malts");
   const setRecipe = (recipe: Recipe) => props.onChange(recipe);
   const setGoals = (goals: Goal[]) => setRecipe(withGoals(doc.recipe, goals));
   const goals = goalsOf(doc.recipe);
@@ -180,8 +188,8 @@ export function RecipeEditor(props: { doc: Doc; onChange: (recipe: Recipe) => vo
 
 
       <Tabs label="Recipe sections" tabs={RECIPE_TABS} selected={tab} onSelect={setTab}>
-        {tab === "ingredients" ? (
-          <IngredientsTab recipe={doc.recipe} problems={problems} onChange={setRecipe} />
+        {tab === "malts" || tab === "hops" ? (
+          <IngredientsTab key={tab} kind={tab} recipe={doc.recipe} problems={problems} onChange={setRecipe} />
         ) : tab === "mashing" ? (
           <MashingTab recipe={doc.recipe} problems={problems} onChange={setRecipe} />
         ) : (
@@ -249,7 +257,7 @@ export function RecipeEditor(props: { doc: Doc; onChange: (recipe: Recipe) => vo
             setOpen(index, true);
           }}
           onMashing={() => setTab("mashing")}
-          onIngredients={() => setTab("ingredients")}
+          onIngredients={(t) => setTab(t)}
         />
       </div>
       {props.actions && <div class="mt-4 flex flex-wrap gap-2">{props.actions}</div>}

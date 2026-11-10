@@ -10,9 +10,10 @@ recipes in their Google Drive, `BrewberryPi/recipes/<id>.json`, with scope `driv
 
 - `tinkerius/brewberrypi-app`: the application. Its specification is the source of truth for the recipe format:
   `docs/specification/07-recipes.md` (file name = recipe id `[A-Za-z0-9_-]+`, one recipe per file; format
-  `{"version": 3, "name", "mashing_process": {"goals"}, "mashing", "ingredients"}`, goals possibly empty `Q-34`, the
-  mashing plan `mashing` keyed by rest id `RCP-012`/`Q-37`, the `ingredients` `malts`/`hops` of `{name, grams}`
-  `RCP-013`/`Q-38`, version and migration `RCP-007..011`),
+  `{"version": 3, "name", "mashing_process": {"goals"}, "mashing", "ingredients", "batch"}`, goals possibly empty
+  `Q-34`, the mashing plan `mashing` keyed by rest id `RCP-012`/`Q-37`, the `ingredients` `malts` (`name`, `grams`,
+  `ebc`) and `hops` (`name`, `grams`, `alpha`, `minutes`) `RCP-013`/`Q-38`/`Q-39`, the `batch` (`liters`, `plato`)
+  `RCP-014`, version and migration `RCP-007..011`),
   `04-goal-types.md`, and `data/recipe.schema.json`. The samples are exactly the app's shipped recipes (`RCP-002`).
 - `tinkerius/brewberrypi`: the website brewberrypi.org and the brand (`brand/README.md`: colours, logo, font).
 - `tinkerius/brewberrypi-os`: the OS image; recipes reach the device through its file share

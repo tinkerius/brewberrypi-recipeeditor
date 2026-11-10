@@ -7,6 +7,7 @@ import {
   FORMAT_VERSION,
   GOAL_INFO,
   ID_PATTERN,
+  INGREDIENT_EXTRA_FIELDS,
   INGREDIENT_KINDS,
   INGREDIENT_LABELS,
   MASH_RESTS,
@@ -19,16 +20,18 @@ import {
 export interface Problem {
   /**
    * Where: "" for the whole recipe, "name", "mashing_process.goals", "mashing_process.goals[2].minutes", "mashing",
-   * "mashing.MaltoseRest.temperature", "ingredients" or "ingredients.malts[0].grams".
+   * "mashing.MaltoseRest.temperature", "ingredients",
+   * "ingredients.malts[0].grams", "batch" or "batch.liters".
    */
   path: string;
   message: string;
 }
 
-const TOP_LEVEL = new Set(["$schema", "version", "name", "mashing_process", "mashing", "ingredients"]);
+const TOP_LEVEL = new Set(["$schema", "version", "name", "mashing_process", "mashing", "ingredients", "batch"]);
 export const GOALS_PATH = "mashing_process.goals";
 export const MASHING_PATH = "mashing";
 export const INGREDIENTS_PATH = "ingredients";
+export const BATCH_PATH = "batch";
 
 /** Which goal fields are allowed and required, per goal type (the schema's allOf branches). */
 const GOAL_FIELDS: Record<string, { required: GoalField[]; allowed: GoalField[] }> = {
@@ -168,9 +171,26 @@ function checkIngredients(ingredients: unknown, problems: Problem[]) {
         problems.push({ path: item, message: `${label} must be an object with a name and grams.` });
         return;
       }
+      const extra = INGREDIENT_EXTRA_FIELDS[kind];
       for (const key of Object.keys(entry)) {
-        if (key !== "name" && key !== "grams") {
+        if (key !== "name" && key !== "grams" && !extra.includes(key)) {
           problems.push({ path: `${item}.${key}`, message: `${label} has no field "${key}".` });
+        }
+      }
+      const number = (value: unknown) => typeof value === "number" && Number.isFinite(value);
+      if (entry.ebc !== undefined && extra.includes("ebc") && !(number(entry.ebc) && (entry.ebc as number) >= 0)) {
+        problems.push({ path: `${item}.ebc`, message: `${label}: the colour must be a number of at least 0 EBC.` });
+      }
+      if (entry.alpha !== undefined && extra.includes("alpha")) {
+        const alpha = entry.alpha;
+        if (!number(alpha) || (alpha as number) < 0 || (alpha as number) > 100) {
+          problems.push({ path: `${item}.alpha`, message: `${label}: the alpha acid must be a number from 0 to 100 %.` });
+        }
+      }
+      if (entry.minutes !== undefined && extra.includes("minutes")) {
+        const minutes = entry.minutes;
+        if (typeof minutes !== "number" || !Number.isInteger(minutes) || minutes < 0) {
+          problems.push({ path: `${item}.minutes`, message: `${label}: the boil time must be a whole number of minutes, at least 0.` });
         }
       }
       if (typeof entry.name !== "string" || entry.name.length === 0) {
@@ -185,6 +205,29 @@ function checkIngredients(ingredients: unknown, problems: Problem[]) {
         problems.push({ path: `${item}.grams`, message: `${label}: the amount must be at least 1 g.` });
       }
     });
+  }
+}
+
+/** The batch (app RCP-014): the wort volume above 0 litres and the original gravity from 0 to 40 °P. */
+function checkBatch(batch: unknown, problems: Problem[]) {
+  if (!isObject(batch)) {
+    problems.push({ path: BATCH_PATH, message: "The batch must be an object with liters and plato." });
+    return;
+  }
+  for (const [key, value] of Object.entries(batch)) {
+    const at = `${BATCH_PATH}.${key}`;
+    const number = typeof value === "number" && Number.isFinite(value);
+    if (key === "liters") {
+      if (!number || value <= 0) {
+        problems.push({ path: at, message: "The batch volume must be a number above 0 litres." });
+      }
+    } else if (key === "plato") {
+      if (!number || value < 0 || value > 40) {
+        problems.push({ path: at, message: "The original gravity must be a number from 0 to 40 °P." });
+      }
+    } else {
+      problems.push({ path: at, message: `The batch has no field "${key}".` });
+    }
   }
 }
 
@@ -215,6 +258,9 @@ export function validateRecipe(recipe: unknown): Problem[] {
   }
   if ("ingredients" in recipe) {
     checkIngredients(recipe.ingredients, problems);
+  }
+  if ("batch" in recipe) {
+    checkBatch(recipe.batch, problems);
   }
   const process = recipe.mashing_process;
   if (!isObject(process)) {

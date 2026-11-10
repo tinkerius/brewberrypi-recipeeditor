@@ -67,8 +67,8 @@ a release that changes sign-in or Drive behaviour.
   it.
 - `ACC-047` (QE-27, GUI-001, GUI-004) The top bar shows "BrewberryPi" as a link to https://brewberrypi.org/, "Recipe
   Editor" and Cloud Sync; the footer links to brewberrypi.org, the privacy policy, the terms and the source code.
-- `ACC-048` (QE-28, QE-34, GUI-032) Below the recipe's title is a tab list with the tabs **Ingredients**,
-  **Mashing** and **Mash Process**, in this order, Ingredients selected (it shows the malt table); the Mash Process panel holds the goals and, as the list's last row, + Add goal; the problems are below the panel, not in it.
+- `ACC-048` (QE-28, QE-34, QE-35, GUI-032) Below the recipe's title is a tab list with the tabs **Malt**, **Hops**,
+  **Mashing** and **Mash Process**, in this order, Malt selected (it shows the malt table); the Mash Process panel holds the goals and, as the list's last row, + Add goal; the problems are below the panel, not in it.
 - `ACC-049` (QE-29, GUI-024, NFR-002) "Hide sidebar" collapses the recipe list to a strip with "Show sidebar" and
   New recipe, the recipe stays shown, and the browser remembers it (also after the page is shown again); with a
   recipe not downloaded, the strip shows "1 recipe not downloaded". Ctrl+B expands it again and the browser forgets
@@ -123,22 +123,37 @@ a release that changes sign-in or Drive behaviour.
 - `ACC-066` (EDT-039, EDT-040) Planning the steps of `ACC-063` in the table shows "Total mash time 2 h 18 min: 1 h
   35 min of rests, 43 min heating at 1 °C/min." and the profile; a heating rate of 2 shows "Total mash time 1 h 57
   min: 1 h 35 min of rests, 22 min heating at 2 °C/min."
-- `ACC-067` (QE-34, EDT-041, EDT-042) The Ingredients tab has the sections Malt and Hops, each a table with Name, g,
-  % and a Total line, saying "No malt yet." / "No hop yet." for a recipe without `ingredients`; + Add malt / + Add
+- `ACC-067` (QE-34, QE-35, EDT-041, EDT-042) The Malt tab has a table with Name, g, EBC, % and a Total line, the
+  Hops tab one with Name, g, α %, min, % and a Total line, saying "No malt yet." / "No hop yet." for a recipe without `ingredients`; + Add malt / + Add
   hop is the table's last row before the Total line, and adds an empty row above it whose name field has the focus; ✕ removes a row; removing the last row of both tables removes
   `ingredients` from the recipe.
 - `ACC-068` (EDT-043) Malts Pilsner malt 4500 g and Munich malt 500 g show 90 % and 10 % and the total 5000 g, 100 %;
   three hops of 10 g each show 33.3 % each and 30 g; a row without an amount shows "–" and doesn't count.
-- `ACC-069` (EDT-044, EDT-045, FMT-004) A new row is reported as "Ingredients, Malt 1: Malt 1 needs a name." and
+- `ACC-069` (EDT-044, EDT-045, FMT-004) A new row is reported as "Malt 1: Malt 1 needs a name." and
   "… needs an amount in grams.", with its fields marked; 12.5 g is "Malt 1: the amount must be a whole number of
-  grams.", 0 g "… must be at least 1 g."; clicking "Ingredients, Malt 1" from the Mash Process tab opens the
-  Ingredients tab. A name and 4500 g make the recipe complete.
+  grams.", 0 g "… must be at least 1 g."; clicking "Malt 1" from the Mash Process tab opens the
+  Malt tab, "Hop 1" the Hops tab. A name and 4500 g make the recipe complete.
 - `ACC-070` (FMT-006, EDT-042) Two malts and a hop are written as `"ingredients"` after `"mashing"` (or after
   `"mashing_process"`), `malts` before `hops`, one entry per line in the brewer's order
   (`{ "name": "Pilsner malt", "grams": 4500 }`), without shares; the file reads back the same.
 - `ACC-071` (EDT-046) Malts Pilsner malt, Munich malt, Caramunich: dragging the first handle below the third shows a
   drop line and gives Munich malt, Caramunich, Pilsner malt, with the shares moved along; ArrowUp on the third handle
   moves Pilsner malt up one, its handle keeping the focus; the file has the new order.
+- `ACC-072` (EDT-047) Pilsner malt 4500 g, Munich malt 500 g and a malt without an amount: the donut has two slices
+  in the chart colours 1 and 2 with the tooltips "Pilsner malt: 4500 g, 90 %" and "Munich malt: 500 g, 10 %", the
+  legend Pilsner malt 90 %, Munich malt 10 %, and 5000 g in its middle; each row's swatch has its slice's colour; a
+  9th row's slice is "other". No donut without amounts.
+- `ACC-073` (EDT-048, EDT-050) The beer colour is "–" with "Add malts with their amounts."; with Pilsner malt 4500 g
+  3.5 EBC and Munich malt 500 g without EBC, "Enter the EBC of malt 2 and the batch volume."; with Munich malt
+  15 EBC and 20 l it is "9 EBC" with the swatch #FFBF42. An EBC of −1 is "Malt 2: the colour must be a number of
+  at least 0 EBC."
+- `ACC-074` (EDT-049, EDT-050) The bitterness of Hallertauer Tradition 30 g, 5.5 %, 60 min in 20 l at 12.6 °P is
+  "19 IBU"; until the boil time, volume and gravity are entered it is "–" with "Enter the alpha acid and boil time
+  of hop 1 and the batch volume and the original gravity."; a hop of 0 min adds nothing. 101 % and 2.5 min are
+  problems.
+- `ACC-075` (EDT-050, EDT-045, FMT-006) The Malt tab has the field Batch volume, the Hops tab Batch volume (the same
+  value) and Original gravity; 20 l and 12.6 °P are written as `"batch": { "liters": 20, "plato": 12.6 }`; 0 l and
+  41 °P are problems whose entries open the Malt and the Hops tab; clearing both removes `batch`.
 
 ## 9.3 Browser drafts
 

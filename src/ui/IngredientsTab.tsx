@@ -1,40 +1,226 @@
 /**
- * The Ingredients tab (EDT-041..045, QE-34): the malts and the hops of the brew, each a table the brewer adds rows
- * to with its "+ Add" row, below the entries. A row is a name and an amount in whole grams; its share of the table's
- * total weight is computed (not stored, app RCP-013), and the last line sums the weight.
+ * The Malt and Hops tabs (EDT-041..050, QE-34, QE-35): the malts or the hops of the brew as a table the brewer adds
+ * rows to and sorts, a donut of each row's share of the total weight, and a figure computed from the table and the
+ * batch: the beer colour (EBC) for the malts, the bitterness (IBU) for the hops. Shares and figures are computed,
+ * never stored (app RCP-013).
  */
 
 import { useEffect, useState } from "preact/hooks";
 import type { Problem } from "../validate";
+import { beerColourHex } from "../brewMath";
 import {
-  INGREDIENT_KINDS,
   INGREDIENT_LABELS,
+  batchOf,
+  beerColourOf,
+  bitternessOf,
   formatShare,
   ingredientsOf,
   shareOf,
   totalGrams,
+  validGrams,
+  withBatchField,
   withIngredients,
+  type BatchField,
+  type Figure,
   type Ingredient,
   type IngredientKind,
   type Recipe,
 } from "../model";
 import { ADD_ROW_LINE, AddRowButton } from "./AddRow";
 import { DragHandle, DropLine } from "./DragHandle";
-import { moveItem } from "./reorder";
-import { useReorder } from "./useReorder";
 import { NumberField, TextField } from "./fields";
-import { BUTTON_STYLES, HINT_STYLE, SECTION_TITLE_STYLE } from "./styles";
+import { moveItem } from "./reorder";
+import { BUTTON_STYLES, HINT_STYLE } from "./styles";
+import { useReorder } from "./useReorder";
 
 const CELL = "px-1 py-2 align-middle first:pl-2 last:pr-2 sm:px-2 sm:first:pl-3 sm:last:pr-3";
 const HEAD = `${CELL} text-[11px] font-semibold text-stone-600 sm:text-xs dark:text-stone-300`;
 const NUMBER = "whitespace-nowrap text-right tabular-nums";
 
+/** The chart colours in their fixed order (EDT-047); rows from the 9th on share "other". */
+const SERIES = 8;
+export const seriesColour = (i: number) => (i < SERIES ? `var(--series-${i + 1})` : "var(--series-other)");
+
+/** A number field of a row (EDT-042): the grams, a malt's EBC, a hop's alpha acid and boil time. */
+type Column = { field: "grams" | "ebc" | "alpha" | "minutes"; head: string; label: string; integer: boolean; width: string };
+const COLUMNS: Record<IngredientKind, Column[]> = {
+  malts: [
+    { field: "grams", head: "g", label: "Amount (g)", integer: true, width: "w-16 sm:w-28" },
+    { field: "ebc", head: "EBC", label: "Colour (EBC)", integer: false, width: "w-14 sm:w-20" },
+  ],
+  hops: [
+    { field: "grams", head: "g", label: "Amount (g)", integer: true, width: "w-12 sm:w-24" },
+    { field: "alpha", head: "α %", label: "Alpha acid (%)", integer: false, width: "w-12 sm:w-20" },
+    { field: "minutes", head: "min", label: "Boil time (min)", integer: true, width: "w-12 sm:w-20" },
+  ],
+};
+
+/** Each row's share of the total weight as a donut, with a legend (EDT-047). */
+function ShareDonut(props: { kind: IngredientKind; list: Ingredient[] }) {
+  const { list } = props;
+  const total = totalGrams(list);
+  const { one } = INGREDIENT_LABELS[props.kind];
+  const slices = list
+    .map((entry, i) => ({ entry, i, share: shareOf(entry, list) }))
+    .filter((s): s is { entry: Ingredient; i: number; share: number } => s.share !== undefined);
+  if (slices.length === 0) {
+    return null;
+  }
+  const size = 132;
+  const r = 52;
+  const width = 22;
+  const circumference = 2 * Math.PI * r;
+  let offset = 0;
+  const name = (entry: Ingredient, i: number) => (typeof entry.name === "string" && entry.name ? entry.name : `${one} ${i + 1}`);
+  return (
+    <figure class="flex flex-wrap items-center gap-x-6 gap-y-3" data-share-chart={props.kind}>
+      <svg
+        width={size}
+        height={size}
+        viewBox={`0 0 ${size} ${size}`}
+        role="img"
+        aria-label={`Shares of the total weight: ${slices.map((s) => `${name(s.entry, s.i)} ${formatShare(s.share)}`).join(", ")}`}
+        class="shrink-0 -rotate-90"
+      >
+        {slices.map((s) => {
+          const length = (s.share / 100) * circumference;
+          // A 2px gap of the surface between slices; none for a single slice (a full ring).
+          const gap = slices.length > 1 ? Math.min(2, length / 2) : 0;
+          const dash = `${Math.max(0, length - gap)} ${circumference - Math.max(0, length - gap)}`;
+          const circle = (
+            <circle
+              key={s.i}
+              data-share-slice={s.i}
+              cx={size / 2}
+              cy={size / 2}
+              r={r}
+              fill="none"
+              stroke={seriesColour(s.i)}
+              stroke-width={width}
+              stroke-dasharray={dash}
+              stroke-dashoffset={-offset}
+              class="transition-opacity hover:opacity-80"
+            >
+              <title>{`${name(s.entry, s.i)}: ${s.entry.grams} g, ${formatShare(s.share)}`}</title>
+            </circle>
+          );
+          offset += length;
+          return circle;
+        })}
+        <text
+          x={size / 2}
+          y={size / 2}
+          dy="0.35em"
+          text-anchor="middle"
+          transform={`rotate(90 ${size / 2} ${size / 2})`}
+          class="fill-ink text-[13px] font-semibold dark:fill-ink-light"
+        >
+          {total} g
+        </text>
+      </svg>
+      <figcaption>
+        <ul class="space-y-1 text-sm" data-share-legend>
+          {slices.map((s) => (
+            <li key={s.i} class="flex items-center gap-2">
+              <span aria-hidden="true" class="size-3 shrink-0 rounded-sm" style={{ background: seriesColour(s.i) }} />
+              <span class="text-ink dark:text-ink-light">{name(s.entry, s.i)}</span>
+              <span class="tabular-nums text-stone-500 dark:text-stone-400">{formatShare(s.share)}</span>
+            </li>
+          ))}
+        </ul>
+      </figcaption>
+    </figure>
+  );
+}
+
+/** Why a figure can't be computed yet (EDT-048, EDT-049), as a hint: what to enter. */
+function missingText(kind: IngredientKind, figure: Figure): string {
+  const { one } = INGREDIENT_LABELS[kind];
+  if (figure.noEntries) {
+    return kind === "malts" ? "Add malts with their amounts." : "Add hops with their amounts.";
+  }
+  const needs: string[] = [];
+  if (figure.rows && figure.rows.length > 0) {
+    const what = kind === "malts" ? "the EBC" : "the alpha acid and boil time";
+    const rows = figure.rows.length === 1 ? `${one.toLowerCase()} ${figure.rows[0]}` : `${one.toLowerCase()}s ${figure.rows.join(", ")}`;
+    needs.push(`${what} of ${rows}`);
+  }
+  for (const field of figure.batch ?? []) {
+    needs.push(field === "liters" ? "the batch volume" : "the original gravity");
+  }
+  return `Enter ${needs.join(" and ")}.`;
+}
+
+/** The computed figure above the table: the beer colour with its colour, or the bitterness (EDT-048, EDT-049). */
+function FigureLine(props: { kind: IngredientKind; recipe: Recipe }) {
+  const malts = props.kind === "malts";
+  const figure = malts ? beerColourOf(props.recipe) : bitternessOf(props.recipe);
+  const label = malts ? "Beer colour" : "Bitterness";
+  return (
+    <div data-figure={props.kind}>
+      <p class="flex items-center gap-2 text-sm font-medium text-ink dark:text-ink-light">
+        {label}:
+        {figure.value === undefined ? (
+          <span data-figure-value>–</span>
+        ) : malts ? (
+          <>
+            <span
+              aria-hidden="true"
+              data-beer-swatch
+              class="inline-block h-5 w-8 rounded ring-1 ring-black/10 dark:ring-white/20"
+              style={{ background: beerColourHex(figure.value) }}
+            />
+            <span data-figure-value class="text-base font-semibold tabular-nums">
+              {Math.round(figure.value)} EBC
+            </span>
+          </>
+        ) : (
+          <span data-figure-value class="text-base font-semibold tabular-nums">
+            {Math.round(figure.value)} IBU
+          </span>
+        )}
+      </p>
+      <p class={HINT_STYLE} data-figure-hint>
+        {figure.value === undefined
+          ? missingText(props.kind, figure)
+          : malts
+            ? "Morey's formula, from each malt's EBC and the batch volume."
+            : "Tinseth's formula, from each hop's alpha acid and boil time, the batch volume and the original gravity."}
+      </p>
+    </div>
+  );
+}
+
+/** The batch fields the figure needs (EDT-050): the volume (both tabs) and the original gravity (Hops). */
+function BatchFields(props: { fields: BatchField[]; recipe: Recipe; problems: Problem[]; onChange: (recipe: Recipe) => void }) {
+  const batch = batchOf(props.recipe);
+  const invalid = (field: string) => props.problems.some((p) => p.path === `batch.${field}`);
+  return (
+    <div class="grid grid-cols-[auto_1fr] items-center gap-x-2 gap-y-2" data-batch-fields>
+      {props.fields.map((field) => (
+        <NumberField
+          key={field}
+          label={field === "liters" ? "Batch volume" : "Original gravity"}
+          unit={field === "liters" ? "L" : "°P"}
+          value={batch[field]}
+          invalid={invalid(field)}
+          onChange={(v) => props.onChange(withBatchField(props.recipe, field, v))}
+        />
+      ))}
+    </div>
+  );
+}
+
 function IngredientTable(props: { kind: IngredientKind; recipe: Recipe; problems: Problem[]; onChange: (recipe: Recipe) => void }) {
   const { kind } = props;
-  const { title, one } = INGREDIENT_LABELS[kind];
+  const { one } = INGREDIENT_LABELS[kind];
+  const columns = COLUMNS[kind];
+  const span = columns.length + 4;
   const list = ingredientsOf(props.recipe, kind);
   const total = totalGrams(list);
   const set = (next: Ingredient[]) => props.onChange(withIngredients(props.recipe, kind, next));
+  const setField = (i: number, field: string, value: unknown) =>
+    set(list.map((e, j) => (j === i ? withField(e, field, value) : e)));
   const invalid = (i: number, field: string) => props.problems.some((p) => p.path === `ingredients.${kind}[${i}].${field}`);
   // Drag and drop with the handle, or the arrow keys on it (EDT-046), like the goals.
   const reorder = useReorder<HTMLTableSectionElement>(list.length, (from, to) => set(moveItem(list, from, to)));
@@ -47,130 +233,168 @@ function IngredientTable(props: { kind: IngredientKind; recipe: Recipe; problems
       setFocusRow(undefined);
     }
   }, [focusRow]);
-  const heading = `ingredients-${kind}-title`;
   return (
-    <section aria-labelledby={heading} data-ingredients={kind}>
-      <h3 id={heading} class={`${SECTION_TITLE_STYLE} mb-2`}>
-        {title}
-      </h3>
-      <div class="relative overflow-x-auto rounded-lg ring-1 ring-line dark:ring-white/10">
-        <table aria-labelledby={heading} class="w-full border-collapse text-sm">
-          <thead class="bg-stone-50 dark:bg-white/5">
-            <tr>
-              <th class={`${HEAD} w-8`}>
-                <span class="sr-only">Move</span>
+    <div class="relative overflow-x-auto rounded-lg ring-1 ring-line dark:ring-white/10" data-ingredients={kind}>
+      <table aria-label={INGREDIENT_LABELS[kind].title} class="w-full border-collapse text-sm">
+        <thead class="bg-stone-50 dark:bg-white/5">
+          <tr>
+            <th class={`${HEAD} w-8`}>
+              <span class="sr-only">Move</span>
+            </th>
+            <th class={`${HEAD} text-left`}>Name</th>
+            {columns.map((c) => (
+              <th key={c.field} class={`${HEAD} ${c.width} whitespace-nowrap text-right`} title={c.label}>
+                {c.head}
               </th>
-              <th class={`${HEAD} text-left`}>Name</th>
-              <th class={`${HEAD} w-16 text-right sm:w-28`}>g</th>
-              <th class={`${HEAD} w-12 text-right sm:w-20`}>%</th>
-              <th class={`${HEAD} w-10`}>
-                <span class="sr-only">Remove</span>
-              </th>
-            </tr>
-          </thead>
-          <tbody ref={body}>
-            {list.length === 0 ? (
-              <tr class="border-t border-line dark:border-white/10">
-                <td colSpan={5} class={`${CELL} ${HINT_STYLE}`}>
-                  No {one.toLowerCase()} yet.
+            ))}
+            <th class={`${HEAD} w-12 text-right sm:w-20`}>%</th>
+            <th class={`${HEAD} w-10`}>
+              <span class="sr-only">Remove</span>
+            </th>
+          </tr>
+        </thead>
+        <tbody ref={body}>
+          {list.map((entry, i) => {
+            const share = shareOf(entry, list);
+            return (
+              <tr
+                key={i}
+                class={
+                  "relative border-t border-line dark:border-white/10 " +
+                  (reorder.dragging(i) ? "bg-berry/10 opacity-60 dark:bg-berry-light/10" : "")
+                }
+                data-ingredient={i}
+              >
+                <td class={`${CELL} pr-0!`}>
+                  {reorder.dropLine(i) && <DropLine at={reorder.dropLine(i)!} />}
+                  <DragHandle
+                    label={`Move ${one.toLowerCase()} ${i + 1}`}
+                    title={`Drag to move the ${one.toLowerCase()} (or use the arrow keys)`}
+                    count={list.length}
+                    onDragStart={(e) => reorder.startDrag(i, e)}
+                    onMoveKey={(delta) => reorder.moveKey(i, delta)}
+                  />
+                </td>
+                <td class={`${CELL} min-w-32 sm:min-w-0 [&_input]:px-2! sm:[&_input]:px-3!`} data-ingredient-name>
+                  <TextField
+                    label={`Name, ${one} ${i + 1}`}
+                    compact
+                    value={entry.name}
+                    invalid={invalid(i, "name")}
+                    onChange={(name) => setField(i, "name", name)}
+                  />
+                </td>
+                {columns.map((c) => (
+                  <td
+                    key={c.field}
+                    class={`${CELL} min-w-14 sm:min-w-0 [&_input]:w-full! [&_input]:px-1.5! sm:[&_input]:px-3! [&_span]:justify-end`}
+                    data-ingredient-field={c.field}
+                  >
+                    <NumberField
+                      label={`${c.label}, ${one} ${i + 1}`}
+                      compact
+                      integer={c.integer}
+                      value={entry[c.field]}
+                      invalid={invalid(i, c.field)}
+                      onChange={(v) => setField(i, c.field, v)}
+                    />
+                  </td>
+                ))}
+                <td class={`${CELL} ${NUMBER} text-stone-600 dark:text-stone-300`} data-ingredient-share>
+                  <span class="inline-flex items-center justify-end gap-1.5">
+                    {share !== undefined && (
+                      // On a phone the legend carries the colours, so the columns fit.
+                      <span aria-hidden="true" class="hidden size-2.5 rounded-sm sm:inline-block" style={{ background: seriesColour(i) }} />
+                    )}
+                    {share === undefined ? "–" : formatShare(share)}
+                  </span>
+                </td>
+                <td class={`${CELL} text-right`}>
+                  <button
+                    type="button"
+                    class={BUTTON_STYLES.small}
+                    title={`Remove ${one.toLowerCase()}`}
+                    aria-label={`Remove ${one.toLowerCase()} ${i + 1}`}
+                    onClick={() => set(list.filter((_, j) => j !== i))}
+                  >
+                    ✕
+                  </button>
                 </td>
               </tr>
-            ) : (
-              list.map((entry, i) => {
-                const share = shareOf(entry, list);
-                return (
-                  <tr
-                    key={i}
-                    class={
-                      "relative border-t border-line dark:border-white/10 " +
-                      (reorder.dragging(i) ? "bg-berry/10 opacity-60 dark:bg-berry-light/10" : "")
-                    }
-                    data-ingredient={i}
-                  >
-                    <td class={`${CELL} pr-0!`}>
-                      {reorder.dropLine(i) && <DropLine at={reorder.dropLine(i)!} />}
-                      <DragHandle
-                        label={`Move ${one.toLowerCase()} ${i + 1}`}
-                        title={`Drag to move the ${one.toLowerCase()} (or use the arrow keys)`}
-                        count={list.length}
-                        onDragStart={(e) => reorder.startDrag(i, e)}
-                        onMoveKey={(delta) => reorder.moveKey(i, delta)}
-                      />
-                    </td>
-                    <td class={CELL} data-ingredient-name>
-                      <TextField
-                        label={`Name, ${one} ${i + 1}`}
-                        compact
-                        value={entry.name}
-                        invalid={invalid(i, "name")}
-                        onChange={(name) => set(list.map((e, j) => (j === i ? { ...e, name } : e)))}
-                      />
-                    </td>
-                    <td class={`${CELL} [&_input]:w-full! [&_span]:justify-end`}>
-                      <NumberField
-                        label={`Amount (g), ${one} ${i + 1}`}
-                        compact
-                        integer
-                        value={entry.grams}
-                        invalid={invalid(i, "grams")}
-                        onChange={(grams) => set(list.map((e, j) => (j === i ? { ...e, grams } : e)))}
-                      />
-                    </td>
-                    <td class={`${CELL} ${NUMBER} text-stone-600 dark:text-stone-300`} data-ingredient-share>
-                      {share === undefined ? "–" : formatShare(share)}
-                    </td>
-                    <td class={`${CELL} text-right`}>
-                      <button
-                        type="button"
-                        class={BUTTON_STYLES.small}
-                        title={`Remove ${one.toLowerCase()}`}
-                        aria-label={`Remove ${one.toLowerCase()} ${i + 1}`}
-                        onClick={() => set(list.filter((_, j) => j !== i))}
-                      >
-                        ✕
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })
-            )}
-            <tr class={ADD_ROW_LINE}>
-              <td colSpan={5} class="p-0">
-                <AddRowButton
-                  label={`Add ${one.toLowerCase()}`}
-                  onClick={() => {
-                    set([...list, { name: "" }]);
-                    setFocusRow(list.length);
-                  }}
-                />
+            );
+          })}
+          {list.length === 0 && (
+            <tr class="border-t border-line dark:border-white/10">
+              <td colSpan={span} class={`${CELL} ${HINT_STYLE}`}>
+                No {one.toLowerCase()} yet.
               </td>
             </tr>
-          </tbody>
-          <tfoot class="border-t-2 border-line font-semibold text-ink dark:border-white/20 dark:text-ink-light">
-            <tr data-ingredient-total>
-              <td class={CELL} />
-              <td class={CELL}>Total</td>
-              <td class={`${CELL} ${NUMBER}`}>{total} g</td>
-              <td class={`${CELL} ${NUMBER}`}>{total > 0 ? "100 %" : ""}</td>
-              <td class={CELL} />
-            </tr>
-          </tfoot>
-        </table>
-      </div>
-    </section>
+          )}
+          <tr class={ADD_ROW_LINE}>
+            <td colSpan={span} class="p-0">
+              <AddRowButton
+                label={`Add ${one.toLowerCase()}`}
+                onClick={() => {
+                  set([...list, { name: "" }]);
+                  setFocusRow(list.length);
+                }}
+              />
+            </td>
+          </tr>
+        </tbody>
+        <tfoot class="border-t-2 border-line font-semibold text-ink dark:border-white/20 dark:text-ink-light">
+          <tr data-ingredient-total>
+            <td class={CELL} />
+            <td class={CELL}>Total</td>
+            <td class={`${CELL} ${NUMBER}`}>{total} g</td>
+            {columns.slice(1).map((c) => (
+              <td key={c.field} class={CELL} />
+            ))}
+            <td class={`${CELL} ${NUMBER}`}>{total > 0 ? "100 %" : ""}</td>
+            <td class={CELL} />
+          </tr>
+        </tfoot>
+      </table>
+    </div>
   );
 }
 
-export function IngredientsTab(props: { recipe: Recipe; problems: Problem[]; onChange: (recipe: Recipe) => void }) {
+/** An entry with a field set, or removed when cleared (an empty optional field leaves the file). */
+function withField(entry: Ingredient, field: string, value: unknown): Ingredient {
+  if (value === undefined && field !== "name" && field !== "grams") {
+    const { [field]: _gone, ...rest } = entry;
+    return rest;
+  }
+  return { ...entry, [field]: value };
+}
+
+/** The Malt or the Hops tab (GUI-032). */
+export function IngredientsTab(props: { kind: IngredientKind; recipe: Recipe; problems: Problem[]; onChange: (recipe: Recipe) => void }) {
+  const { kind } = props;
+  const list = ingredientsOf(props.recipe, kind);
   return (
     <>
       <p class={HINT_STYLE}>
-        The malts and hops of the brew, each with its amount in grams. The shares are of each table's total weight.
+        {kind === "malts"
+          ? "The malts of the brew with their amounts and colours. The shares are of the total malt weight."
+          : "The hops of the brew with their amounts, alpha acid and boil time. The shares are of the total hop weight."}
       </p>
-      <div class="mt-4 space-y-6">
-        {INGREDIENT_KINDS.map((kind) => (
-          <IngredientTable key={kind} kind={kind} recipe={props.recipe} problems={props.problems} onChange={props.onChange} />
-        ))}
+      <div class="mt-3 flex flex-wrap items-start justify-between gap-x-6 gap-y-3 rounded-lg bg-stone-50 p-3 ring-1 ring-line dark:bg-white/5 dark:ring-white/10">
+        <FigureLine kind={kind} recipe={props.recipe} />
+        <BatchFields
+          fields={kind === "malts" ? ["liters"] : ["liters", "plato"]}
+          recipe={props.recipe}
+          problems={props.problems}
+          onChange={props.onChange}
+        />
+      </div>
+      {list.some((e) => validGrams(e.grams)) && (
+        <div class="mt-4">
+          <ShareDonut kind={kind} list={list} />
+        </div>
+      )}
+      <div class="mt-4">
+        <IngredientTable kind={kind} recipe={props.recipe} problems={props.problems} onChange={props.onChange} />
       </div>
     </>
   );

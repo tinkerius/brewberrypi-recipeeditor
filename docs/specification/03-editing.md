@@ -202,25 +202,45 @@ temperature of their own. The typical durations of `EDT-038` and the flags:
 | Saccharification rest | 20–40 | optional, conversion |
 | Mash-out | 5–10 | always |
 
-## 3.7 Ingredients (`QE-34`)
+## 3.7 Malt and hops (`QE-34`, `QE-35`)
 
-- `EDT-041` The tab **Ingredients** (`GUI-032`) holds the brew's ingredients (app `RCP-013`) in two sections, each
-  with its heading and a table: **Malt** and **Hops**. Like the mashing plan, they are design information for the
-  brewer; they do not change the goals, and the app does not use them.
-- `EDT-042` A table has a drag handle, the columns **Name**, **g** (the amount in grams, a whole number) and **%**,
-  and a button ✕ ("Remove malt" / "Remove hop") per row. After the last row and before the Total line, an add row
-  like the goal list's (`EDT-012`), **+ Add malt** (or **+ Add hop**), adds an empty row at the end, whose name field
-  gets the focus. The rows keep the brewer's order. ✕ removes the row. An empty table
-  says "No malt yet." / "No hop yet."; a table without rows is left out of the file, and `ingredients` too when both
-  are empty.
+- `EDT-041` The tabs **Malt** and **Hops** (`GUI-032`) hold the brew's ingredients (app `RCP-013`), each tab one
+  table, with the batch fields and a figure computed from the table above it and a donut of the shares between
+  them. Like the mashing plan, they are design information for the brewer; they do not change the goals, and the
+  app does not use them.
+- `EDT-042` A table has a drag handle, the columns **Name**, **g** (the amount in grams, a whole number), for a malt
+  **EBC** (its colour), for a hop **α %** (its alpha acid) and **min** (its boil time, a whole number), then **%**,
+  and a button ✕ ("Remove malt" / "Remove hop") per row; EBC, α % and min may stay empty (an empty one is left out
+  of the file). After the last row and before the Total line, an add row like the goal list's (`EDT-012`),
+  **+ Add malt** (or **+ Add hop**), adds an empty row at the end, whose name field gets the focus. The rows keep
+  the brewer's order. ✕ removes the row. An empty table says "No malt yet." / "No hop yet."; a table without rows
+  is left out of the file, and `ingredients` too when both are empty.
 - `EDT-043` The **%** column is a row's share of its table's total weight (a hop's of all hops), rounded to one
-  decimal ("90 %", "33.3 %"); it is computed, never stored. A row whose amount is not a whole number ≥ 1 yet shows
-  "–" and does not count. The last line, **Total**, sums the table's amounts ("5000 g") and shows "100 %" while the
-  total is above 0.
+  decimal ("90 %", "33.3 %"), with a swatch in its colour of the donut (`EDT-047`); it is computed, never stored. A
+  row whose amount is not a whole number ≥ 1 yet shows "–" and does not count. The last line, **Total**, sums the
+  table's amounts ("5000 g") and shows "100 %" while the total is above 0.
 - `EDT-044` A row needs a name and an amount: until it has both, it is a problem (`FMT-004`) and the recipe cannot
-  be saved or downloaded; the field with the problem is marked. The same name may appear twice.
-- `EDT-045` Problems of the ingredients are listed with the others (`EDT-020`) as "Ingredients, Malt n" or
-  "Ingredients, Hop n"; clicking that opens the Ingredients tab.
+  be saved or downloaded; the field with the problem is marked. The same name may appear twice. An EBC below 0, an
+  alpha acid outside 0–100 % or a boil time that is not a whole number ≥ 0 is a problem too.
+- `EDT-045` Problems of the ingredients and the batch are listed with the others (`EDT-020`) as "Malt n", "Hop n",
+  "Batch volume" or "Original gravity"; clicking that opens its tab (the batch volume: Malt; the gravity: Hops).
 - `EDT-046` The rows of each table are reordered like the goals (`EDT-012`): by dragging the handle, with a line
   where the row will be dropped, or with the arrow keys on the focused handle (the handle keeps the focus). The
   shares move with their rows; the file keeps the new order.
+- `EDT-047` Above the table, a **donut** shows the shares of the rows with an amount, one slice per row in table
+  order, with the total weight in its middle, a tooltip per slice ("Pilsner malt: 4500 g, 90 %") and a legend
+  (swatch, name, share). The slices take the categorical chart colours in a fixed order by row (validated for
+  colour-vision deficiency in light and dark mode); from the 9th row on they share one "other" grey. No donut
+  while no row has an amount.
+- `EDT-048` The Malt tab shows the **beer colour** in EBC by Morey's formula (MCU = Σ lb · °L / gal, SRM = 1.4922 ·
+  MCU^0.6859, EBC = SRM · 1.97, each malt's EBC as °L = (EBC · 0.508 + 0.76) / 1.3546), rounded to a whole number
+  ("9 EBC"), with a swatch of that colour (the SRM colour chart). It needs the EBC of every malt with an amount and
+  the batch volume; until then it shows "–" and says what to enter ("Enter the EBC of malt 2 and the batch
+  volume.").
+- `EDT-049` The Hops tab shows the **bitterness** in IBU by Tinseth's formula (per hop, 1.65 · 0.000125^(SG − 1) ·
+  (1 − e^(−0.04 · min)) / 4.15 · alpha/100 · g · 1000 / l, SG from the original gravity in °P), rounded to a whole
+  number ("19 IBU"). It needs the alpha acid and boil time of every hop with an amount, the batch volume and the
+  original gravity; until then it shows "–" and says what to enter.
+- `EDT-050` The **batch** fields (app `RCP-014`) sit next to the figure: **Batch volume** (L, the wort after the boil)
+  on both tabs, the same value, and **Original gravity** (°P) on the Hops tab. A field left empty is left out of the
+  file, and `batch` too when both are.

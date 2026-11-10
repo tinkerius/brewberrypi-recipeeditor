@@ -5,6 +5,7 @@
  * the optional mashing plan (app Q-37, RCP-012): the rests the brewer plans, keyed by rest id; the app doesn't use it.
  */
 
+import { beerColourEbc, bitternessIbu } from "./brewMath";
 import { MASH_RESTS, MASH_REST_IDS, type MashRestId } from "./mashRests";
 
 export * from "./mashRests";
@@ -43,6 +44,8 @@ export interface Recipe {
   mashing?: unknown;
   /** The malts and hops (app RCP-013); absent while there are none. */
   ingredients?: unknown;
+  /** The batch volume and original gravity (app RCP-014); absent while neither is set. */
+  batch?: unknown;
   [key: string]: unknown;
 }
 
@@ -108,7 +111,93 @@ export const INGREDIENT_LABELS: Record<IngredientKind, { title: string; one: str
   hops: { title: "Hops", one: "Hop" },
 };
 
-export type Ingredient = { name?: unknown; grams?: unknown } & Record<string, unknown>;
+/** A malt or a hop; a malt may have `ebc`, a hop `alpha` and `minutes` (app RCP-013, Q-39). */
+export type Ingredient = { name?: unknown; grams?: unknown; ebc?: unknown; alpha?: unknown; minutes?: unknown } & Record<
+  string,
+  unknown
+>;
+
+/** The fields an entry of each list may have besides name and grams (app RCP-013). */
+export const INGREDIENT_EXTRA_FIELDS: Record<IngredientKind, readonly string[]> = {
+  malts: ["ebc"],
+  hops: ["alpha", "minutes"],
+};
+
+function finite(value: unknown): value is number {
+  return typeof value === "number" && Number.isFinite(value);
+}
+
+/** The valid values of the new fields (app RCP-013, RCP-014): the same ranges the validator checks. */
+export const validEbc = (v: unknown): v is number => finite(v) && v >= 0;
+export const validAlpha = (v: unknown): v is number => finite(v) && v >= 0 && v <= 100;
+export const validBoilMinutes = (v: unknown): v is number => finite(v) && Number.isInteger(v) && v >= 0;
+export const validLiters = (v: unknown): v is number => finite(v) && v > 0;
+export const validPlato = (v: unknown): v is number => finite(v) && v >= 0 && v <= 40;
+
+export type BatchField = "liters" | "plato";
+
+export function batchOf(recipe: Recipe): Record<string, unknown> {
+  return isObject(recipe.batch) ? recipe.batch : {};
+}
+
+/** The recipe with a batch field set, or removed when `value` is undefined; an empty batch leaves the file (EDT-050). */
+export function withBatchField(recipe: Recipe, field: BatchField, value: unknown): Recipe {
+  const batch = { ...batchOf(recipe) };
+  if (value === undefined) {
+    delete batch[field];
+  } else {
+    batch[field] = value;
+  }
+  const ordered: Record<string, unknown> = {};
+  for (const key of ["liters", "plato"]) {
+    if (key in batch) {
+      ordered[key] = batch[key];
+    }
+  }
+  const { batch: _old, ...others } = recipe;
+  return Object.keys(batch).length === 0 ? others : { ...others, batch: { ...ordered, ...batch } };
+}
+
+/**
+ * A figure computed from the tables (EDT-048, EDT-049), or why it can't be yet: no entries with an amount, rows
+ * (numbered from 1) missing a value, or a batch field missing.
+ */
+export type Figure =
+  | { value: number; noEntries?: undefined; rows?: undefined; batch?: undefined }
+  | { value?: undefined; noEntries?: true; rows?: number[]; batch?: BatchField[] };
+
+/** The beer colour in EBC (EDT-048): every malt with an amount needs its EBC, and the batch needs its volume. */
+export function beerColourOf(recipe: Recipe): Figure {
+  const malts = ingredientsOf(recipe, "malts");
+  const counted = malts.map((m, i) => ({ m, i })).filter(({ m }) => validGrams(m.grams));
+  if (counted.length === 0) {
+    return { noEntries: true };
+  }
+  const rows = counted.filter(({ m }) => !validEbc(m.ebc)).map(({ i }) => i + 1);
+  const liters = batchOf(recipe).liters;
+  const batch: BatchField[] = validLiters(liters) ? [] : ["liters"];
+  if (rows.length > 0 || batch.length > 0) {
+    return { rows, batch };
+  }
+  return { value: beerColourEbc(counted.map(({ m }) => ({ grams: m.grams as number, ebc: m.ebc as number })), liters as number) };
+}
+
+/** The bitterness in IBU (EDT-049): every hop with an amount needs alpha and boil time, the batch volume and gravity. */
+export function bitternessOf(recipe: Recipe): Figure {
+  const hops = ingredientsOf(recipe, "hops");
+  const counted = hops.map((h, i) => ({ h, i })).filter(({ h }) => validGrams(h.grams));
+  if (counted.length === 0) {
+    return { noEntries: true };
+  }
+  const rows = counted.filter(({ h }) => !validAlpha(h.alpha) || !validBoilMinutes(h.minutes)).map(({ i }) => i + 1);
+  const { liters, plato } = batchOf(recipe);
+  const batch = (["liters", "plato"] as const).filter((f) => !(f === "liters" ? validLiters(liters) : validPlato(plato)));
+  if (rows.length > 0 || batch.length > 0) {
+    return { rows, batch: [...batch] };
+  }
+  const values = counted.map(({ h }) => ({ grams: h.grams as number, alpha: h.alpha as number, minutes: h.minutes as number }));
+  return { value: bitternessIbu(values, liters as number, plato as number) };
+}
 
 export function ingredientsOf(recipe: Recipe, kind: IngredientKind): Ingredient[] {
   const list = isObject(recipe.ingredients) ? recipe.ingredients[kind] : undefined;
@@ -377,11 +466,12 @@ const indentGoal = (goal: Goal) =>
 
 /**
  * The file content, formatted like the app's shipped recipes: "version" first (RCP-008), one line per goal, then the
- * mashing plan, one line per rest in catalogue order, then the ingredients, one line per malt and hop (FMT-006). The editor does not write "$schema" (optional,
+ * mashing plan, one line per rest in catalogue order, then the ingredients, one line per malt and hop, then the
+ * batch on one line (FMT-006). The editor does not write "$schema" (optional,
  * ignored by the app).
  */
 export function serializeRecipe(recipe: Recipe): string {
-  const { $schema: _schema, version, name, mashing_process: process, mashing, ingredients, ...rest } = recipe;
+  const { $schema: _schema, version, name, mashing_process: process, mashing, ingredients, batch, ...rest } = recipe;
   const { goals, ...processRest } = process;
   const lines: string[] = [];
   if (version !== undefined) {
@@ -442,6 +532,12 @@ export function serializeRecipe(recipe: Recipe): string {
   } else if (ingredients !== undefined) {
     lines[lines.length - 1] += ",";
     lines.push(`  "ingredients": ${JSON.stringify(ingredients)}`);
+  }
+  if (batch !== undefined) {
+    // One line: { "liters": 20, "plato": 12.6 } (FMT-006).
+    lines[lines.length - 1] += ",";
+    const one = isObject(batch) && Object.keys(batch).length > 0 ? indentGoal(batch as Goal) : JSON.stringify(batch);
+    lines.push(`  "batch": ${one}`);
   }
   for (const [key, value] of Object.entries(rest)) {
     lines[lines.length - 1] += ",";

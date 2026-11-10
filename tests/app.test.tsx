@@ -263,21 +263,22 @@ describe("App, the website's top bar and footer (QE-27)", () => {
 });
 
 describe("App, the recipe's tabs (QE-28)", () => {
-  it("ACC-048 shows the tabs Ingredients, selected, Mashing and Mash Process with the goals; the problems are below them", async () => {
+  it("ACC-048 shows the tabs Malt, selected, Hops, Mashing and Mash Process with the goals; the problems are below them", async () => {
     const store = new MemoryStore();
     await store.put(newDoc("Kept", { version: 3, name: "Kept", mashing_process: { goals: [{ type: "HeatUp" }] } }));
     await show(store);
     const recipe = root.querySelector("[aria-label=Recipe]")!;
     const tabs = () => [...recipe.querySelectorAll<HTMLElement>("[role=tablist] [role=tab]")];
     expect(tabs().map((t) => [t.textContent, t.getAttribute("aria-selected")])).toEqual([
-      ["Ingredients", "true"],
+      ["Malt", "true"],
+      ["Hops", "false"],
       ["Mashing", "false"],
       ["Mash Process", "false"],
     ]);
     expect(recipe.querySelector("[role=tabpanel] [data-ingredients=malts]")).not.toBeNull();
-    await act(async () => tabs()[2].click());
+    await act(async () => tabs()[3].click());
     const panel = recipe.querySelector<HTMLElement>("[role=tabpanel]")!;
-    expect(panel.getAttribute("aria-labelledby")).toBe(tabs()[2].id);
+    expect(panel.getAttribute("aria-labelledby")).toBe(tabs()[3].id);
     expect(panel.querySelector("ol [data-goal-line]")).not.toBeNull();
     const addGoal = [...panel.querySelectorAll("button")].find((b) => b.textContent?.trim() === "+ Add goal")!;
     expect(addGoal.hasAttribute("data-add-row")).toBe(true);
@@ -966,19 +967,30 @@ describe("App, the Mashing tab (QE-32)", () => {
   });
 });
 
-describe("App, the Ingredients tab (QE-34)", () => {
+describe("App, the Malt and Hops tabs (QE-34, QE-35)", () => {
   const recipe = () => root.querySelector("[aria-label=Recipe]")!;
   const section = (kind: string) => recipe().querySelector<HTMLElement>(`[data-ingredients=${kind}]`)!;
   const rows = (kind: string) => [...section(kind).querySelectorAll<HTMLTableRowElement>("tbody tr[data-ingredient]")];
   const nameField = (kind: string, i: number) => rows(kind)[i].querySelector<HTMLInputElement>("[data-ingredient-name] input")!;
-  const gramsField = (kind: string, i: number) => rows(kind)[i].querySelector<HTMLInputElement>("input[inputmode=numeric]")!;
+  const field = (kind: string, i: number, f: string) =>
+    rows(kind)[i].querySelector<HTMLInputElement>(`[data-ingredient-field=${f}] input`)!;
   const shares = (kind: string) => rows(kind).map((r) => r.querySelector("[data-ingredient-share]")!.textContent);
-  const total = (kind: string) =>
-    [...section(kind).querySelectorAll("[data-ingredient-total] td")].map((td) => td.textContent).slice(1, 4);
+  /** The Total line: its label, total weight and share. */
+  const total = (kind: string) => {
+    const tds = [...section(kind).querySelectorAll("[data-ingredient-total] td")].map((td) => td.textContent);
+    return [tds[1], tds[2], tds[tds.length - 2]];
+  };
+  const figure = () => recipe().querySelector("[data-figure] [data-figure-value]")!.textContent;
+  const hint = () => recipe().querySelector("[data-figure-hint]")!.textContent;
+  const batchField = (label: string) =>
+    [...recipe().querySelectorAll<HTMLLabelElement>("[data-batch-fields] label")].find((l) => l.textContent?.startsWith(label))!.querySelector("input")!;
   async function open(content: Recipe = { version: 3, name: "Brew", mashing_process: { goals: [{ type: "MashIn" }] } }) {
     const store = new MemoryStore();
     await store.put(newDoc("Brew", content));
     await show(store);
+  }
+  async function showTab(kind: "malts" | "hops") {
+    await act(async () => recipe().querySelector<HTMLElement>(`#tab-${kind}`)!.click());
   }
   async function type(input: HTMLInputElement, value: string) {
     await act(async () => {
@@ -986,11 +998,15 @@ describe("App, the Ingredients tab (QE-34)", () => {
       input.dispatchEvent(new Event("input", { bubbles: true }));
     });
   }
-  async function add(kind: "malts" | "hops", name: string, grams: string) {
+  /** Adds a row on the open tab: its name, grams and the other fields in table order. */
+  async function add(kind: "malts" | "hops", name: string, grams: string, more: Record<string, string> = {}) {
     await act(async () => button(kind === "malts" ? "+ Add malt" : "+ Add hop").click());
     const i = rows(kind).length - 1;
     await type(nameField(kind, i), name);
-    await type(gramsField(kind, i), grams);
+    await type(field(kind, i, "grams"), grams);
+    for (const [f, v] of Object.entries(more)) {
+      await type(field(kind, i, f), v);
+    }
   }
   async function download(): Promise<string> {
     let blob: Blob | undefined;
@@ -1010,31 +1026,29 @@ describe("App, the Ingredients tab (QE-34)", () => {
     });
   }
 
-  it("ACC-067 has the tables Malt and Hops; rows are added and removed, and an empty list leaves the file", async () => {
+  it("ACC-067 the Malt and Hops tabs each have a table; rows are added and removed, and an empty list leaves the file", async () => {
     await open();
-    const headings = [...recipe().querySelectorAll("[role=tabpanel] h3")].map((h) => h.textContent?.trim());
-    expect(headings).toEqual(["Malt", "Hops"]);
-    for (const kind of ["malts", "hops"]) {
-      const heads = [...section(kind).querySelectorAll("thead th")].map((th) => th.textContent);
-      expect(heads).toEqual(["Move", "Name", "g", "%", "Remove"]);
-      expect(total(kind)[0]).toBe("Total");
-      // The add row is part of the table: after the entries, before the Total line.
-      const addRow = section(kind).querySelector("tbody tr:last-child [data-add-row]")!;
-      expect(addRow.textContent).toBe(kind === "malts" ? "+ Add malt" : "+ Add hop");
-      expect(section(kind).querySelector("tfoot [data-ingredient-total]")).not.toBeNull();
-    }
+    const heads = (kind: string) => [...section(kind).querySelectorAll("thead th")].map((th) => th.textContent);
+    expect(heads("malts")).toEqual(["Move", "Name", "g", "EBC", "%", "Remove"]);
+    expect(section("hops")).toBeNull(); // on its own tab
     expect(section("malts").textContent).toContain("No malt yet.");
-    expect(section("hops").textContent).toContain("No hop yet.");
+    expect(total("malts")[0]).toBe("Total");
+    // The add row is part of the table: after the entries, before the Total line.
+    expect(section("malts").querySelector("tbody tr:last-child [data-add-row]")!.textContent).toBe("+ Add malt");
     await act(async () => button("+ Add malt").click());
     expect(rows("malts")).toHaveLength(1);
     expect(document.activeElement).toBe(nameField("malts", 0));
     expect(rows("malts")[0].nextElementSibling!.querySelector("[data-add-row]")).not.toBeNull();
     await type(nameField("malts", 0), "Pilsner malt");
-    await type(gramsField("malts", 0), "4500");
+    await type(field("malts", 0, "grams"), "4500");
     expect(await download()).toContain('"ingredients"');
     await act(async () => rows("malts")[0].querySelector<HTMLButtonElement>("button[aria-label='Remove malt 1']")!.click());
     expect(rows("malts")).toHaveLength(0);
     expect(await download()).not.toContain("ingredients");
+    await showTab("hops");
+    expect(heads("hops")).toEqual(["Move", "Name", "g", "α %", "min", "%", "Remove"]);
+    expect(section("hops").textContent).toContain("No hop yet.");
+    expect(section("hops").querySelector("tbody tr:last-child [data-add-row]")!.textContent).toBe("+ Add hop");
   });
 
   it("ACC-068 shows each row's share of the table's total weight and the total", async () => {
@@ -1043,67 +1057,83 @@ describe("App, the Ingredients tab (QE-34)", () => {
     await add("malts", "Munich malt", "500");
     expect(shares("malts")).toEqual(["90 %", "10 %"]);
     expect(total("malts")).toEqual(["Total", "5000 g", "100 %"]);
+    await showTab("hops");
     for (const name of ["Hallertauer", "Saaz", "Tettnanger"]) {
       await add("hops", name, "10");
     }
     expect(shares("hops")).toEqual(["33.3 %", "33.3 %", "33.3 %"]);
     expect(total("hops")).toEqual(["Total", "30 g", "100 %"]);
-    await type(gramsField("hops", 2), "");
+    await type(field("hops", 2, "grams"), "");
     expect(shares("hops")).toEqual(["50 %", "50 %", "–"]);
     expect(total("hops")).toEqual(["Total", "20 g", "100 %"]);
   });
 
-  it("ACC-069 reports a row without a name or a whole amount, marks its fields, and the problem opens the tab", async () => {
+  it("ACC-069 reports a row without a name or a whole amount, marks its fields, and the problem opens its tab", async () => {
     await open();
     await act(async () => button("+ Add malt").click());
-    expect(recipe().textContent).toContain("Ingredients, Malt 1: Malt 1 needs a name.");
-    expect(recipe().textContent).toContain("Ingredients, Malt 1: Malt 1 needs an amount in grams.");
+    expect(recipe().textContent).toContain("Malt 1: Malt 1 needs a name.");
+    expect(recipe().textContent).toContain("Malt 1: Malt 1 needs an amount in grams.");
     expect(nameField("malts", 0).className).toContain("ring-red-400");
-    expect(gramsField("malts", 0).className).toContain("ring-red-400");
+    expect(field("malts", 0, "grams").className).toContain("ring-red-400");
     await type(nameField("malts", 0), "Pilsner malt");
-    await type(gramsField("malts", 0), "12.5");
+    await type(field("malts", 0, "grams"), "12.5");
     expect(recipe().textContent).toContain("Malt 1: the amount must be a whole number of grams.");
-    await type(gramsField("malts", 0), "0");
+    await type(field("malts", 0, "grams"), "0");
     expect(recipe().textContent).toContain("Malt 1: the amount must be at least 1 g.");
+    await showTab("hops");
+    await act(async () => button("+ Add hop").click());
     await act(async () => recipe().querySelector<HTMLElement>("#tab-mash")!.click());
     expect(recipe().querySelector("[data-ingredients]")).toBeNull();
-    await act(async () => button("Ingredients, Malt 1").click());
-    expect(recipe().querySelector("#tab-ingredients")!.getAttribute("aria-selected")).toBe("true");
-    await type(gramsField("malts", 0), "4500");
+    await act(async () => button("Malt 1").click());
+    expect(recipe().querySelector("#tab-malts")!.getAttribute("aria-selected")).toBe("true");
+    await act(async () => button("Hop 1").click());
+    expect(recipe().querySelector("#tab-hops")!.getAttribute("aria-selected")).toBe("true");
+    await act(async () => rows("hops")[0].querySelector<HTMLButtonElement>("button[aria-label='Remove hop 1']")!.click());
+    await showTab("malts");
+    await type(field("malts", 0, "grams"), "4500");
     expect(recipe().textContent).toContain("Complete: BrewberryPi can load this recipe.");
   });
 
-  it("ACC-070 writes the ingredients one entry per line, malts before hops, without shares, and reads them back", async () => {
+  it("ACC-070 writes the ingredients one entry per line, malts before hops, then the batch, without computed values", async () => {
     await open({
       version: 3,
       name: "Brew",
       mashing_process: { goals: [{ type: "MashIn" }] },
       mashing: { MashOut: { temperature: 78, minutes: 10 } },
     });
-    await add("hops", "Hallertauer Tradition", "30");
-    await add("malts", "Pilsner malt", "4500");
+    await showTab("hops");
+    await add("hops", "Hallertauer Tradition", "30", { alpha: "5.5", minutes: "60" });
+    await type(batchField("Original gravity"), "12.6");
+    await showTab("malts");
+    await add("malts", "Pilsner malt", "4500", { ebc: "3.5" });
     await add("malts", "Munich malt", "500");
+    await type(batchField("Batch volume"), "20");
     const text = await download();
     expect(text).toContain(
       '  "mashing": {\n    "MashOut": { "temperature": 78, "minutes": 10 }\n  },\n' +
         '  "ingredients": {\n' +
         '    "malts": [\n' +
-        '      { "name": "Pilsner malt", "grams": 4500 },\n' +
+        '      { "name": "Pilsner malt", "grams": 4500, "ebc": 3.5 },\n' +
         '      { "name": "Munich malt", "grams": 500 }\n' +
         "    ],\n" +
         '    "hops": [\n' +
-        '      { "name": "Hallertauer Tradition", "grams": 30 }\n' +
+        '      { "name": "Hallertauer Tradition", "grams": 30, "alpha": 5.5, "minutes": 60 }\n' +
         "    ]\n" +
-        "  }\n}\n",
+        "  },\n" +
+        '  "batch": { "liters": 20, "plato": 12.6 }\n}\n', // liters first, though the gravity was entered first
     );
-    expect(text).not.toContain("%");
-    expect(toRecipe(JSON.parse(text)).ingredients).toEqual({
-      malts: [
-        { name: "Pilsner malt", grams: 4500 },
-        { name: "Munich malt", grams: 500 },
-      ],
-      hops: [{ name: "Hallertauer Tradition", grams: 30 }],
-    });
+    expect(text).not.toMatch(/%|EBC"|IBU|share/);
+    const read = toRecipe(JSON.parse(text));
+    expect([read.ingredients, read.batch]).toEqual([
+      {
+        malts: [
+          { name: "Pilsner malt", grams: 4500, ebc: 3.5 },
+          { name: "Munich malt", grams: 500 },
+        ],
+        hops: [{ name: "Hallertauer Tradition", grams: 30, alpha: 5.5, minutes: 60 }],
+      },
+      { liters: 20, plato: 12.6 },
+    ]);
   });
 
   it("ACC-071 reorders malts and hops by dragging the handle or with the arrow keys on it", async () => {
@@ -1138,5 +1168,87 @@ describe("App, the Ingredients tab (QE-34)", () => {
     expect(await download()).toContain(
       '      { "name": "Munich malt", "grams": 500 },\n      { "name": "Pilsner malt", "grams": 4500 },\n      { "name": "Caramunich", "grams": 200 }\n',
     );
+  });
+
+  it("ACC-072 draws a donut of the shares, one slice per row with an amount, in the rows' colours, with a legend", async () => {
+    await open();
+    expect(recipe().querySelector("[data-share-chart]")).toBeNull();
+    await add("malts", "Pilsner malt", "4500");
+    await add("malts", "Munich malt", "500");
+    await add("malts", "Caramunich", "");
+    const chart = recipe().querySelector("[data-share-chart=malts]")!;
+    const slices = [...chart.querySelectorAll("[data-share-slice]")];
+    expect(slices.map((c) => c.getAttribute("stroke"))).toEqual(["var(--series-1)", "var(--series-2)"]);
+    expect(slices.map((c) => c.querySelector("title")!.textContent)).toEqual(["Pilsner malt: 4500 g, 90 %", "Munich malt: 500 g, 10 %"]);
+    expect([...chart.querySelectorAll("[data-share-legend] li")].map((li) => li.textContent)).toEqual(["Pilsner malt90 %", "Munich malt10 %"]);
+    expect(chart.querySelector("text")!.textContent).toBe("5000 g");
+    // The row's swatch has its slice's colour.
+    expect(rows("malts")[1].querySelector<HTMLElement>("[data-ingredient-share] [aria-hidden]")!.style.background).toBe("var(--series-2)");
+    // From the 9th row on, the slices share "other".
+    for (let n = 3; n <= 9; n++) {
+      await type(field("malts", rows("malts").length - 1, "grams"), "100");
+      if (n < 9) {
+        await add("malts", `Malt ${n + 1}`, "");
+      }
+    }
+    expect([...chart.querySelectorAll("[data-share-slice]")].at(-1)!.getAttribute("stroke")).toBe("var(--series-other)");
+  });
+
+  it("ACC-073 shows the beer colour from the malts' EBC and the batch volume, or what is missing", async () => {
+    await open();
+    expect([figure(), hint()]).toEqual(["–", "Add malts with their amounts."]);
+    await add("malts", "Pilsner malt", "4500", { ebc: "3.5" });
+    await add("malts", "Munich malt", "500");
+    expect([figure(), hint()]).toEqual(["–", "Enter the EBC of malt 2 and the batch volume."]);
+    await type(field("malts", 1, "ebc"), "15");
+    expect(hint()).toBe("Enter the batch volume.");
+    await type(batchField("Batch volume"), "20");
+    expect(figure()).toBe("9 EBC");
+    expect(recipe().querySelector<HTMLElement>("[data-beer-swatch]")!.style.background).toBe("rgb(255, 191, 66)");
+    expect(hint()).toContain("Morey");
+    await type(field("malts", 1, "ebc"), "-1");
+    expect(recipe().textContent).toContain("Malt 2: the colour must be a number of at least 0 EBC.");
+  });
+
+  it("ACC-074 shows the bitterness from the hops' alpha acid and boil time, the batch volume and gravity", async () => {
+    await open();
+    await showTab("hops");
+    expect([figure(), hint()]).toEqual(["–", "Add hops with their amounts."]);
+    await add("hops", "Hallertauer Tradition", "30", { alpha: "5.5" });
+    expect(hint()).toBe("Enter the alpha acid and boil time of hop 1 and the batch volume and the original gravity.");
+    await type(field("hops", 0, "minutes"), "60");
+    await type(batchField("Batch volume"), "20");
+    await type(batchField("Original gravity"), "12.6");
+    expect(figure()).toBe("19 IBU");
+    expect(hint()).toContain("Tinseth");
+    await add("hops", "Saaz", "20", { alpha: "4", minutes: "0" });
+    expect(figure()).toBe("19 IBU"); // no boil, no bitterness
+    await type(field("hops", 0, "alpha"), "101");
+    expect(recipe().textContent).toContain("Hop 1: the alpha acid must be a number from 0 to 100 %.");
+    await type(field("hops", 1, "minutes"), "2.5");
+    expect(recipe().textContent).toContain("Hop 2: the boil time must be a whole number of minutes, at least 0.");
+  });
+
+  it("ACC-075 the batch volume is shared by both tabs, the gravity is on Hops; an empty batch leaves the file", async () => {
+    await open();
+    expect([...recipe().querySelectorAll("[data-batch-fields] label")].map((l) => l.textContent)).toEqual(["Batch volumeL"]);
+    await type(batchField("Batch volume"), "20");
+    await showTab("hops");
+    expect(batchField("Batch volume").value).toBe("20");
+    await type(batchField("Original gravity"), "12.6");
+    expect(await download()).toContain('"batch": { "liters": 20, "plato": 12.6 }');
+    await type(batchField("Batch volume"), "0");
+    expect(recipe().textContent).toContain("Batch volume: The batch volume must be a number above 0 litres.");
+    await type(batchField("Original gravity"), "41");
+    expect(recipe().textContent).toContain("Original gravity: The original gravity must be a number from 0 to 40 °P.");
+    await act(async () => recipe().querySelector<HTMLElement>("#tab-mash")!.click());
+    await act(async () => button("Original gravity").click());
+    expect(recipe().querySelector("#tab-hops")!.getAttribute("aria-selected")).toBe("true");
+    await act(async () => button("Batch volume").click());
+    expect(recipe().querySelector("#tab-malts")!.getAttribute("aria-selected")).toBe("true");
+    await type(batchField("Batch volume"), "");
+    await showTab("hops");
+    await type(batchField("Original gravity"), "");
+    expect(await download()).not.toContain("batch");
   });
 });

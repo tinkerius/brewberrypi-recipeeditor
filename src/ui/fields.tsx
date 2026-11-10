@@ -27,6 +27,8 @@ export function NumberField(props: {
   compact?: boolean;
   /** Marks the field as worth a second look (a warning, not a problem; EDT-033). */
   warn?: boolean;
+  /** The id of a hint that describes the field (e.g. its typical values). */
+  describedBy?: string;
   onChange: (value: number | string | undefined) => void;
 }) {
   const shown = typeof props.value === "number" || typeof props.value === "string" ? String(props.value) : "";
@@ -44,6 +46,7 @@ export function NumberField(props: {
         <input
           type="text"
           inputMode={props.integer ? "numeric" : "decimal"}
+          aria-describedby={props.describedBy}
           class={
             `${INPUT_STYLE} ${props.compact ? "w-12! px-1.5! sm:w-16! sm:px-2!" : "w-20!"} py-1.5! text-right ` +
             (props.invalid ? INVALID_INPUT : props.warn ? WARN_INPUT : "")

@@ -742,7 +742,7 @@ describe("App, the Mashing tab (QE-32)", () => {
     });
   }
 
-  it("ACC-058 lists the 9 rests as table rows with range, duration, an unticked box, and expands what each does", async () => {
+  it("ACC-058 lists the 9 rests as table rows with the typical values in the °C and min columns, and expands what each does", async () => {
     await openMashing();
     expect(recipe().querySelector("#tab-mashing")!.getAttribute("aria-selected")).toBe("true");
     const rows = [...panel().querySelectorAll<HTMLElement>("[data-mash-rest]")];
@@ -750,8 +750,13 @@ describe("App, the Mashing tab (QE-32)", () => {
     for (const r of rows) {
       const info = MASH_RESTS[r.dataset.mashRest as MashRestId];
       expect(r.textContent).toContain(info.label);
-      expect(r.textContent).toContain(info.range);
-      expect(r.textContent).toContain(info.duration);
+      const typical = (f: string) => r.querySelector(`[data-mash-typical=${f}]`)!;
+      expect([typical("temperature").textContent, typical("minutes").textContent]).toEqual([
+        `Typical: ${info.range}`,
+        `Typical: ${info.duration}`,
+      ]);
+      expect(typical("temperature").closest("td")!.cellIndex).toBe(2); // the °C column
+      expect(typical("minutes").closest("td")!.cellIndex).toBe(3); // the min column
       expect(r.querySelector<HTMLInputElement>("input[type=checkbox]")!.checked).toBe(false);
       expect(r.querySelector("input:not([type=checkbox])")).toBeNull();
       const about = r.querySelector<HTMLButtonElement>("button[aria-expanded]")!;
@@ -796,8 +801,12 @@ describe("App, the Mashing tab (QE-32)", () => {
     const warning = () => row("MaltoseRest").querySelector("[data-mash-warning]")?.textContent;
     expect(warning()).toBeUndefined();
     await type(field("MaltoseRest", "Temperature"), "70");
-    expect(warning()).toContain("60–65 °C, typ. ~63 °C");
-    expect(field("MaltoseRest", "Temperature").className).toContain("ring-amber-500!");
+    expect(warning()).toBe("⚠ Outside the typical range");
+    const input = field("MaltoseRest", "Temperature");
+    expect(input.className).toContain("ring-amber-500!");
+    const typical = document.getElementById(input.getAttribute("aria-describedby")!)!;
+    expect(typical.textContent).toBe("Typical: 60–65 °C, typ. ~63 °C");
+    expect(typical.className).toContain("text-amber-700");
     expect(recipe().textContent).toContain("Complete: BrewberryPi can load this recipe.");
     expect(await download()).toContain('"MaltoseRest": { "temperature": 70, "minutes": 45 }');
     await type(field("MaltoseRest", "Temperature"), "60");

@@ -53,6 +53,9 @@ export const CARD_STYLE = "rounded-lg bg-white p-4 ring-1 ring-line sm:p-6 dark:
 /** Card and dialog titles: Zilla Slab Bold, as the website's headings. */
 export const TITLE_STYLE = "font-brand text-xl font-bold leading-tight text-ink dark:text-ink-light";
 
+/** Section headings inside a tab (the Mashing tab's "Temperature Ladder" and "Rests"): one size smaller. */
+export const SECTION_TITLE_STYLE = "font-brand text-lg font-bold leading-tight text-ink dark:text-ink-light";
+
 export const LABEL_STYLE = "block text-xs font-medium text-stone-600 dark:text-stone-300";
 
 export const HINT_STYLE = "text-xs text-stone-500 dark:text-stone-400";

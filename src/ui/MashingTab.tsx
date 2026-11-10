@@ -22,7 +22,7 @@ import {
 } from "../model";
 import { NumberField } from "./fields";
 import { MashLadder } from "./MashLadder";
-import { HINT_STYLE } from "./styles";
+import { HINT_STYLE, SECTION_TITLE_STYLE } from "./styles";
 
 function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -181,45 +181,53 @@ export function MashingTab(props: { recipe: Recipe; problems: Problem[]; onChang
         Tick the rests of your mash and set their temperature and duration. The plan is kept in the recipe file; it
         doesn't change the goals of the mash process.
       </p>
-      <div class="mt-3">
+      <section class="mt-4" aria-labelledby="mash-ladder-title">
+        <h3 id="mash-ladder-title" class={`${SECTION_TITLE_STYLE} mb-2`}>
+          Temperature Ladder
+        </h3>
         <MashLadder plan={plan} selected={open} onSelect={showRest} />
-      </div>
-      {/* On a phone the table uses the card's full width; `relative` keeps the fields' screen-reader labels in it. */}
-      <div class="relative -mx-4 overflow-x-auto border-y border-line sm:mx-0 sm:rounded-lg sm:border-0 sm:ring-1 sm:ring-line dark:border-white/10 dark:sm:ring-white/10">
-        <table ref={table} class="w-full border-collapse">
-          <thead class="bg-stone-50 dark:bg-white/5">
-            <tr>
-              <th class={HEAD}>
-                <span class="sr-only">Planned</span>
-              </th>
-              <th class={HEAD}>Rest</th>
-              <th class={HEAD}>°C</th>
-              <th class={HEAD}>Typical</th>
-              <th class={HEAD}>min</th>
-              <th class={HEAD}>Typical</th>
-              <th class={HEAD}>
-                <span class="sr-only">About</span>
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {MASH_REST_IDS.map((id) => {
-              const rest = plan[id];
-              return (
-                <RestRows
-                  key={id}
-                  id={id}
-                  rest={rest === undefined ? undefined : isObject(rest) ? (rest as MashRest) : {}}
-                  problems={props.problems}
-                  open={open === id}
-                  onToggle={() => setOpen(open === id ? undefined : id)}
-                  onChange={(next) => props.onChange(withMashRest(props.recipe, id, next))}
-                />
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+      </section>
+      <section class="mt-6" aria-labelledby="mash-rests-title">
+        <h3 id="mash-rests-title" class={`${SECTION_TITLE_STYLE} mb-2`}>
+          Rests
+        </h3>
+        {/* On a phone the table uses the card's full width; `relative` keeps the fields' screen-reader labels in it. */}
+        <div class="relative -mx-4 overflow-x-auto border-y border-line sm:mx-0 sm:rounded-lg sm:border-0 sm:ring-1 sm:ring-line dark:border-white/10 dark:sm:ring-white/10">
+          <table ref={table} aria-labelledby="mash-rests-title" class="w-full border-collapse">
+            <thead class="bg-stone-50 dark:bg-white/5">
+              <tr>
+                <th class={HEAD}>
+                  <span class="sr-only">Planned</span>
+                </th>
+                <th class={HEAD}>Rest</th>
+                <th class={HEAD}>°C</th>
+                <th class={HEAD}>Typical</th>
+                <th class={HEAD}>min</th>
+                <th class={HEAD}>Typical</th>
+                <th class={HEAD}>
+                  <span class="sr-only">About</span>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {MASH_REST_IDS.map((id) => {
+                const rest = plan[id];
+                return (
+                  <RestRows
+                    key={id}
+                    id={id}
+                    rest={rest === undefined ? undefined : isObject(rest) ? (rest as MashRest) : {}}
+                    problems={props.problems}
+                    open={open === id}
+                    onToggle={() => setOpen(open === id ? undefined : id)}
+                    onChange={(next) => props.onChange(withMashRest(props.recipe, id, next))}
+                  />
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </section>
     </>
   );
 }

@@ -86,7 +86,7 @@ a release that changes sign-in or Drive behaviour.
   a later sign-in (the folders exist) adds nothing.
 - `ACC-019` (GUI-020) The list is titled "My Recipes"; "New recipe" and "Upload recipe" come after the recipes;
   there is no "New from a sample recipe".
-- `ACC-058` (QE-32, EDT-030, EDT-031, GUI-032) The Mashing tab is a table of the 9 rests of `EDT-031` in its
+- `ACC-058` (QE-32, EDT-030, EDT-031, GUI-032) The Mashing tab has, below the heading "Rests", a table of the 9 rests of `EDT-031` in its
   order, each row with its name, the typical range ("60–65 °C" for the Maltose rest) in the Typical column after °C and
   the typical duration in the Typical column after min, an unticked check box and no fields (for a recipe without
   `mashing`); a ticked rest shows its fields in the °C and min columns, the typical values staying in theirs; and an ⓘ button "About this rest" that expands the rest's texts below the row (one at a time)
@@ -114,7 +114,7 @@ a release that changes sign-in or Drive behaviour.
   before); Mash-out at 80 °C (above 78 °C); Protein rest and Maltose rest only (no conversion); Maltose rest 90 min
   and Saccharification rest 10 min (outside their typical durations). None for a Combined rest of 60 min, or a
   pre-mash of 240 min. The warnings are listed below the ladder and the recipe stays complete.
-- `ACC-065` (EDT-036, EDT-037) The ladder is above the table; it has a band and a label for each of the 9 rests,
+- `ACC-065` (EDT-036, EDT-037) The ladder is above the table, below the heading "Temperature Ladder"; it has a band and a label for each of the 9 rests,
   sorted by typical temperature, each label with its short name and typical temperature only (no effect), and
   a tooltip with its enzymes; the acid rest says "(obsolete)"; the limit reads "max 78 °C". Planning the pre-mash at 30 °C shows "Pre-mash 30 °C" with its tick
   at 30 °C and "Planned: 30 °C for 20 min" in its tooltip; unticking it shows "Pre-mash 25 °C" again. Without planned rests it says "No

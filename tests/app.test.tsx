@@ -747,6 +747,10 @@ describe("App, the Mashing tab (QE-32)", () => {
     expect(recipe().querySelector("#tab-mashing")!.getAttribute("aria-selected")).toBe("true");
     const rows = [...panel().querySelectorAll<HTMLElement>("[data-mash-rest]")];
     expect(rows.map((r) => r.dataset.mashRest)).toEqual([...MASH_REST_IDS]);
+    const table = panel().querySelector("table")!;
+    const heading = document.getElementById(table.getAttribute("aria-labelledby")!)!;
+    expect([heading.tagName, heading.textContent?.trim()]).toEqual(["H3", "Rests"]);
+    expect(heading.compareDocumentPosition(table) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     for (const r of rows) {
       const info = MASH_RESTS[r.dataset.mashRest as MashRestId];
       expect(r.textContent).toContain(info.label);
@@ -858,6 +862,9 @@ describe("App, the Mashing tab (QE-32)", () => {
     await openMashing();
     const l = ladder();
     expect(l.compareDocumentPosition(panel().querySelector("table")!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    const heading = panel().querySelector("#mash-ladder-title")!;
+    expect([heading.tagName, heading.textContent?.trim()]).toEqual(["H3", "Temperature Ladder"]);
+    expect(heading.compareDocumentPosition(l) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     const rests = [...l.querySelectorAll<SVGGElement>("[data-ladder-rest]")];
     expect(rests.map((g) => g.dataset.ladderRest)).toEqual([
       "PreMash",

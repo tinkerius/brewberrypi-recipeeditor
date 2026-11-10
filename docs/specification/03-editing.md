@@ -81,7 +81,7 @@ Applies signed out (drafts, §4) and signed in (Drive recipes, §5) alike, unles
 - `EDT-030` The tab **Mashing** (`GUI-032`) is the brewer's mashing plan (app `RCP-012`): which rests the mash
   gets, each with its temperature and duration. It is design information for the brewer; it does not change the
   goals (**Mash Process**), and the app does not use it. (Goals made from the plan may follow later.)
-- `EDT-031` The tab is a **table** with one row per rest of the table below, each once, in this order. Its columns:
+- `EDT-031` Below the heading **Rests**, the tab has a **table** with one row per rest of the table below, each once, in this order. Its columns:
   a check box, the rest's name, the planned **°C**, its **Typical** range, the planned **min**, its **Typical**
   duration, and an **ⓘ** button. The planned values are fields
   in their own columns, so the plan reads at a glance; a ticked row is highlighted, an unticked one has no fields.
@@ -149,7 +149,8 @@ Applies signed out (drafts, §4) and signed in (Drive recipes, §5) alike, unles
 
 ## 3.6 Mash temperature ladder (`QE-33`)
 
-- `EDT-036` Above the table of the Mashing tab is the **temperature ladder**, a chart whose y-axis is the mash
+- `EDT-036` Above the table of the Mashing tab, below the heading **Temperature Ladder**, is the **temperature
+  ladder**, a chart whose y-axis is the mash
   temperature (°C):
   - every rest of `EDT-031` is a **band** over its typical temperature range, in its own lane wherever ranges
     overlap or touch, so no two bands cover each other; its temperature is ticked on the band: the planned

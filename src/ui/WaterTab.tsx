@@ -21,6 +21,7 @@ import {
   type Recipe,
 } from "../model";
 import { NumberField } from "./fields";
+import { WaterGuide } from "./WaterGuide";
 import { HINT_STYLE, SECTION_TITLE_STYLE } from "./styles";
 
 /** Litres with at most one decimal: "32 L", "14.5 L". */
@@ -126,11 +127,12 @@ export function WaterTab(props: { recipe: Recipe; problems: Problem[]; warnings:
           </span>{" "}
           <span class={HINT_STYLE} data-mash-thickness-hint>
             {"value" in thickness
-              ? "(mash water per kg of malt; typical 2.5–4 L/kg)"
+              ? "(mash water per kg of malt; typical 2.5–5 L/kg)"
               : `Enter ${thickness.missing.map((m) => (m === "mash" ? "the mash water" : "the malts on the Malt tab")).join(" and ")}.`}
           </span>
         </dd>
       </dl>
+      <WaterGuide recipe={props.recipe} />
     </section>
   );
 }

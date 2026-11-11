@@ -174,7 +174,7 @@ a release that changes sign-in or Drive behaviour.
   `"water": { "mash": 16, "sparge": 14, "top_up": 2 }`; −1 is a problem whose entry opens the Water tab; clearing
   all three removes `water`.
 - `ACC-079` (EDT-052, EDT-050) With 5000 g of malt: total water "–", then 14 L, then with 16 L mash and 2.5 L
-  top-up water 32.5 L and a mash thickness of 3.2 L/kg (typical 2.5–4 L/kg); "Enter the mash water." before, and
+  top-up water 32.5 L and a mash thickness of 3.2 L/kg (typical 2.5–5 L/kg); "Enter the mash water." before, and
   "Enter the malts on the Malt tab." without malts. With a knockout volume of 20 L the Malt tab no longer asks for it.
 - `ACC-080` (EDT-055) At 9 EBC the colour scale has the styles Pils, Pale Ale, Märzen, Dunkel, Stout, the marker
   between Pils and Pale Ale, the label "9 EBC on a scale from 0 to 80 EBC, like Helles, Weissbier" and no line
@@ -234,7 +234,7 @@ a release that changes sign-in or Drive behaviour.
   recipe is "Complete", the warnings stay listed, their entries open their tab, and it can be downloaded.
 - `ACC-093` (EDT-064, EDT-033, EDT-038) Warnings outside, none at the limits: mash thickness 2.5 and 4 L/kg none,
   6.3 L/kg at the mash water; original gravity 7 and 22 °P none, 6.5 and 25 °P; final gravity 1 and 5 °P none, 6 °P;
-  attenuation 76 % none, 93 % at the final gravity; alpha acid 2 and 20 % none, 1.5 and 25 %; a hop addition of 90 min
+  attenuation 76 % none, 93 % at the final gravity (mash thickness 5 L/kg none, `QE-58`); alpha acid 2 and 20 % none, 1.5 and 25 %; a hop addition of 90 min
   none, 120 min; another addition's 120 min none; a Maltose rest at 70 °C for 90 min at both fields; a gravity of 41 °P
   or alpha acid of 101 % is an error and no warning; a CO₂ target of 3.5 and 7.5 g/L none, 3 and 8 g/L, 0 an error;
   the recipe stays valid.
@@ -249,6 +249,12 @@ a release that changes sign-in or Drive behaviour.
   target of 0 is "CO₂ target: The CO₂ target must be a number above 0 g/L.", 8 g/L a warning at the field; an
   amount of 0 is "Yeast: The yeast's amount must be a number above 0 g.", whose entry opens the Fermentation tab;
   clearing all three removes `fermentation`.
+- `ACC-096` (EDT-067, QE-58) The Water tab's Water guide lists Pils, Helles 4–5 L/kg; Weizen, Pale Ale, IPA
+  3.5–4 L/kg; Märzen, Dunkel, Amber 3–3.5 L/kg; Bock, Stout, strong beers 2.5–3 L/kg and asks for the knockout volume
+  and the malts; with 4.5 kg of malt the litres 18–22.5, 15.8–18, 13.5–15.8, 11.3–13.5 L; with 24 L knockout volume
+  "… ≈ 24 L + 2.4 L (60 min assumed, ~10 %/h) + 4.5 L (~1 L/kg) + 1 L = 31.9 L", and with 18 L mash and 3 L top-up
+  water a sparge water of 10.9 L; 18 L for 4.5 kg (4 L/kg) is no warning; with hop additions of 90 and 10 min and
+  20 L: "20 L + 3 L (90 min, ~10 %/h) + 4.5 L (~1 L/kg) + 1 L = 28.5 L".
 
 ## 9.3 Browser drafts
 

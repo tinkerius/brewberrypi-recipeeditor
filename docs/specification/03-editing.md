@@ -370,8 +370,17 @@ temperature of their own. The typical durations of `EDT-038` and the flags:
   ("Mash water: The mash water must be a number of at least 0 litres."); clicking it opens the Water tab.
 - `EDT-052` Below the fields, computed and never stored: **Total water**, the sum of the volumes entered ("32.5 L",
   "–" while none is), and the **Mash thickness**, the mash water per kg of malt (the Malt tab's total weight), with
-  one decimal ("3.2 L/kg") and the hint "(mash water per kg of malt; typical 2.5–4 L/kg)"; without the mash water or
+  one decimal ("3.2 L/kg") and the hint "(mash water per kg of malt; typical 2.5–5 L/kg)"; without the mash water or
   malts it shows "–" and what to enter ("Enter the mash water.", "Enter the malts on the Malt tab.").
+- `EDT-067` Below the figures, a **Water guide** (`QE-58`; hints only, nothing stored or checked): the mash water by beer
+  style, per kg of malt and, with malts on the Malt tab, in litres for their weight ("for your 4.5 kg of malt"):
+  Pils, Helles 4–5 L/kg; Weizen, Pale Ale, IPA 3.5–4 L/kg; Märzen, Dunkel, Amber 3–3.5 L/kg; Bock, Stout, strong
+  beers 2.5–3 L/kg ("light beers are mashed thinner, dark and strong ones thicker"). With the knockout volume and
+  the malts, an estimate: **Total water** ≈ knockout volume + boil-off (10 % of it per hour of the Boil Schedule's
+  boil time, `EDT-054`; 60 min assumed while there is none) + grain absorption (1 L per kg of malt) + 1 L of losses,
+  each term shown ("≈ 24 L + 2.4 L (60 min assumed, ~10 %/h) + 4.5 L (~1 L/kg) + 1 L = 31.9 L"); **Sparge water** ≈
+  total − mash water − top-up water ("= 10.9 L"; "(enter the mash water)" without it); "Top-up water: usually 0;
+  only to dilute to the target gravity." Without them it says what to enter.
 - `EDT-053` The names are the English brewing terms: mash water (German Hauptguss), sparge water (Nachguss), top-up
   water (Verdünnungswasser), knockout volume (Ausschlagwürze).
 - `EDT-057` The tab **Fermentation** (`GUI-032`, `QE-56`), after Water, starts with the heading **Gravity**: the
@@ -397,7 +406,7 @@ temperature of their own. The typical durations of `EDT-038` and the flags:
 
 | Value | Typical | At the field | Warning |
 |---|---|---|---|
-| Mash thickness (`EDT-052`) | 2.5–4 L/kg | Mash water | "A mash thickness of 6.3 L/kg is outside the typical 2.5–4 L/kg." |
+| Mash thickness (`EDT-052`; `QE-58`) | 2.5–5 L/kg | Mash water | "A mash thickness of 6.3 L/kg is outside the typical 2.5–5 L/kg." |
 | Original gravity | 7–22 °P | Original gravity (target) | "An original gravity of 25 °P is outside the typical 7–22 °P." |
 | Final gravity | 1–5 °P | Final gravity | "A final gravity of 6 °P is outside the typical 1–5 °P." |
 | Apparent attenuation (`EDT-057`) | 65–85 % | Final gravity | "An apparent attenuation of 93 % is outside the typical 65–85 %." |

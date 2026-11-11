@@ -323,6 +323,70 @@ export function mashThickness(recipe: Recipe): { value: number } | { missing: ("
   return missing.length > 0 ? { missing } : { value: (mash as number) / kg };
 }
 
+/** The mash water per kg of malt by beer style (EDT-067, QE-58): thin mashes for light beers, thick for strong ones. */
+export const MASH_WATER_BY_STYLE = [
+  { styles: "Pils, Helles", min: 4, max: 5 },
+  { styles: "Weizen, Pale Ale, IPA", min: 3.5, max: 4 },
+  { styles: "Märzen, Dunkel, Amber", min: 3, max: 3.5 },
+  { styles: "Bock, Stout, strong beers", min: 2.5, max: 3 },
+] as const;
+
+/** The rules of thumb of the water estimate (EDT-067): boil-off per hour, grain absorption per kg, other losses. */
+export const WATER_RULES = { boilOffPerHour: 0.1, absorptionPerKg: 1, losses: 1, defaultBoilMinutes: 60 } as const;
+
+/** The boil time (EDT-054): the longest cooking time of the boil additions with an amount; undefined while none. */
+export function boilMinutesOf(recipe: Recipe): number | undefined {
+  const minutes = (["hops", "others"] as const).flatMap((kind) =>
+    ingredientsOf(recipe, kind).flatMap((entry) =>
+      additionsOf(entry)
+        .filter((a) => validGrams(a.grams) && validBoilMinutes(a.minutes))
+        .map((a) => a.minutes as number),
+    ),
+  );
+  return minutes.length === 0 ? undefined : Math.max(...minutes);
+}
+
+/**
+ * The water guide's estimate (EDT-067): the total water as the knockout volume plus the boil-off (10 % of it per hour of
+ * boil; the Boil Schedule's boil time, else 60 min), the grain absorption (1 L per kg of malt) and 1 L of other
+ * losses; the sparge water as that total minus the mash and top-up water. Or what is missing.
+ */
+export function waterEstimate(recipe: Recipe):
+  | {
+      knockout: number;
+      boilMinutes: number;
+      boilAssumed: boolean;
+      boilOff: number;
+      absorption: number;
+      losses: number;
+      total: number;
+      /** Undefined while the mash water is not entered. */
+      sparge?: number;
+    }
+  | { missing: ("liters" | "malts")[] } {
+  const knockout = batchOf(recipe).liters;
+  const kg = totalGrams(ingredientsOf(recipe, "malts")) / 1000;
+  const missing: ("liters" | "malts")[] = [];
+  if (!validLiters(knockout)) {
+    missing.push("liters");
+  }
+  if (kg <= 0) {
+    missing.push("malts");
+  }
+  if (missing.length > 0) {
+    return { missing };
+  }
+  const liters = knockout as number;
+  const boil = boilMinutesOf(recipe);
+  const boilMinutes = boil ?? WATER_RULES.defaultBoilMinutes;
+  const boilOff = liters * WATER_RULES.boilOffPerHour * (boilMinutes / 60);
+  const absorption = kg * WATER_RULES.absorptionPerKg;
+  const total = liters + boilOff + absorption + WATER_RULES.losses;
+  const { mash, top_up: topUp } = waterOf(recipe);
+  const sparge = validWater(mash) ? total - mash - (validWater(topUp) ? topUp : 0) : undefined;
+  return { knockout: liters, boilMinutes, boilAssumed: boil === undefined, boilOff, absorption, losses: WATER_RULES.losses, total, sparge };
+}
+
 /**
  * The alcohol (EDT-057) from the target original gravity and the final gravity on the Water tab: alcohol by volume
  * and apparent attenuation in percent; or what is missing, or that the final gravity is not below the original.

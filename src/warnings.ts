@@ -33,7 +33,7 @@ export interface Warning {
 
 /** The typical ranges outside which the editor warns (EDT-064, QE-54). */
 export const TYPICAL = {
-  mashThickness: { min: 2.5, max: 4 }, // L/kg
+  mashThickness: { min: 2.5, max: 5 }, // L/kg (QE-58: a thin Pils mash is typical)
   plato: { min: 7, max: 22 }, // °P
   finalPlato: { min: 1, max: 5 }, // °P
   attenuation: { min: 65, max: 85 }, // %

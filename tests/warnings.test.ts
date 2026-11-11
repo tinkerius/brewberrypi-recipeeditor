@@ -9,16 +9,16 @@ const paths = (r: Recipe) => warningsOf(r).map((w) => w.path);
 
 describe("warnings: values outside their typical range (EDT-064, QE-54)", () => {
   it("ACC-093 warns outside the typical ranges, not at their limits, and the recipe stays valid", () => {
-    // Mash thickness 2.5–4 L/kg, at the mash water.
+    // Mash thickness 2.5–5 L/kg (QE-58), at the mash water.
     const malts = { malts: [{ name: "Pilsner malt", grams: 4000 }] };
     expect(paths(recipe({ ingredients: malts, water: { mash: 10 } }))).toEqual([]); // 2.5 L/kg
-    expect(paths(recipe({ ingredients: malts, water: { mash: 16 } }))).toEqual([]); // 4 L/kg
+    expect(paths(recipe({ ingredients: malts, water: { mash: 20 } }))).toEqual([]); // 5 L/kg
     const thick = recipe({ ingredients: malts, water: { mash: 25 } });
     expect(warningsOf(thick)).toEqual([
       {
         path: "water.mash",
-        message: "A mash thickness of 6.3 L/kg is outside the typical 2.5–4 L/kg.",
-        short: "⚠ A mash thickness of 6.3 L/kg is outside the typical 2.5–4 L/kg.",
+        message: "A mash thickness of 6.3 L/kg is outside the typical 2.5–5 L/kg.",
+        short: "⚠ A mash thickness of 6.3 L/kg is outside the typical 2.5–5 L/kg.",
       },
     ]);
     expect(validateRecipe(thick)).toEqual([]);

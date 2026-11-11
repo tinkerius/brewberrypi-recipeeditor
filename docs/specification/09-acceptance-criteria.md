@@ -249,12 +249,16 @@ a release that changes sign-in or Drive behaviour.
   target of 0 is "CO₂ target: The CO₂ target must be a number above 0 g/L.", 8 g/L a warning at the field; an
   amount of 0 is "Yeast: The yeast's amount must be a number above 0 g.", whose entry opens the Fermentation tab;
   clearing all three removes `fermentation`.
-- `ACC-096` (EDT-067, QE-58) The Water tab's Water guide lists Pils, Helles 4–5 L/kg; Weizen, Pale Ale, IPA
-  3.5–4 L/kg; Märzen, Dunkel, Amber 3–3.5 L/kg; Bock, Stout, strong beers 2.5–3 L/kg and asks for the knockout volume
-  and the malts; with 4.5 kg of malt the litres 18–22.5, 15.8–18, 13.5–15.8, 11.3–13.5 L; with 24 L knockout volume
-  "… ≈ 24 L + 2.4 L (60 min assumed, ~10 %/h) + 4.5 L (~1 L/kg) + 1 L = 31.9 L", and with 18 L mash and 3 L top-up
-  water a sparge water of 10.9 L; 18 L for 4.5 kg (4 L/kg) is no warning; with hop additions of 90 and 10 min and
-  20 L: "20 L + 3 L (90 min, ~10 %/h) + 4.5 L (~1 L/kg) + 1 L = 28.5 L".
+- `ACC-096` (EDT-067, EDT-068, QE-58, QE-60) The Water tab's fields have a column Typical and no separate guide box:
+  mash water "2.5–5 L/kg of malt", sparge water "–", top-up water "usually 0 L"; the mash water's ⓘ lists Pils, Helles
+  4–5 L/kg; Weizen, Pale Ale, IPA 3.5–4 L/kg; Märzen, Dunkel, Amber 3–3.5 L/kg; Bock, Stout, strong beers 2.5–3 L/kg,
+  the sparge water's asks for the knockout volume and the malts. With 4.5 kg of malt the mash water is "11.3–22.5 L
+  (2.5–5 L/kg)" and the ⓘ adds 18–22.5, 15.8–18, 13.5–15.8, 11.3–13.5 L; with 24 L knockout volume the sparge
+  water's ⓘ shows "… ≈ 24 L + 2.4 L (60 min assumed, ~10 %/h) + 4.5 L (~1 L/kg) + 1 L = 31.9 L"; with 18 L mash and
+  3 L top-up water the sparge water is "≈ 10.9 L" and the Total water figure "(estimate ≈ 31.9 L)"; 18 L for 4.5 kg
+  (4 L/kg) is no warning; with hop additions of 90 and 10 min and 20 L: "20 L + 3 L (90 min, ~10 %/h) + 4.5 L
+  (~1 L/kg) + 1 L = 28.5 L". The hop table's heads read "α %" over "2–20" and "Additions (cooking time · amount)"
+  over "cooking time up to 90 min".
 
 ## 9.3 Browser drafts
 

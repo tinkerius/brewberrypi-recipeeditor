@@ -1092,11 +1092,12 @@ describe("App, the Malt and Hops tabs (QE-34, QE-35)", () => {
     expect(rows("malts")).toHaveLength(0);
     expect(await download()).not.toContain("ingredients");
     await showTab("hops");
+    // Each with its typical value below the head (EDT-068).
     expect(heads("hops")).toEqual([
       "Move",
       "Name",
-      "α %",
-      "Additions (cooking time · amount)",
+      "α %, typical 2–20",
+      "Additions (cooking time · amount), typical cooking time up to 90 min",
       "Absolute amount (g)",
       "Remove",
     ]);
@@ -1839,7 +1840,7 @@ describe("App, the Water tab (QE-36)", () => {
     expect(recipe().querySelector("[role=tabpanel] h3")!.textContent?.trim()).toBe("Water");
     const labels = [...recipe().querySelectorAll("[role=tabpanel] label")].map((l) => l.textContent);
     expect(labels).toEqual(["Mash waterL", "Sparge waterL", "Top-up waterL", "Knockout volume (target)L"]); // the gravity: Fermentation
-    for (const hint of ["strike water", "while lautering", "after lautering to reach the original gravity", "end of the boil"]) {
+    for (const hint of ["strike water", "while lautering", "after lautering, only to dilute to the original gravity", "end of the boil"]) {
       expect(recipe().textContent).toContain(hint);
     }
     await type(input("Top-up water"), "2");
@@ -1880,46 +1881,59 @@ describe("App, the Water tab (QE-36)", () => {
     expect(recipe().querySelector("[data-figure-hint]")!.textContent).toBe("Enter the EBC of malts 1, 2.");
   });
 
-  it("ACC-096 the water guide gives the mash water by beer style and estimates the total and sparge water", async () => {
+  /** A water field's typical value (EDT-068); `info` opens its ⓘ and returns what it shows. */
+  const typical = (field: string) => recipe().querySelector(`[data-field-row=water-${field}] [data-typical]`)?.textContent;
+  async function info(field: string): Promise<Element> {
+    await act(async () => recipe().querySelector<HTMLElement>(`[data-field-row=water-${field}] [data-typical-info]`)!.click());
+    return recipe().querySelector(`[data-typical-about=water-${field}]`)!;
+  }
+
+  it("ACC-096 each water field has its typical value: the mash water by beer style, the sparge water estimated", async () => {
     await open();
-    const guide = () => recipe().querySelector("[data-water-guide]")!;
-    const styles = () => [...guide().querySelectorAll("[data-water-styles] tr")].map((tr) => [...(tr as HTMLTableRowElement).cells].map((td) => td.textContent));
-    expect(guide().querySelector("h4")!.textContent).toBe("Water guide");
-    expect(styles()).toEqual([
+    // A Typical column like the Mashing tab's (QE-60).
+    expect([...recipe().querySelectorAll("[data-water-fields] > span")].map((h) => h.textContent)).toEqual(["", "", "Typical", ""]);
+    expect([typical("mash"), typical("sparge"), typical("top_up")]).toEqual(["Typical: 2.5–5 L/kg of malt", "Typical: –", "Typical: usually 0 L"]);
+    const styles = await info("mash");
+    expect([...styles.querySelectorAll("[data-water-styles] tr")].map((tr) => [...(tr as HTMLTableRowElement).cells].map((td) => td.textContent))).toEqual([
       ["Pils, Helles", "4–5 L/kg"],
       ["Weizen, Pale Ale, IPA", "3.5–4 L/kg"],
       ["Märzen, Dunkel, Amber", "3–3.5 L/kg"],
       ["Bock, Stout, strong beers", "2.5–3 L/kg"],
     ]);
-    expect(guide().querySelector("[data-water-estimate]")!.textContent).toBe(
+    expect((await info("sparge")).textContent).toBe(
       "For an estimate of the total and the sparge water, enter the knockout volume and the malts on the Malt tab.",
     );
+    expect(recipe().querySelector("[data-water-guide]")).toBeNull(); // no separate guide box
   });
 
-  it("ACC-096 for 4.5 kg of malt and 24 L knockout volume the guide gives litres and the estimates", async () => {
+  it("ACC-096 for 4.5 kg of malt and 24 L knockout volume the typical values are in litres, with the estimates", async () => {
     await open({
       version: 3,
       name: "Brew",
       mashing_process: { goals: [] },
       ingredients: { malts: [{ name: "Pilsner malt", grams: 4500 }] },
     });
-    const guide = () => recipe().querySelector("[data-water-guide]")!;
-    expect(guide().textContent).toContain("Mash water by beer style (for your 4.5 kg of malt)");
-    expect([...guide().querySelectorAll("[data-style-litres]")].map((td) => td.textContent)).toEqual([
+    expect(typical("mash")).toBe("Typical: 11.3–22.5 L (2.5–5 L/kg)");
+    const styles = await info("mash");
+    expect(styles.textContent).toContain("Mash water by beer style (for your 4.5 kg of malt)");
+    expect([...styles.querySelectorAll("[data-style-litres]")].map((td) => td.textContent)).toEqual([
       "18–22.5 L",
       "15.8–18 L",
       "13.5–15.8 L",
       "11.3–13.5 L",
     ]);
     await type(input("Knockout volume"), "24");
+    const estimate = await info("sparge");
     // Without a boil time in the Boil Schedule 60 min are assumed.
-    expect(guide().querySelector("[data-estimate-total]")!.textContent).toBe(
+    expect(estimate.querySelector("[data-estimate-total]")!.textContent).toBe(
       "Total water ≈ knockout volume + boil-off + grain absorption + losses ≈ 24 L + 2.4 L (60 min assumed, ~10 %/h) + 4.5 L (~1 L/kg) + 1 L = 31.9 L",
     );
-    expect(guide().querySelector("[data-estimate-sparge]")!.textContent).toBe("Sparge water ≈ total − mash water − top-up water (enter the mash water)");
+    expect(recipe().querySelector("[data-estimate-sparge]")!.textContent).toBe("Sparge water ≈ total − mash water − top-up water (enter the mash water)");
     await type(input("Mash water"), "18");
     await type(input("Top-up water"), "3");
-    expect(guide().querySelector("[data-estimate-sparge]")!.textContent).toBe("Sparge water ≈ total − mash water − top-up water = 10.9 L");
+    expect(typical("sparge")).toBe("Typical: ≈ 10.9 L");
+    expect(recipe().querySelector("[data-estimate-sparge]")!.textContent).toBe("Sparge water ≈ total − mash water − top-up water = 10.9 L");
+    expect(recipe().querySelector("[data-total-estimate]")!.textContent).toBe(" (estimate ≈ 31.9 L)");
     // At 4 L/kg no warning (typical 2.5–5 L/kg).
     expect(recipe().querySelector("[data-water=mash] [data-field-warning]")).toBeNull();
   });
@@ -1935,7 +1949,7 @@ describe("App, the Water tab (QE-36)", () => {
       },
       batch: { liters: 20 },
     });
-    expect(recipe().querySelector("[data-estimate-total]")!.textContent).toContain("20 L + 3 L (90 min, ~10 %/h) + 4.5 L (~1 L/kg) + 1 L = 28.5 L");
+    expect((await info("sparge")).textContent).toContain("20 L + 3 L (90 min, ~10 %/h) + 4.5 L (~1 L/kg) + 1 L = 28.5 L");
   });
 
   it("ACC-079 without malts the mash thickness says where they go", async () => {

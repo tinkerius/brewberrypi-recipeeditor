@@ -8,7 +8,7 @@
 import { Fragment, type ComponentChildren } from "preact";
 import { useEffect, useState } from "preact/hooks";
 import type { Problem } from "../validate";
-import type { Warning } from "../warnings";
+import { TYPICAL, type Warning } from "../warnings";
 import { FieldNotes, hasWarning, notesAt, notesWhere, type Issues } from "./notes";
 import { balanceOf, beerColourHex, buGu } from "../brewMath";
 import {
@@ -80,6 +80,8 @@ type Column = {
   label: string;
   integer: boolean;
   width: string;
+  /** The typical value, a second line in the column head (EDT-068, QE-60): the range outside which it warns. */
+  typical?: string;
 };
 /** In this order after the name (EDT-042, QE-40): the absolute amount last, just before the relative one. */
 const COLUMNS: Record<IngredientKind, Column[]> = {
@@ -88,8 +90,22 @@ const COLUMNS: Record<IngredientKind, Column[]> = {
     { field: "grams", head: "Absolute amount (g)", label: "Absolute amount (g)", integer: true, width: "w-16 sm:w-28" },
   ],
   hops: [
-    { field: "alpha", head: "α %", label: "Alpha acid (%)", integer: false, width: "w-12 sm:w-20" },
-    { field: "additions", head: "Additions (cooking time · amount)", label: "Additions", integer: true, width: "w-52 sm:w-64" },
+    {
+      field: "alpha",
+      head: "α %",
+      label: "Alpha acid (%)",
+      integer: false,
+      width: "w-12 sm:w-20",
+      typical: `${TYPICAL.alpha.min}–${TYPICAL.alpha.max}`,
+    },
+    {
+      field: "additions",
+      head: "Additions (cooking time · amount)",
+      label: "Additions",
+      integer: true,
+      width: "w-52 sm:w-64",
+      typical: `cooking time up to ${TYPICAL.hopMinutes.max} min`,
+    },
     { field: "total", head: "Absolute amount (g)", label: "Absolute amount (g)", integer: true, width: "w-14 sm:w-24" },
   ],
   others: [
@@ -647,8 +663,19 @@ function IngredientTable(props: {
             </th>
             <th class={`${HEAD} text-left`}>Name</th>
             {columns.map((c) => (
-              <th key={c.field} class={`${HEAD} ${c.width} text-right ${c.head.length < 6 ? "whitespace-nowrap" : ""}`} title={c.label}>
+              <th
+                key={c.field}
+                class={`${HEAD} ${c.width} text-right ${c.head.length < 6 ? "whitespace-nowrap" : ""}`}
+                title={c.typical ? `${c.label}; typical ${c.typical}` : c.label}
+              >
                 {c.head}
+                {/* The typical value below the head (EDT-068), like the Mashing tab's Typical column. */}
+                {c.typical && (
+                  <span class="block text-[10px] font-normal text-stone-500 sm:text-[11px] dark:text-stone-400" data-head-typical>
+                    <span class="sr-only">, typical </span>
+                    {c.typical}
+                  </span>
+                )}
               </th>
             ))}
             {shares && <th class={`${HEAD} w-14 text-right sm:w-24`}>Relative amount (%)</th>}

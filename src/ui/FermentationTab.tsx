@@ -1,17 +1,19 @@
 /**
- * The Fermentation tab (EDT-057, EDT-066; QE-56, QE-57), after Water: the gravity, i.e. the target original gravity and
- * the final gravity (the batch's, app RCP-014), with the alcohol and the apparent attenuation; the yeast (its name and
- * amount) and the carbonation (the CO₂ target per litre), the fermentation's (app RCP-017). The original gravity is
- * entered only here; the Boiling tab uses it for the bitterness. Computed values are never stored.
+ * The Fermentation tab (EDT-057, EDT-066, EDT-068; QE-56, QE-57, QE-60), after Water: the gravity, i.e. the target
+ * original gravity and the final gravity (the batch's, app RCP-014), with the alcohol and the apparent attenuation; the
+ * yeast (its name and amount) and the carbonation (the CO₂ target per litre), the fermentation's (app RCP-017). Each
+ * field with its typical value like on the Water tab. The original gravity is entered only here; the Boiling tab uses
+ * it for the bitterness. Computed values are never stored.
  */
 
 import type { Problem } from "../validate";
-import type { Warning } from "../warnings";
+import { TYPICAL, type Warning } from "../warnings";
 import { alcoholOf, fermentationOf, withFermentationField, yeastOf, type Recipe } from "../model";
+import { FieldGrid, FieldRow } from "./FieldGrid";
 import { NumberField, TextField } from "./fields";
-import { FieldNotes, hasWarning, notesAt, notesWhere } from "./notes";
+import { notesAt, notesWhere } from "./notes";
 import { HINT_STYLE, SECTION_TITLE_STYLE } from "./styles";
-import { BatchFieldRow, FIELDS, FIGURES, HINT, TERM, VALUE } from "./WaterTab";
+import { BatchFieldRow, FIGURES, TERM, VALUE } from "./WaterTab";
 
 export function FermentationTab(props: { recipe: Recipe; problems: Problem[]; warnings: Warning[]; onChange: (recipe: Recipe) => void }) {
   const alcohol = alcoholOf(props.recipe);
@@ -27,10 +29,10 @@ export function FermentationTab(props: { recipe: Recipe; problems: Problem[]; wa
         <h3 id="gravity-title" class={`${SECTION_TITLE_STYLE} mb-3`}>
           Gravity
         </h3>
-        <div class={FIELDS} data-gravity-fields>
+        <FieldGrid data-gravity-fields>
           <BatchFieldRow field="plato" {...props} />
           <BatchFieldRow field="final_plato" {...props} />
-        </div>
+        </FieldGrid>
         <dl class={FIGURES} data-gravity-figures>
           <dt class={TERM}>Alcohol</dt>
           <dd>
@@ -55,55 +57,65 @@ export function FermentationTab(props: { recipe: Recipe; problems: Problem[]; wa
         <h3 id="yeast-title" class={`${SECTION_TITLE_STYLE} mb-3`}>
           Yeast
         </h3>
-        <div class={`${FIELDS} [&_[data-yeast-field=name]_input]:w-56! sm:[&_[data-yeast-field=name]_input]:w-64!`} data-yeast-fields>
-          <div class="contents" data-yeast-field="name">
-            <TextField
-              label="Name"
-              placeholder="e.g. Fermentis WB-06"
-              value={yeast.name}
-              invalid={invalid("fermentation.yeast.name")}
-              onChange={(v) => set("name", v)}
+        <FieldGrid data-yeast-fields>
+          <div class="contents [&_input]:w-48! sm:[&_input]:w-full!" data-yeast-field="name">
+            <FieldRow
+              id="yeast-name"
+              field={
+                <TextField
+                  label="Name"
+                  placeholder="e.g. Fermentis WB-06"
+                  value={yeast.name}
+                  invalid={invalid("fermentation.yeast.name")}
+                  onChange={(v) => set("name", v)}
+                />
+              }
+              notes={nameNotes}
+              hint="The yeast strain or product."
             />
-            <span class={HINT}>
-              The yeast strain or product.
-              <FieldNotes notes={nameNotes} class="mt-0.5" />
-            </span>
           </div>
           <div class="contents" data-yeast-field="grams">
-            <NumberField
-              label="Amount"
-              unit="g"
-              value={yeast.grams}
-              invalid={invalid("fermentation.yeast.grams")}
-              onChange={(v) => set("grams", v)}
+            <FieldRow
+              id="yeast-grams"
+              field={
+                <NumberField
+                  label="Amount"
+                  unit="g"
+                  value={yeast.grams}
+                  invalid={invalid("fermentation.yeast.grams")}
+                  onChange={(v) => set("grams", v)}
+                />
+              }
+              notes={notesAt(issues, "fermentation.yeast.grams")}
+              hint="Dry yeast: a packet is often 11.5 g."
             />
-            <span class={HINT}>
-              Dry yeast: a packet is often 11.5 g.
-              <FieldNotes notes={notesAt(issues, "fermentation.yeast.grams")} class="mt-0.5" />
-            </span>
           </div>
-        </div>
+        </FieldGrid>
       </section>
       <section class="mt-6" aria-labelledby="carbonation-title">
         <h3 id="carbonation-title" class={`${SECTION_TITLE_STYLE} mb-3`}>
           Carbonation
         </h3>
-        <div class={FIELDS} data-carbonation-fields>
+        <FieldGrid data-carbonation-fields>
           <div class="contents" data-co2>
-            <NumberField
-              label="CO₂ target"
-              unit="g/L"
-              value={fermentationOf(props.recipe).co2}
-              invalid={invalid("fermentation.co2")}
-              warn={hasWarning(notesAt(issues, "fermentation.co2"))}
-              onChange={(v) => set("co2", v)}
+            <FieldRow
+              id="co2"
+              field={
+                <NumberField
+                  label="CO₂ target"
+                  unit="g/L"
+                  value={fermentationOf(props.recipe).co2}
+                  invalid={invalid("fermentation.co2")}
+                  warn={props.warnings.some((w) => w.path === "fermentation.co2")}
+                  onChange={(v) => set("co2", v)}
+                />
+              }
+              typical={`${TYPICAL.co2.min}–${TYPICAL.co2.max} g/L`}
+              notes={notesAt(issues, "fermentation.co2")}
+              hint="Grams of CO₂ per litre of beer (British ales low, wheat beers high)."
             />
-            <span class={HINT}>
-              Grams of CO₂ per litre of beer; typical 3.5–7.5 g/L (British ales low, wheat beers high).
-              <FieldNotes notes={notesAt(issues, "fermentation.co2")} class="mt-0.5" />
-            </span>
           </div>
-        </div>
+        </FieldGrid>
       </section>
     </>
   );

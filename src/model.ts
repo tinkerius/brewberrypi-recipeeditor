@@ -234,7 +234,7 @@ export type WaterField = (typeof WATER_FIELDS)[number];
 export const WATER_LABELS: Record<WaterField, { label: string; hint: string }> = {
   mash: { label: "Mash water", hint: "Mashed in with the malt (strike water)." },
   sparge: { label: "Sparge water", hint: "Rinses the sugar out of the grain while lautering." },
-  top_up: { label: "Top-up water", hint: "Added after lautering to reach the original gravity." },
+  top_up: { label: "Top-up water", hint: "Added after lautering, only to dilute to the original gravity." },
 };
 
 export const validWater = (v: unknown): v is number => finite(v) && v >= 0;

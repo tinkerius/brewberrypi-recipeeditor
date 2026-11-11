@@ -364,7 +364,7 @@ temperature of their own. The typical durations of `EDT-038` and the flags:
 - `EDT-051` The tab **Water** (`GUI-032`) holds the brewing-day water (app `RCP-015`) under the heading **Water**
   (the gravity is on the Fermentation tab, `EDT-057`, `QE-56`):
   **Mash water** (strike water, mashed in with the malt), **Sparge water** (rinses the sugar out of the grain while
-  lautering) and **Top-up water** (added after lautering to reach the original gravity), in litres, each a number
+  lautering) and **Top-up water** (added after lautering, only to dilute to the original gravity), in litres, each a number
   ≥ 0 with a one-line hint, and the **Knockout volume (target)** (`EDT-050`, `QE-50`, entered only here; the Malt and Boiling tabs use it). A
   field left empty is left out of the file, and `water` too when all three are. A volume below 0 is a problem
   ("Mash water: The mash water must be a number of at least 0 litres."); clicking it opens the Water tab.
@@ -372,15 +372,25 @@ temperature of their own. The typical durations of `EDT-038` and the flags:
   "–" while none is), and the **Mash thickness**, the mash water per kg of malt (the Malt tab's total weight), with
   one decimal ("3.2 L/kg") and the hint "(mash water per kg of malt; typical 2.5–5 L/kg)"; without the mash water or
   malts it shows "–" and what to enter ("Enter the mash water.", "Enter the malts on the Malt tab.").
-- `EDT-067` Below the figures, a **Water guide** (`QE-58`; hints only, nothing stored or checked): the mash water by beer
-  style, per kg of malt and, with malts on the Malt tab, in litres for their weight ("for your 4.5 kg of malt"):
-  Pils, Helles 4–5 L/kg; Weizen, Pale Ale, IPA 3.5–4 L/kg; Märzen, Dunkel, Amber 3–3.5 L/kg; Bock, Stout, strong
-  beers 2.5–3 L/kg ("light beers are mashed thinner, dark and strong ones thicker"). With the knockout volume and
-  the malts, an estimate: **Total water** ≈ knockout volume + boil-off (10 % of it per hour of the Boil Schedule's
-  boil time, `EDT-054`; 60 min assumed while there is none) + grain absorption (1 L per kg of malt) + 1 L of losses,
-  each term shown ("≈ 24 L + 2.4 L (60 min assumed, ~10 %/h) + 4.5 L (~1 L/kg) + 1 L = 31.9 L"); **Sparge water** ≈
-  total − mash water − top-up water ("= 10.9 L"; "(enter the mash water)" without it); "Top-up water: usually 0;
-  only to dilute to the target gravity." Without them it says what to enter.
+- `EDT-067` The water fields' **typical values** (`QE-58`, `QE-60`; hints only, nothing stored), in the Typical column
+  (`EDT-068`): the **Mash water** 2.5–5 L per kg of malt, with malts on the Malt tab in litres for their weight
+  ("11.3–22.5 L (2.5–5 L/kg)"); its ⓘ shows the mash water by beer style, per kg and in litres ("for your 4.5 kg of
+  malt"): Pils, Helles 4–5 L/kg; Weizen, Pale Ale, IPA 3.5–4 L/kg; Märzen, Dunkel, Amber 3–3.5 L/kg; Bock, Stout,
+  strong beers 2.5–3 L/kg ("light beers are mashed thinner, dark and strong ones thicker"). The **Sparge water** an
+  estimate ("≈ 10.9 L"; "–" until it can be worked out); its ⓘ shows how: **Total water** ≈ knockout volume +
+  boil-off (10 % of it per hour of the Boil Schedule's boil time, `EDT-054`; 60 min assumed while there is none) +
+  grain absorption (1 L per kg of malt) + 1 L of losses, each term shown ("≈ 24 L + 2.4 L (60 min assumed, ~10 %/h)
+  + 4.5 L (~1 L/kg) + 1 L = 31.9 L"), and **Sparge water** ≈ total − mash water − top-up water ("= 10.9 L";
+  "(enter the mash water)" without it), or what to enter for it (the knockout volume, the malts). The **Top-up
+  water** "usually 0 L". The figure Total water adds the estimate: "21 L (estimate ≈ 31.9 L)".
+- `EDT-068` Every field with a typical range or value shows it the same way (`QE-60`), like the Mashing tab's rests
+  (`EDT-033`): on the Water and Fermentation tabs the fields are rows of label, field with its unit, a column
+  **Typical** and a one-line hint, with the same column widths in every section; the typical value is grey, amber
+  while the value is outside it, with the field's errors and warnings right after it (`EDT-062`) and, where it is
+  worked out, an ⓘ that shows how (`EDT-067`); on a phone "Typical: …" and the hint go below the field. Typical
+  values: original gravity 7–22 °P, final gravity "1–5 °P (attenuation 65–85 %)", CO₂ target 3.5–7.5 g/L, and the
+  water's (`EDT-067`); the knockout volume and the yeast have none. In the hop table the typical value is a second,
+  grey line in the column head: α % "2–20", Additions "cooking time up to 90 min". They are the ranges of `EDT-064`.
 - `EDT-053` The names are the English brewing terms: mash water (German Hauptguss), sparge water (Nachguss), top-up
   water (Verdünnungswasser), knockout volume (Ausschlagwürze).
 - `EDT-057` The tab **Fermentation** (`GUI-032`, `QE-56`), after Water, starts with the heading **Gravity**: the

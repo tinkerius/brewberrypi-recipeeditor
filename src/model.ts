@@ -645,7 +645,7 @@ export function idFromFileName(fileName: string): string {
   return fileName.replace(/\.json$/i, "");
 }
 
-function isObject(value: unknown): value is Record<string, unknown> {
+export function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
@@ -846,10 +846,9 @@ export function serializeRecipe(recipe: Recipe): string {
     lines.push(`  "batch": ${one}`);
   }
   if (water !== undefined) {
-    // One line: { "mash": 16, "sparge": 14, "top_up": 2 } (FMT-006).
+    // One line: { "mash": 16, "sparge": 14, "top_up": 2, "treatment": { "alkalinity": 10.3 } } (FMT-006).
     lines[lines.length - 1] += ",";
-    const one = isObject(water) && Object.keys(water).length > 0 ? indentGoal(water as Goal) : JSON.stringify(water);
-    lines.push(`  "water": ${one}`);
+    lines.push(`  "water": ${oneLine(water)}`);
   }
   if (fermentation !== undefined) {
     // One line: { "yeast": { "name": "WB-06", "grams": 11.5 }, "co2": 6.5 } (FMT-006).

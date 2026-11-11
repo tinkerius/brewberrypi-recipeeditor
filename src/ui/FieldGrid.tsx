@@ -12,7 +12,7 @@ import { HINT_STYLE } from "./styles";
 
 // The same column widths in every grid, so the fields, typical values and hints line up across sections and tabs.
 const GRID =
-  "grid grid-cols-[auto_1fr] items-center gap-x-3 gap-y-1 sm:grid-cols-[11rem_9.5rem_15rem_1fr] [&_input]:max-w-full";
+  "grid grid-cols-[auto_1fr] items-center gap-x-3 gap-y-1 sm:grid-cols-[11rem_10.5rem_15rem_1fr] [&_input]:max-w-full";
 const HEAD = "hidden text-xs font-semibold text-stone-600 sm:block dark:text-stone-300";
 
 /** The grid, with its column header "Typical" (EDT-068). */

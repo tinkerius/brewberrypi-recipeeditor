@@ -8,7 +8,8 @@ recipe, in its recipe folder (`{"version": 3, "name": …, "description": …, "
 can't brew it). A recipe has seven tabs: **Overview**, the recipe's description; **Malt**, the malts with their amounts, shares and colours, and the beer
 colour; **Mashing**, the brewer's mashing plan (the rests planned, each with temperature and duration); **Boiling**,
 the boil schedule, the hops (alpha acid, one or more additions each with cooking time and amount, shares, the bitterness) and other boil additions;
-**Water**, the mash, sparge and top-up water, the knockout volume, total water and mash thickness; **Fermentation**,
+**Water**, the mash, sparge and top-up water with their typical values, the knockout volume, total water and mash
+thickness, and the water treatment (the residual alkalinity after boiling, gypsum, acid malt and lactic acid); **Fermentation**,
 the original and final gravity with the alcohol, the yeast and the CO₂ target; and **Mash Process**,
 the goals the app brews. The app keeps the description, the ingredients, the batch, the water, the fermentation and the mashing plan in the
 file but doesn't use them. Errors (missing or wrong data) and warnings (values outside their typical range) are shown

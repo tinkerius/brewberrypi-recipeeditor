@@ -237,6 +237,8 @@ a release that changes sign-in or Drive behaviour.
   attenuation 76 % none, 93 % at the final gravity (mash thickness 5 L/kg none, `QE-58`); alpha acid 2 and 20 % none, 1.5 and 25 %; a hop addition of 90 min
   none, 120 min; another addition's 120 min none; a Maltose rest at 70 °C for 90 min at both fields; a gravity of 41 °P
   or alpha acid of 101 % is an error and no warning; a CO₂ target of 3.5 and 7.5 g/L none, 3 and 8 g/L, 0 an error;
+  gypsum 3 g/10 L and acid malt 5 % none, 3.5 g/10 L and 6 %; for 9 EBC a treated residual alkalinity of 2 °dH none,
+  2.5 °dH a warning, none without a beer colour;
   the recipe stays valid.
 - `ACC-094` (EDT-065, GUI-032, QE-55) A recipe opens on the Overview tab, the first one, with the heading
   Description and a box of eight lines; "A cloudy wheat beer." and "Banana and clove." on two lines are written as
@@ -259,6 +261,15 @@ a release that changes sign-in or Drive behaviour.
   (4 L/kg) is no warning; with hop additions of 90 and 10 min and 20 L: "20 L + 3 L (90 min, ~10 %/h) + 4.5 L
   (~1 L/kg) + 1 L = 28.5 L". The hop table's heads read "α %" over "2–20" and "Additions (cooking time · amount)"
   over "cooking time up to 90 min".
+- `ACC-097` (EDT-069, QE-61, FMT-006) With Pilsner malt 4600 g 7 EBC, 18 L mash water and 24 L knockout volume, the Water
+  tab's section Water treatment has Residual alkalinity (tap water) °dH, Carbonate hardness (tap water) °dH, Boil the
+  brewing water, Brewing gypsum g/10 L, Acid malt (of the grist) %, Lactic acid 80 % ml/10 L; the result is "–", with
+  10.3 °dH "10.3 °dH", the target "at most 2 °dH (9 EBC, like Pils)" and its warning; boiling asks for the carbonate
+  hardness, with 14 °dH "−7.9 °dH"; 1 g/10 L gypsum "−0.9 °dH", 1 % acid malt "−2.4 °dH", 0.5 ml/10 L lactic acid
+  "−1.5 °dH"; the result "−2.4 °dH" without a warning; the file has `"water": { "mash": 18, "treatment": {
+  "alkalinity": 10.3, "carbonate_hardness": 14, "boil": true, "gypsum": 1, "acid_malt": 1, "lactic_acid": 0.5 } }`;
+  4 g/10 L gypsum warns, 101 % acid malt is "Acid malt: The acid malt must be a number from 0 to 100 % of the grist.";
+  cleared and unticked, the treatment leaves the file.
 
 ## 9.3 Browser drafts
 

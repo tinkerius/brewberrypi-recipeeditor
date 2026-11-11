@@ -272,11 +272,39 @@ function checkWater(water: unknown, problems: Problem[]) {
   }
   for (const [key, value] of Object.entries(water)) {
     const at = `${WATER_PATH}.${key}`;
-    if (!(WATER_FIELDS as readonly string[]).includes(key)) {
+    if (key === "treatment") {
+      checkTreatment(value, problems);
+    } else if (!(WATER_FIELDS as readonly string[]).includes(key)) {
       problems.push({ path: at, message: `The water has no field "${key}".` });
     } else if (typeof value !== "number" || !Number.isFinite(value) || value < 0) {
       const label = WATER_LABELS[key as (typeof WATER_FIELDS)[number]].label;
       problems.push({ path: at, message: `The ${label.toLowerCase()} must be a number of at least 0 litres.` });
+    }
+  }
+}
+
+/** The water treatment (app RCP-015, Q-46): the tap water's figures in °dH and what is done to the water. */
+function checkTreatment(treatment: unknown, problems: Problem[]) {
+  const at = `${WATER_PATH}.treatment`;
+  if (!isObject(treatment)) {
+    problems.push({ path: at, message: "The water treatment must be an object." });
+    return;
+  }
+  const number = (v: unknown) => typeof v === "number" && Number.isFinite(v);
+  const messages: Record<string, [(v: unknown) => boolean, string]> = {
+    alkalinity: [number, "The residual alkalinity must be a number of °dH."],
+    carbonate_hardness: [(v) => number(v) && (v as number) >= 0, "The carbonate hardness must be a number of at least 0 °dH."],
+    boil: [(v) => typeof v === "boolean", "Boiling must be yes or no."],
+    gypsum: [(v) => number(v) && (v as number) >= 0, "The brewing gypsum must be a number of at least 0 g per 10 L."],
+    acid_malt: [(v) => number(v) && (v as number) >= 0 && (v as number) <= 100, "The acid malt must be a number from 0 to 100 % of the grist."],
+    lactic_acid: [(v) => number(v) && (v as number) >= 0, "The lactic acid must be a number of at least 0 ml per 10 L."],
+  };
+  for (const [key, value] of Object.entries(treatment)) {
+    const check = messages[key];
+    if (!check) {
+      problems.push({ path: `${at}.${key}`, message: `The water treatment has no field "${key}".` });
+    } else if (!check[0](value)) {
+      problems.push({ path: `${at}.${key}`, message: check[1] });
     }
   }
 }

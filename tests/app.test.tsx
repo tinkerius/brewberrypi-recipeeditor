@@ -1838,7 +1838,7 @@ describe("App, the Water tab (QE-36)", () => {
     await open();
     expect(recipe().querySelector("#tab-water")!.getAttribute("aria-selected")).toBe("true");
     expect(recipe().querySelector("[role=tabpanel] h3")!.textContent?.trim()).toBe("Water");
-    const labels = [...recipe().querySelectorAll("[role=tabpanel] label")].map((l) => l.textContent);
+    const labels = [...recipe().querySelectorAll("[data-water-fields] label")].map((l) => l.textContent);
     expect(labels).toEqual(["Mash waterL", "Sparge waterL", "Top-up waterL", "Knockout volume (target)L"]); // the gravity: Fermentation
     for (const hint of ["strike water", "while lautering", "after lautering, only to dilute to the original gravity", "end of the boil"]) {
       expect(recipe().textContent).toContain(hint);
@@ -1952,6 +1952,67 @@ describe("App, the Water tab (QE-36)", () => {
     expect((await info("sparge")).textContent).toContain("20 L + 3 L (90 min, ~10 %/h) + 4.5 L (~1 L/kg) + 1 L = 28.5 L");
   });
 
+  it("ACC-097 the Water treatment section lowers the tap water's residual alkalinity, each measure with its effect", async () => {
+    await open({
+      version: 3,
+      name: "Brew",
+      mashing_process: { goals: [] },
+      ingredients: { malts: [{ name: "Pilsner malt", grams: 4600, ebc: 7 }] },
+      water: { mash: 18 },
+      batch: { liters: 24 },
+    });
+    const section = () => recipe().querySelector("[data-water-treatment]")!;
+    const effect = (field: string) => section().querySelector(`[data-treatment=${field}] [data-field-hint]`)!.textContent;
+    const result = () => section().querySelector("[data-treatment-result]")!.textContent;
+    const treatmentInput = (field: string) => section().querySelector<HTMLInputElement>(`[data-treatment=${field}] input`)!;
+    expect(section().querySelector("h3")!.textContent).toBe("Water treatment");
+    expect([...section().querySelectorAll("label")].map((l) => l.textContent)).toEqual([
+      "Residual alkalinity (tap water)°dH",
+      "Carbonate hardness (tap water)°dH",
+      "Boil the brewing water",
+      "Brewing gypsumg/10 L",
+      "Acid malt (of the grist)%",
+      "Lactic acid 80 %ml/10 L",
+    ]);
+    expect(result()).toBe("–");
+    await type(treatmentInput("alkalinity"), "10.3");
+    expect(result()).toBe("10.3 °dH");
+    // The target for the beer colour (here 9 EBC), with a warning above it.
+    expect(section().querySelector("[data-field-row=treatment-result] [data-typical]")!.textContent).toBe("Typical: at most 2 °dH (9 EBC, like Pils)");
+    expect(section().querySelector("[data-field-row=treatment-result] [data-field-warning]")!.textContent).toBe(
+      "⚠ A residual alkalinity of 10.3 °dH after treatment is above the typical 2 °dH at most for a beer of 9 EBC.",
+    );
+    // Boiling needs the carbonate hardness.
+    await act(async () => treatmentInput("boil").click());
+    expect(effect("boil")).toBe("Enter the carbonate hardness. · precipitates carbonate hardness down to about 3 °dH");
+    await type(treatmentInput("carbonate_hardness"), "14");
+    expect(effect("boil")).toBe("−7.9 °dH · precipitates carbonate hardness down to about 3 °dH");
+    await type(treatmentInput("gypsum"), "1");
+    expect(effect("gypsum")).toBe("−0.9 °dH · its calcium lowers the alkalinity");
+    await type(treatmentInput("acid_malt"), "1");
+    expect(effect("acid_malt")).toBe("−2.4 °dH · its lactic acid acts in the mash");
+    await type(treatmentInput("lactic_acid"), "0.5");
+    expect(effect("lactic_acid")).toBe("−1.5 °dH · about 3 °dH less per ml per 10 L");
+    expect(result()).toBe("−2.4 °dH");
+    expect(section().querySelector("[data-field-row=treatment-result] [data-field-warning]")).toBeNull();
+    expect(await download()).toContain(
+      '"water": { "mash": 18, "treatment": { "alkalinity": 10.3, "carbonate_hardness": 14, "boil": true, "gypsum": 1, "acid_malt": 1, "lactic_acid": 0.5 } }',
+    );
+    // Typical limits: gypsum up to 3 g/10 L, acid malt up to 5 %.
+    await type(treatmentInput("gypsum"), "4");
+    expect(section().querySelector("[data-treatment=gypsum] [data-field-warning]")!.textContent).toBe(
+      "⚠ 4 g of brewing gypsum per 10 L is above the typical 3 g at most.",
+    );
+    await type(treatmentInput("acid_malt"), "101");
+    expect(await status()).toContain("Acid malt: The acid malt must be a number from 0 to 100 % of the grist.");
+    // Cleared, the treatment leaves the file.
+    for (const field of ["alkalinity", "carbonate_hardness", "gypsum", "acid_malt", "lactic_acid"]) {
+      await type(treatmentInput(field), "");
+    }
+    await act(async () => treatmentInput("boil").click());
+    expect(await download()).toContain('"water": { "mash": 18 }');
+  });
+
   it("ACC-079 without malts the mash thickness says where they go", async () => {
     await open();
     await type(input("Mash water"), "16");
@@ -1963,7 +2024,7 @@ describe("App, the Water tab (QE-36)", () => {
 
   it("ACC-081 the Fermentation tab's Gravity section has the target original gravity and the final gravity, with the alcohol", async () => {
     await open();
-    expect([...recipe().querySelectorAll("[role=tabpanel] h3")].map((h) => h.textContent?.trim())).toEqual(["Water"]);
+    expect([...recipe().querySelectorAll("[role=tabpanel] h3")].map((h) => h.textContent?.trim())).toEqual(["Water", "Water treatment"]);
     await act(async () => recipe().querySelector<HTMLElement>("#tab-fermentation")!.click());
     expect([...recipe().querySelectorAll("[role=tabpanel] h3")].map((h) => h.textContent?.trim())).toEqual(["Gravity", "Yeast", "Carbonation"]);
     const alcohol = () => [recipe().querySelector("[data-alcohol]")!.textContent, recipe().querySelector("[data-alcohol-hint]")!.textContent];

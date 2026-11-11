@@ -29,7 +29,17 @@ import {
 } from "../model";
 import { NumberField } from "./fields";
 import { FieldGrid, FieldRow } from "./FieldGrid";
-import { HINT_STYLE, SECTION_TITLE_STYLE } from "./styles";
+import { HINT_STYLE, LABEL_STYLE, SECTION_TITLE_STYLE } from "./styles";
+import {
+  TARGET_BY_COLOUR,
+  TREATMENT_TYPICAL,
+  degrees,
+  treatmentEffects,
+  treatmentOf,
+  withTreatmentField,
+  type Effect,
+  type TreatmentField,
+} from "../waterTreatment";
 
 /** Litres with at most one decimal: "32 L", "14.5 L". */
 function litres(value: number): string {
@@ -234,6 +244,138 @@ export function WaterTab(props: { recipe: Recipe; problems: Problem[]; warnings:
           </span>
         </dd>
       </dl>
+      <WaterTreatment {...props} />
+    </section>
+  );
+}
+
+/** What an effect does, or what is missing for it (EDT-069). */
+function effectText(effect: Effect): ComponentChildren {
+  if (effect === undefined) {
+    return null;
+  }
+  if ("value" in effect) {
+    return (
+      <span class={VALUE} data-effect>
+        {degrees(effect.value, true)}
+      </span>
+    );
+  }
+  const what = { carbonate_hardness: "the carbonate hardness", malts: "the malts on the Malt tab", mash: "the mash water" };
+  return <span data-effect-missing>Enter {effect.missing.map((m) => what[m]).join(" and ")}.</span>;
+}
+
+/**
+ * The water treatment (EDT-069, QE-61): the tap water's residual alkalinity and carbonate hardness, what is done to
+ * the water and what each does to the residual alkalinity, and the result against the typical target for the beer's
+ * colour.
+ */
+function WaterTreatment(props: { recipe: Recipe; problems: Problem[]; warnings: Warning[]; onChange: (recipe: Recipe) => void }) {
+  const t = treatmentOf(props.recipe);
+  const effects = treatmentEffects(props.recipe);
+  const issues = { problems: props.problems, warnings: props.warnings };
+  const path = (field: string) => `water.treatment.${field}`;
+  const set = (field: TreatmentField, value: unknown) => props.onChange(withTreatmentField(props.recipe, field, value));
+  const number = (field: TreatmentField, label: string, unit: string) => (
+    <NumberField
+      label={label}
+      unit={unit}
+      value={t[field]}
+      invalid={props.problems.some((p) => p.path === path(field))}
+      warn={props.warnings.some((w) => w.path === path(field))}
+      onChange={(v) => set(field, v)}
+    />
+  );
+  const row = (field: TreatmentField, label: string, unit: string, hint: ComponentChildren, typical?: string) => (
+    <div class="contents" data-treatment={field}>
+      <FieldRow id={`treatment-${field}`} field={number(field, label, unit)} typical={typical} notes={notesAt(issues, path(field))} hint={hint} />
+    </div>
+  );
+  const effect = (e: Effect, about: string) => (
+    <>
+      {effectText(e) ?? about}
+      {e !== undefined && <> · {about}</>}
+    </>
+  );
+  const target = effects.target;
+  return (
+    <section class="mt-6" aria-labelledby="treatment-title" data-water-treatment>
+      <h3 id="treatment-title" class={`${SECTION_TITLE_STYLE} mb-3`}>
+        Water treatment
+      </h3>
+      <p class={`${HINT_STYLE} mb-3`}>
+        The residual alkalinity of the brewing water, in °dH: lower it for pale beers, so the mash gets the right pH.
+      </p>
+      <FieldGrid data-treatment-fields>
+        {row("alkalinity", "Residual alkalinity (tap water)", "°dH", "From your water supplier's analysis.")}
+        {row("carbonate_hardness", "Carbonate hardness (tap water)", "°dH", "From the analysis; needed for boiling.")}
+        <div class="contents" data-treatment="boil">
+          <FieldRow
+            id="treatment-boil"
+            field={
+              <label class="contents">
+                <span class={LABEL_STYLE}>Boil the brewing water</span>
+                <span class="flex items-center">
+                  <input
+                    type="checkbox"
+                    class="size-4 accent-berry"
+                    checked={t.boil === true}
+                    onChange={(e) => set("boil", e.currentTarget.checked)}
+                  />
+                </span>
+              </label>
+            }
+            notes={notesAt(issues, path("boil"))}
+            hint={effect(effects.boil, "precipitates carbonate hardness down to about 3 °dH")}
+          />
+        </div>
+        {row("gypsum", "Brewing gypsum", "g/10 L", effect(effects.gypsum, "its calcium lowers the alkalinity"), `up to ${TREATMENT_TYPICAL.gypsum} g/10 L`)}
+        {row("acid_malt", "Acid malt (of the grist)", "%", effect(effects.acidMalt, "its lactic acid acts in the mash"), `up to ${TREATMENT_TYPICAL.acidMalt} %`)}
+        {row("lactic_acid", "Lactic acid 80 %", "ml/10 L", effect(effects.lacticAcid, "about 3 °dH less per ml per 10 L"))}
+        <div class="contents" data-treatment="result">
+          <FieldRow
+            id="treatment-result"
+            field={
+              <>
+                <span class={`${LABEL_STYLE} font-semibold`}>Residual alkalinity after treatment</span>
+                <span class={`${VALUE} text-base`} data-treatment-result>
+                  {effects.result === undefined ? "–" : degrees(effects.result)}
+                </span>
+              </>
+            }
+            typical={target ? `at most ${target.max} °dH (${target.ebc} EBC, like ${target.beers})` : "–"}
+            info={{
+              label: "The typical residual alkalinity by beer colour",
+              content: (
+                <>
+                  <p>The typical residual alkalinity at most, by the beer colour of the Malt tab:</p>
+                  <table class="mt-1" data-target-table>
+                    <tbody>
+                      {TARGET_BY_COLOUR.map((b) => (
+                        <tr key={b.max}>
+                          <td class="py-0.5 pr-4">{b.beers}</td>
+                          <td class="py-0.5 pr-4 whitespace-nowrap tabular-nums">
+                            {b.upToEbc === Infinity ? `over ${TARGET_BY_COLOUR[TARGET_BY_COLOUR.length - 2].upToEbc} EBC` : `up to ${b.upToEbc} EBC`}
+                          </td>
+                          <td class="py-0.5 whitespace-nowrap font-semibold tabular-nums">{b.max} °dH</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </>
+              ),
+            }}
+            notes={notesAt(issues, path("result"))}
+            hint={
+              effects.result === undefined
+                ? "Enter the tap water's residual alkalinity."
+                : target
+                  ? "The tap water's plus the effects above."
+                  : "The tap water's plus the effects above; the target needs the beer colour (Malt tab)."
+            }
+          />
+        </div>
+      </FieldGrid>
     </section>
   );
 }

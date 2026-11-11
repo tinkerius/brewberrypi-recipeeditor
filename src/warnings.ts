@@ -6,6 +6,7 @@
  */
 
 import { scheduleWarnings, stepsOf } from "./mashSchedule";
+import { TREATMENT_TYPICAL, degrees, treatmentEffects, treatmentOf } from "./waterTreatment";
 import {
   additionsOf,
   alcoholOf,
@@ -99,6 +100,21 @@ export function warningsOf(recipe: Recipe): Warning[] {
     const { min, max } = TYPICAL.co2;
     const message = `A CO₂ target of ${co2} g/L is outside the typical ${min}–${max} g/L.`;
     warnings.push({ path: "fermentation.co2", message, short: `⚠ ${message}` });
+  }
+  // The water treatment (EDT-069): the result above the target for the beer colour, much gypsum or acid malt.
+  const treatment = treatmentOf(recipe);
+  const effects = treatmentEffects(recipe);
+  if (effects.result !== undefined && effects.target && effects.result > effects.target.max) {
+    const message = `A residual alkalinity of ${degrees(effects.result)} after treatment is above the typical ${effects.target.max} °dH at most for a beer of ${effects.target.ebc} EBC.`;
+    warnings.push({ path: "water.treatment.result", message, short: `⚠ ${message}` });
+  }
+  if (finite(treatment.gypsum) && treatment.gypsum > TREATMENT_TYPICAL.gypsum) {
+    const message = `${treatment.gypsum} g of brewing gypsum per 10 L is above the typical ${TREATMENT_TYPICAL.gypsum} g at most.`;
+    warnings.push({ path: "water.treatment.gypsum", message, short: `⚠ ${message}` });
+  }
+  if (finite(treatment.acid_malt) && treatment.acid_malt <= 100 && treatment.acid_malt > TREATMENT_TYPICAL.acidMalt) {
+    const message = `${treatment.acid_malt} % acid malt is above the typical ${TREATMENT_TYPICAL.acidMalt} % at most.`;
+    warnings.push({ path: "water.treatment.acid_malt", message, short: `⚠ ${message}` });
   }
   // The hops (EDT-049, EDT-061): the alpha acid, and each addition's cooking time.
   ingredientsOf(recipe, "hops").forEach((hop, i) => {

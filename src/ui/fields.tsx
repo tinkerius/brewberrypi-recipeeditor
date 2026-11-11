@@ -60,7 +60,7 @@ export function NumberField(props: {
             props.onChange(parsed === undefined ? undefined : Number.isNaN(parsed) ? next : parsed);
           }}
         />
-        {props.unit}
+        {props.unit && <span class="whitespace-nowrap">{props.unit}</span>}
       </span>
     </label>
   );

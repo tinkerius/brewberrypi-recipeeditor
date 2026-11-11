@@ -59,6 +59,16 @@ describe("warnings: values outside their typical range (EDT-064, QE-54)", () => 
     ]);
     expect(paths(recipe({ fermentation: { co2: 3 } }))).toEqual(["fermentation.co2"]);
     expect(paths(recipe({ fermentation: { co2: 0 } }))).toEqual([]); // an error, no warning
+    // The water treatment (EDT-069): gypsum up to 3 g/10 L, acid malt up to 5 %, the result at most the target.
+    const treated = (treatment: Record<string, unknown>) => recipe({ water: { treatment } });
+    expect(paths(treated({ gypsum: 3, acid_malt: 5 }))).toEqual([]);
+    expect(paths(treated({ gypsum: 3.5, acid_malt: 6 }))).toEqual(["water.treatment.gypsum", "water.treatment.acid_malt"]);
+    const pale = { malts: [{ name: "Pilsner malt", grams: 4600, ebc: 7 }] };
+    expect(paths(recipe({ ingredients: pale, batch: { liters: 24 }, water: { treatment: { alkalinity: 2 } } }))).toEqual([]);
+    expect(paths(recipe({ ingredients: pale, batch: { liters: 24 }, water: { treatment: { alkalinity: 2.5 } } }))).toEqual([
+      "water.treatment.result",
+    ]);
+    expect(paths(treated({ alkalinity: 12 }))).toEqual([]); // no target without the beer colour
     // A mash rest's temperature and duration, at their fields (EDT-033, EDT-038).
     const rest = (temperature: number, minutes: number) => recipe({ mashing: { MaltoseRest: { temperature, minutes } } });
     // (A maltose rest alone does not convert all the starch: that is the whole plan's warning, "mashing".)

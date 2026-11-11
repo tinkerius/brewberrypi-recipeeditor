@@ -423,6 +423,9 @@ temperature of their own. The typical durations of `EDT-038` and the flags:
 | A hop's alpha acid | 2–20 % | α % ("⚠ α typically 2–20 %") | "An alpha acid of 25 % is outside the typical 2–20 %." |
 | A hop addition's cooking time | up to 90 min | its cooking time ("⚠ Addition 2: typically up to 90 min") | "Addition 2: a cooking time of 120 min is above the typical 90 min." |
 | CO₂ target (`EDT-066`) | 3.5–7.5 g/L | CO₂ target | "A CO₂ target of 8 g/L is outside the typical 3.5–7.5 g/L." |
+| Brewing gypsum (`EDT-069`) | up to 3 g/10 L | Brewing gypsum | "4 g of brewing gypsum per 10 L is above the typical 3 g at most." |
+| Acid malt (`EDT-069`) | up to 5 % | Acid malt | "6 % acid malt is above the typical 5 % at most." |
+| Residual alkalinity after treatment (`EDT-069`) | at most the target for the beer colour | its result | "A residual alkalinity of 10.3 °dH after treatment is above the typical 2 °dH at most for a beer of 9 EBC." |
 
   Other additions have no typical cooking time.
 
@@ -435,3 +438,36 @@ temperature of their own. The typical durations of `EDT-038` and the flags:
   description must be text.") on the Overview tab. Below the description, under **Status**, the recipe's errors and
   warnings (`EDT-020`, `QE-59`); the other tabs show theirs at the fields and count them on the tab (`EDT-062`,
   `EDT-063`).
+
+## 3.11 Water treatment (`QE-61`)
+
+- `EDT-069` Below the water figures, the section **Water treatment** (app `RCP-015` `water.treatment`, `Q-46`) for the
+  **residual alkalinity** of the brewing water, in °dH, with the hint "The residual alkalinity of the brewing water,
+  in °dH: lower it for pale beers, so the mash gets the right pH." Its rows (`EDT-068`; inputs left empty are left out
+  of the file, `treatment` when it holds nothing, and `water` when that is empty):
+  **Residual alkalinity (tap water)** (°dH, any number; "From your water supplier's analysis."), **Carbonate
+  hardness (tap water)** (°dH ≥ 0; "From the analysis; needed for boiling."), **Boil the brewing water** (a checkbox;
+  unticked is left out), **Brewing gypsum** (g/10 L ≥ 0, typical up to 3), **Acid malt (of the grist)** (%, 0–100,
+  typical up to 5) and **Lactic acid 80 %** (ml/10 L ≥ 0). Each measure's hint starts with its effect on the residual
+  alkalinity, worked out from the chemistry (RA = carbonate hardness − calcium hardness/3.5 − magnesium
+  hardness/7) and never stored:
+  - boiling precipitates carbonate hardness down to about 3 °dH, with as much calcium hardness: −(KH − 3) · (1 −
+    1/3.5) ("−7.9 °dH" for 14 °dH; "Enter the carbonate hardness." without it);
+  - brewing gypsum: 1 g per 10 L adds 23.3 mg/L of calcium, 3.26 °dH of calcium hardness: −0.93 °dH per g/10 L;
+  - acid malt holds about 3 % lactic acid and acts in the mash water: its lactic acid in mmol per litre of mash water
+    over 0.357 mmol/L per °dH ("−2.4 °dH" for 1 % of 4.6 kg in 18 L; without the malts or the mash water it says what
+    to enter);
+  - lactic acid 80 % (1.2 g/ml): −2.99 °dH per ml/10 L.
+  The last row, **Residual alkalinity after treatment**, is the tap water's plus every effect worked out ("−2.4 °dH",
+  "–" without the tap water's), with its typical target by the beer colour of the Malt tab (`EDT-048`; "at most
+  2 °dH (9 EBC, like Pils)", "–" without a colour; its ⓘ shows the table) and a warning above it (`EDT-064`):
+
+| Beer colour | Like | Residual alkalinity at most |
+|---|---|---|
+| up to 10 EBC | Pils | 2 °dH |
+| up to 20 EBC | Helles, Weizen, Pale Ale | 5 °dH |
+| up to 40 EBC | Märzen | 10 °dH |
+| over 40 EBC | Dunkel, Stout | 15 °dH |
+
+  Problems read "Residual alkalinity", "Carbonate hardness", "Boiling", "Brewing gypsum", "Acid malt" or "Lactic
+  acid" and open the Water tab.

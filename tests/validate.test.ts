@@ -163,6 +163,18 @@ const CASES: [string, unknown][] = [
   ["water negative", { ...valid, water: { mash: -1 } }],
   ["water a string", { ...valid, water: { sparge: "14" } }],
   ["water null", { ...valid, water: { top_up: null } }],
+  // The water treatment (app RCP-015, Q-46)
+  ["water treatment", { ...valid, water: { treatment: { alkalinity: 10.3, carbonate_hardness: 14, boil: true, gypsum: 1.5, acid_malt: 1, lactic_acid: 0.5 } } }],
+  ["water treatment negative alkalinity", { ...valid, water: { treatment: { alkalinity: -2.5 } } }],
+  ["water treatment empty", { ...valid, water: { treatment: {} } }],
+  ["water treatment not an object", { ...valid, water: { treatment: [] } }],
+  ["water treatment extra field", { ...valid, water: { treatment: { hardness: 14 } } }],
+  ["water treatment alkalinity a string", { ...valid, water: { treatment: { alkalinity: "10.3" } } }],
+  ["water treatment negative hardness", { ...valid, water: { treatment: { carbonate_hardness: -1 } } }],
+  ["water treatment negative gypsum", { ...valid, water: { treatment: { gypsum: -0.5 } } }],
+  ["water treatment acid malt above 100", { ...valid, water: { treatment: { acid_malt: 101 } } }],
+  ["water treatment boil a string", { ...valid, water: { treatment: { boil: "yes" } } }],
+  ["water treatment negative lactic acid", { ...valid, water: { treatment: { lactic_acid: -1 } } }],
   // The description (app RCP-016, Q-44)
   ["description", { ...valid, description: "A wheat beer." }],
   ["description multi-line", { ...valid, description: "Line one.\nLine two." }],

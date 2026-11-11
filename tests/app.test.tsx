@@ -1357,29 +1357,42 @@ describe("App, the Malt and Hops tabs (QE-34, QE-35)", () => {
     expect(section("hops").compareDocumentPosition(schedule) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
-  it("ACC-077 the hop schedule lists the hops by boil time, longest first, with a dot each in its colour", async () => {
+  it("ACC-077 the hop schedule boils as long as the longest cooking time and adds each hop that much earlier", async () => {
     await open();
     await showTab("hops");
     const schedule = () => recipe().querySelector("[data-hop-schedule]")!;
-    expect(schedule().textContent).toContain("Enter the hops' amounts and boil times to see when each goes into the boil.");
+    expect(schedule().textContent).toContain("Enter the hops' amounts and cooking times to see when each goes into the boil.");
     await add("hops", "Saaz", "10", { minutes: "0" });
     await add("hops", "Hallertauer Tradition", "30", { minutes: "60" });
     await add("hops", "Tettnanger", "20", { minutes: "10" });
     await add("hops", "Cascade", "15");
-    expect([...schedule().querySelectorAll("[data-schedule-list] thead th")].map((th) => th.textContent)).toEqual(["Cooking time", "Hops", "Amount"]);
-    const items = [...schedule().querySelectorAll("[data-schedule-list] tbody tr")].map((tr) => tr.textContent);
-    expect(items).toEqual(["60 minHallertauer Tradition30 g", "10 minTettnanger20 g", "flame-outSaaz10 g"]);
+    expect(schedule().querySelector("[data-boil-time]")!.textContent).toBe("Total boil time: 60 min (the longest cooking time)");
+    expect([...schedule().querySelectorAll("[data-schedule-list] thead th")].map((th) => th.textContent)).toEqual([
+      "Add at",
+      "Hops",
+      "Cooking time",
+      "Amount",
+    ]);
+    const items = [...schedule().querySelectorAll<HTMLTableRowElement>("[data-schedule-list] tbody tr")].map((tr) => [...tr.cells].map((td) => td.textContent));
+    expect(items).toEqual([
+      ["0 min (start)", "Hallertauer Tradition", "60 min", "30 g"],
+      ["50 min", "Tettnanger", "10 min", "20 g"],
+      ["60 min (flame-out)", "Saaz", "0 min", "10 g"],
+    ]);
     const dots = [...schedule().querySelectorAll("[data-schedule-hop]")];
     expect(dots.map((g) => (g as HTMLElement).dataset.scheduleHop)).toEqual(["1", "2", "0"]);
     expect(dots.map((g) => g.querySelector("circle")!.getAttribute("fill"))).toEqual(["var(--series-2)", "var(--series-3)", "var(--series-1)"]);
-    expect(dots[0].querySelector("title")!.textContent).toBe("Hallertauer Tradition: 30 g, 60 min before the end of the boil");
-    expect(dots[2].querySelector("title")!.textContent).toBe("Saaz: 10 g, flame-out");
-    // The longest boil starts at the left edge, flame-out is at the end.
+    expect(dots[0].querySelector("title")!.textContent).toBe("Hallertauer Tradition: 30 g, add at 0 min (start), cooks 60 min");
+    expect(dots[2].querySelector("title")!.textContent).toBe("Saaz: 10 g, add at 60 min (flame-out), cooks 0 min");
+    // The start of the boil is at the left, its end at the right.
     const cx = dots.map((g) => Number(g.querySelector("circle")!.getAttribute("cx")));
     expect(cx[0]).toBeLessThan(cx[1]);
     expect(cx[1]).toBeLessThan(cx[2]);
-    expect(schedule().querySelector("[data-schedule-missing]")!.textContent).toBe("No boil time yet: hop 4.");
+    const ticks = [...schedule().querySelectorAll("[data-schedule-tick] text")].map((t) => t.textContent);
+    expect([ticks[0], ticks.at(-1)]).toEqual(["start", "end"]);
+    expect(schedule().querySelector("[data-schedule-missing]")!.textContent).toBe("No cooking time yet: hop 4.");
   });
+
 });
 
 describe("App, the Water tab (QE-36)", () => {

@@ -253,15 +253,16 @@ temperature of their own. The typical durations of `EDT-038` and the flags:
   target **Original gravity** and the **Final gravity** (°P). The Malt and Hops tabs use them and name them in their
   hints (`EDT-048`, `EDT-049`); they have no batch fields. A field left empty is left out of the
   file, and `batch` too when both are.
-- `EDT-054` The **Hop Schedule** lists the hops with an amount and a boil time by when they go into the boil,
-  longest boil first (ties in table order): a timeline over the boil, from its start (the longest boil time) at the
-  left to its end at the right, one row and dot per hop in its donut colour (`EDT-047`) with the time at the left
-  ("60 min", 0 min as "flame-out") and a tooltip ("Hallertauer Tradition: 30 g, 60 min before the end of the boil");
-  below it a table with the headers **Cooking time**, **Hops** and **Amount** (time with the hop's colour, name,
-  grams; `QE-40`). Hops with an amount but no boil time are named in a hint ("No boil time
-  yet: hop 4."); without any boil time it says "Enter the hops' amounts and boil times to see when each goes into
-  the boil."
-
+- `EDT-054` The **Hop Schedule** (`QE-41`) works back from the cooking times: the **total boil time** is the longest
+  cooking time of the hops with an amount ("Total boil time: 60 min (the longest cooking time)"), and each hop goes
+  in at that time minus its own cooking time, counted from the start of the boil (a 60-minute hop at "0 min
+  (start)", a 10-minute hop at "50 min", a 0-minute hop at "60 min (flame-out)"); ties keep the table order. A
+  timeline over the boil from its start ("start", left) to its end ("end", right), axis "min after the start of the
+  boil", has one row and dot per hop in its donut colour (`EDT-047`) at its addition, a line to the end for how long
+  it cooks, the addition time at the left and a tooltip ("Hallertauer Tradition: 30 g, add at 0 min (start), cooks
+  60 min"). Below it a table in the order of addition with the headers **Add at**, **Hops**, **Cooking time** and
+  **Amount** (`QE-40`). Hops with an amount but no cooking time are named in a hint ("No cooking time yet: hop 4.");
+  without any cooking time it says "Enter the hops' amounts and cooking times to see when each goes into the boil."
 - `EDT-055` Below the beer colour, a **colour scale** shows where it lies among common beers: the SRM colour chart
   as a bar from 0 to 80 EBC (numbers 0, 20, 40, 60, "80+"), a marker at the beer's colour (a darker beer at the end),
   and the styles Pils, Pale Ale, Märzen, Dunkel and Stout at their typical colours. Below it: "In the range of:

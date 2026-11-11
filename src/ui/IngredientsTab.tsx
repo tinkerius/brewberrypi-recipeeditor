@@ -424,55 +424,62 @@ function IngredientTable(props: { kind: IngredientKind; recipe: Recipe; problems
   );
 }
 
-/** "60 min" before the end of the boil, or "flame-out" for 0 (EDT-054). */
-export function additionTime(minutes: number): string {
-  return minutes === 0 ? "flame-out" : `${minutes} min`;
+/** When a hop goes in (EDT-054): "start" at minute 0, "flame-out" at the end of the boil, else "7 min". */
+export function additionText(addAt: number, boil: number, cooking: number): string {
+  return addAt === 0 ? "0 min (start)" : cooking === 0 ? `${addAt} min (flame-out)` : `${addAt} min`;
 }
 
 /**
- * The hop schedule (EDT-054): the hops with an amount and a boil time, longest boil first, as a timeline over the boil
- * (from its start at the left to its end, flame-out, at the right), one dot per hop in its donut colour, and as a
- * list. Hops without a boil time are named in a hint.
+ * The hop schedule (EDT-054): the boil lasts as long as the longest cooking time; each hop goes in at that boil time
+ * minus its own cooking time, counted from the start of the boil. Shown as a timeline from the start of the boil (left)
+ * to its end (right), one row and dot per hop in its donut colour with a line for how long it cooks, and as a table in
+ * the order of addition. Hops without a cooking time are named in a hint.
  */
 function HopSchedule(props: { list: Ingredient[] }) {
   const { box, width } = useWidth();
   const name = (entry: Ingredient, i: number) => (typeof entry.name === "string" && entry.name ? entry.name : `Hop ${i + 1}`);
   const withAmount = props.list.map((h, i) => ({ h, i })).filter(({ h }) => validGrams(h.grams));
-  const timed = withAmount
-    .filter(({ h }) => validBoilMinutes(h.minutes))
-    .sort((a, b) => (b.h.minutes as number) - (a.h.minutes as number) || a.i - b.i);
+  const cooked = withAmount.filter(({ h }) => validBoilMinutes(h.minutes));
   const untimed = withAmount.filter(({ h }) => !validBoilMinutes(h.minutes)).map(({ i }) => i + 1);
   const missing =
     untimed.length === 0 ? null : (
       <p class={`${HINT_STYLE} mt-2`} data-schedule-missing>
-        No boil time yet: {untimed.length === 1 ? `hop ${untimed[0]}` : `hops ${untimed.join(", ")}`}.
+        No cooking time yet: {untimed.length === 1 ? `hop ${untimed[0]}` : `hops ${untimed.join(", ")}`}.
       </p>
     );
   // The outer box is always there, so its width is measured from the start (also while there is no chart yet).
-  if (timed.length === 0) {
+  if (cooked.length === 0) {
     return (
       <div ref={box} data-hop-schedule>
-        <p class={HINT_STYLE}>Enter the hops' amounts and boil times to see when each goes into the boil.</p>
+        <p class={HINT_STYLE}>Enter the hops' amounts and cooking times to see when each goes into the boil.</p>
         {missing}
       </div>
     );
   }
-  const boil = Math.max(1, ...timed.map(({ h }) => h.minutes as number));
+  const boil = Math.max(...cooked.map(({ h }) => h.minutes as number));
+  const timed = cooked
+    .map(({ h, i }) => ({ h, i, cooking: h.minutes as number, addAt: boil - (h.minutes as number) }))
+    .sort((a, b) => a.addAt - b.addAt || a.i - b.i);
   const ROW = 26;
-  const LABEL = 76;
+  const LABEL = 96;
   const top = 8;
   const axisY = top + timed.length * ROW + 4;
   const height = axisY + 30;
   const x0 = LABEL;
   const x1 = width - 12;
-  const x = (minutesBeforeEnd: number) => x0 + ((boil - minutesBeforeEnd) / boil) * (x1 - x0);
-  const step = [5, 10, 15, 30, 60].find((s) => boil / s <= Math.max(2, Math.floor((x1 - x0) / 70))) ?? 120;
-  const ticks = Array.from({ length: Math.floor(boil / step) + 1 }, (_, k) => boil - k * step).filter((m) => m >= 0);
-  if (!ticks.includes(0)) {
-    ticks.push(0);
+  const span = Math.max(1, boil);
+  const x = (minuteOfBoil: number) => x0 + (minuteOfBoil / span) * (x1 - x0);
+  const step = [5, 10, 15, 30, 60].find((st) => span / st <= Math.max(2, Math.floor((x1 - x0) / 70))) ?? 120;
+  const ticks = Array.from({ length: Math.floor(span / step) + 1 }, (_, k) => k * step).filter((m) => m <= boil);
+  if (!ticks.includes(boil)) {
+    ticks.push(boil);
   }
   return (
     <div ref={box} data-hop-schedule>
+      <p class="mb-2 text-sm text-ink dark:text-ink-light" data-boil-time>
+        <span class="font-medium">Total boil time:</span> <span class="font-semibold tabular-nums">{boil} min</span>{" "}
+        <span class={HINT_STYLE}>(the longest cooking time)</span>
+      </p>
       <div class="rounded-lg bg-stone-50 ring-1 ring-line dark:bg-white/5 dark:ring-white/10">
         <svg
           width={width}
@@ -480,33 +487,33 @@ function HopSchedule(props: { list: Ingredient[] }) {
           viewBox={`0 0 ${width} ${height}`}
           role="img"
           aria-label={`Hop schedule over a ${boil}-minute boil: ${timed
-            .map(({ h, i }) => `${name(h, i)} ${h.grams} g at ${additionTime(h.minutes as number)}`)
+            .map(({ h, i, addAt, cooking }) => `${name(h, i)} ${h.grams} g added at ${additionText(addAt, boil, cooking)}`)
             .join(", ")}`}
           class="block max-w-full text-ink dark:text-ink-light"
         >
           {ticks.map((m) => (
-            <g key={m}>
+            <g key={m} data-schedule-tick>
               <line x1={x(m)} x2={x(m)} y1={top} y2={axisY} class="stroke-stone-200 dark:stroke-white/10" />
               <text x={x(m)} y={axisY + 14} text-anchor="middle" class="fill-stone-500 text-[10px] dark:fill-stone-400">
-                {m === 0 ? "end" : m}
+                {m === 0 ? "start" : m === boil ? "end" : m}
               </text>
             </g>
           ))}
           <line x1={x0} x2={x1} y1={axisY} y2={axisY} class="stroke-stone-400 dark:stroke-stone-500" />
           <text x={x1} y={axisY + 26} text-anchor="end" class="fill-stone-500 text-[10px] dark:fill-stone-400">
-            min before the end of the boil
+            min after the start of the boil
           </text>
-          {timed.map(({ h, i }, row) => {
+          {timed.map(({ h, i, addAt, cooking }, row) => {
             const y = top + row * ROW + ROW / 2;
             return (
               <g key={i} data-schedule-hop={i}>
-                <title>{`${name(h, i)}: ${h.grams} g, ${additionTime(h.minutes as number)}${h.minutes ? " before the end of the boil" : ""}`}</title>
+                <title>{`${name(h, i)}: ${h.grams} g, add at ${additionText(addAt, boil, cooking)}, cooks ${cooking} min`}</title>
                 <text x={8} y={y} dy="0.32em" class="fill-stone-600 text-[11px] tabular-nums dark:fill-stone-300">
-                  {additionTime(h.minutes as number)}
+                  {additionText(addAt, boil, cooking)}
                 </text>
-                {/* How long it boils: from its addition to the end of the boil. */}
-                <line x1={x(h.minutes as number)} x2={x(0)} y1={y} y2={y} stroke={seriesColour(i)} stroke-width={2} stroke-linecap="round" opacity={0.45} />
-                <circle cx={x(h.minutes as number)} cy={y} r={6} fill={seriesColour(i)} class="stroke-white stroke-2 dark:stroke-surface-dark" />
+                {/* How long it cooks: from its addition to the end of the boil. */}
+                <line x1={x(addAt)} x2={x(boil)} y1={y} y2={y} stroke={seriesColour(i)} stroke-width={2} stroke-linecap="round" opacity={0.45} />
+                <circle cx={x(addAt)} cy={y} r={6} fill={seriesColour(i)} class="stroke-white stroke-2 dark:stroke-surface-dark" />
               </g>
             );
           })}
@@ -516,21 +523,23 @@ function HopSchedule(props: { list: Ingredient[] }) {
         <table class="w-full border-collapse text-sm" aria-label="Hop schedule" data-schedule-list>
           <thead class="bg-stone-50 dark:bg-white/5">
             <tr>
-              <th class={`${HEAD} w-32 text-left sm:w-40`}>Cooking time</th>
+              <th class={`${HEAD} text-left`}>Add at</th>
               <th class={`${HEAD} text-left`}>Hops</th>
+              <th class={`${HEAD} text-right`}>Cooking time</th>
               <th class={`${HEAD} text-right`}>Amount</th>
             </tr>
           </thead>
           <tbody>
-            {timed.map(({ h, i }) => (
+            {timed.map(({ h, i, addAt, cooking }) => (
               <tr key={i} class="border-t border-line dark:border-white/10" data-schedule-row={i}>
-                <td class={`${CELL} tabular-nums text-stone-600 dark:text-stone-300`}>
+                <td class={`${CELL} whitespace-nowrap tabular-nums text-ink dark:text-ink-light`}>
                   <span class="inline-flex items-center gap-2">
                     <span aria-hidden="true" class="size-2.5 shrink-0 rounded-full" style={{ background: seriesColour(i) }} />
-                    {additionTime(h.minutes as number)}
+                    {additionText(addAt, boil, cooking)}
                   </span>
                 </td>
                 <td class={`${CELL} text-ink dark:text-ink-light`}>{name(h, i)}</td>
+                <td class={`${CELL} ${NUMBER} text-stone-600 dark:text-stone-300`}>{cooking} min</td>
                 <td class={`${CELL} ${NUMBER} text-ink dark:text-ink-light`}>{h.grams as number} g</td>
               </tr>
             ))}

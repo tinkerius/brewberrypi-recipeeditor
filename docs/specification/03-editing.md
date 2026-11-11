@@ -261,11 +261,14 @@ temperature of their own. The typical durations of `EDT-038` and the flags:
   in at that time minus its own cooking time, counted from the start of the boil (a 60-minute hop at "0 min
   (start)", a 10-minute hop at "50 min", a 0-minute hop at "60 min (flame-out)"); ties keep the table order. A
   timeline over the boil from its start ("start", left) to its end ("end", right), axis "min after the start of the
-  boil", has one row and dot per hop in its donut colour (`EDT-047`) at its addition, a line to the end for how long
+  boil", has one row per hop or other addition with an icon at its addition — a hop cone in the hop's donut colour
+  (`EDT-047`), a jar in grey for another addition (`QE-46`) — a line to the end for how long
   it cooks, the addition time at the left and a tooltip ("Hallertauer Tradition: 30 g, add at 0 min (start), cooks
   60 min"). Below it a table in the order of addition with the headers **Add at**, **Ingredient**, **Cooking time** and
-  **Amount** (`QE-40`). Hops with an amount but no cooking time are named in a hint ("No cooking time yet: hop 4.");
-  without any cooking time it says "Enter the hops' amounts and cooking times to see when each goes into the boil."
+  **Amount** (`QE-40`), the same icon before the time, and a hop's alpha acid after its name ("Hallertauer (12 %
+  alpha)"; `QE-46`). The Boil Ingredients tables' headings Hops and Other additions carry the same icons. Rows with an
+  amount but no cooking time are named in a hint ("No cooking time yet: hop 4."); without any cooking time it says
+  "Enter the amounts and cooking times to see when each goes into the boil."
 - `EDT-055` Below the beer colour, a **colour scale** shows where it lies among common beers: the SRM colour chart
   as a bar from 0 to 80 EBC (numbers 0, 20, 40, 60, "80+"), a marker at the beer's colour (a darker beer at the end),
   and the styles Pils, Pale Ale, Märzen, Dunkel and Stout at their typical colours; no line below it naming the
@@ -315,7 +318,7 @@ temperature of their own. The typical durations of `EDT-038` and the flags:
   and **Total**: **Hops** (`EDT-042`), then **Other additions** ("— not in the shares or the bitterness"; columns
   Name, Cooking time (min), Absolute amount (g); no α %, no share; "No other addition yet."; add row **+ Add other
   addition**; sorted by drag and drop, `EDT-046`). They are not in the shares, the donut, the hops' Total or the
-  bitterness, but in the Boil Schedule (a grey square instead of a dot).
+  bitterness, but in the Boil Schedule (a grey jar instead of a hop cone; `QE-46`).
   Their problems read "Other addition n" and open the Boiling tab.
 
 ## 3.8 Water (`QE-36`)

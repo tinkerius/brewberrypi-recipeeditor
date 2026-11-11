@@ -19,6 +19,7 @@ import {
   ingredientsOf,
   shareOf,
   totalGrams,
+  validAlpha,
   validBoilMinutes,
   validGrams,
   validEbc,
@@ -31,6 +32,7 @@ import {
   type Recipe,
 } from "../model";
 import { ADD_ROW_LINE, AddRowButton } from "./AddRow";
+import { AdditionIcon } from "./AdditionIcon";
 import { DragHandle, DropLine } from "./DragHandle";
 import { NumberField, TextField } from "./fields";
 import { moveItem } from "./reorder";
@@ -522,7 +524,7 @@ function HopSchedule(props: { hops: Ingredient[]; others: Ingredient[] }) {
   type Entry = { h: Ingredient; i: number; kind: "hops" | "others" };
   const one = (kind: Entry["kind"]) => INGREDIENT_LABELS[kind].one;
   const name = ({ h, i, kind }: Entry) => (typeof h.name === "string" && h.name ? h.name : `${one(kind)} ${i + 1}`);
-  // A hop in its donut colour (EDT-047); another addition in the "other" grey, as a square (EDT-060).
+  // A hop in its donut colour (EDT-047) as a hop cone; another addition in the "other" grey as a jar (EDT-060, QE-46).
   const colour = ({ i, kind }: Entry) => (kind === "hops" ? seriesColour(i) : "var(--series-other)");
   const key = ({ i, kind }: Entry) => (kind === "hops" ? String(i) : `other-${i}`);
   const withAmount: Entry[] = [
@@ -608,17 +610,14 @@ function HopSchedule(props: { hops: Ingredient[]; others: Ingredient[] }) {
                 </text>
                 {/* How long it cooks: from its addition to the end of the boil. */}
                 <line x1={x(addAt)} x2={x(boil)} y1={y} y2={y} stroke={colour(e)} stroke-width={2} stroke-linecap="round" opacity={0.45} />
-                {e.kind === "hops" ? (
-                  <circle cx={x(addAt)} cy={y} r={6} fill={colour(e)} class="stroke-white stroke-2 dark:stroke-surface-dark" />
-                ) : (
-                  <rect x={x(addAt) - 5.5} y={y - 5.5} width={11} height={11} rx={2} fill={colour(e)} class="stroke-white stroke-2 dark:stroke-surface-dark" />
-                )}
+                {/* A hop cone or a jar at the addition, in the row's colour (QE-46). */}
+                <AdditionIcon kind={e.kind} colour={colour(e)} size={18} x={x(addAt) - 9} y={y - 9} />
               </g>
             );
           })}
         </svg>
       </div>
-      <div class="mt-3 overflow-hidden rounded-lg ring-1 ring-line dark:ring-white/10">
+      <div class="mt-3 overflow-x-auto rounded-lg ring-1 ring-line dark:ring-white/10">
         <table class="w-full border-collapse text-sm" aria-label="Boil schedule" data-schedule-list>
           <thead class="bg-stone-50 dark:bg-white/5">
             <tr>
@@ -633,15 +632,21 @@ function HopSchedule(props: { hops: Ingredient[]; others: Ingredient[] }) {
               <tr key={key(e)} class="border-t border-line dark:border-white/10" data-schedule-row={key(e)}>
                 <td class={`${CELL} whitespace-nowrap tabular-nums text-ink dark:text-ink-light`}>
                   <span class="inline-flex items-center gap-2">
-                    <span
-                      aria-hidden="true"
-                      class={`size-2.5 shrink-0 ${e.kind === "hops" ? "rounded-full" : "rounded-[2px]"}`}
-                      style={{ background: colour(e) }}
-                    />
+                    <AdditionIcon kind={e.kind} colour={colour(e)} />
                     {additionText(e.addAt, boil, e.cooking)}
                   </span>
                 </td>
-                <td class={`${CELL} text-ink dark:text-ink-light`}>{name(e)}</td>
+                <td class={`${CELL} text-ink dark:text-ink-light`}>
+                  {name(e)}
+                  {/* A hop's alpha acid after its name (QE-46): "Hallertauer (12 % alpha)". */}
+                  {e.kind === "hops" && validAlpha(e.h.alpha) && (
+                    // On a phone on its own line, never broken in the middle.
+                    <span class="block whitespace-nowrap text-stone-500 sm:inline dark:text-stone-400" data-schedule-alpha>
+                      {" "}
+                      ({e.h.alpha} % alpha)
+                    </span>
+                  )}
+                </td>
                 <td class={`${CELL} ${NUMBER} text-stone-600 dark:text-stone-300`}>{e.cooking} min</td>
                 <td class={`${CELL} ${NUMBER} text-ink dark:text-ink-light`}>{e.h.grams as number} g</td>
               </tr>
@@ -711,7 +716,9 @@ export function IngredientsTab(props: {
           // Two tables (EDT-060, QE-44): the hops, then the other additions, each with its own heading and Total.
           (["hops", "others"] as const).map((k) => (
             <div key={k} class="mt-3 first:mt-0" data-boil-table={k}>
-              <h4 class="mb-1.5 text-sm font-semibold text-ink dark:text-ink-light">
+              <h4 class="mb-1.5 flex items-center gap-1.5 text-sm font-semibold text-ink dark:text-ink-light">
+                {/* The icon the Boil Schedule uses for this kind (QE-46). */}
+                <AdditionIcon kind={k} colour={k === "hops" ? "var(--color-leaf)" : "var(--series-other)"} />
                 {INGREDIENT_LABELS[k].title}
                 {k === "others" && (
                   <span class="font-normal text-stone-500 dark:text-stone-400"> — not in the shares or the bitterness</span>

@@ -192,7 +192,7 @@ a release that changes sign-in or Drive behaviour.
   below the Hops table a table Other additions (heading "Other additions — not in the shares or the
   bitterness"; Name, Cooking time (min), Absolute amount (g); "No other addition yet."); + Add other addition adds a
   row with the focus on its name and no α field; Irish Moss 10 g 15 min leaves 19 IBU, the hop's 100 %, one donut slice
-  and the hops' "Total 30 g"; its own table's Total is 10 g, and there is no total of both; the schedule adds it at 45 min as a grey square; the file has
+  and the hops' "Total 30 g"; its own table's Total is 10 g, and there is no total of both; the schedule adds it at 45 min with a grey jar icon (the hop with a hop cone in its colour, "Hallertauer Tradition (5.5 % alpha)"); the file has
   `"others": [ { "name": "Irish Moss", "grams": 10, "minutes": 15 } ]` after `hops`; without grams it is
   "Other addition 1: Other addition 1 needs an amount in grams.", whose entry opens the Boiling tab.
 

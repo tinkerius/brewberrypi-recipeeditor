@@ -1356,6 +1356,10 @@ describe("App, the Malt and Hops tabs (QE-34, QE-35)", () => {
     // Its own table below the hops' table, with its heading (QE-44).
     const heads = [...recipe().querySelectorAll("[data-boil-table] h4")].map((h) => h.textContent);
     expect(heads).toEqual(["Hops", "Other additions — not in the shares or the bitterness"]);
+    expect([...recipe().querySelectorAll("[data-boil-table] h4 [data-addition-icon]")].map((i) => i.getAttribute("data-addition-icon"))).toEqual([
+      "hop",
+      "other",
+    ]);
     expect([...section("others").querySelectorAll("thead th")].map((th) => th.textContent)).toEqual([
       "Move",
       "Name",
@@ -1386,11 +1390,17 @@ describe("App, the Malt and Hops tabs (QE-34, QE-35)", () => {
     const schedule = recipe().querySelector("[data-hop-schedule]")!;
     const items = [...schedule.querySelectorAll<HTMLTableRowElement>("[data-schedule-list] tbody tr")].map((tr) => [...tr.cells].map((td) => td.textContent));
     expect(items).toEqual([
-      ["0 min (start)", "Hallertauer Tradition", "60 min", "30 g"],
+      ["0 min (start)", "Hallertauer Tradition (5.5 % alpha)", "60 min", "30 g"],
       ["45 min", "Irish Moss", "15 min", "10 g"],
     ]);
-    const square = schedule.querySelector("[data-schedule-hop=other-0] rect")!;
-    expect(square.getAttribute("fill")).toBe("var(--series-other)");
+    // A jar for another addition, in the grey "other" colour; a hop cone in its donut colour for a hop (QE-46).
+    const jar = schedule.querySelector("[data-schedule-hop=other-0] [data-addition-icon]")!;
+    expect([jar.getAttribute("data-addition-icon"), jar.getAttribute("fill")]).toEqual(["other", "var(--series-other)"]);
+    const rowIcons = [...schedule.querySelectorAll("[data-schedule-list] tbody [data-addition-icon]")];
+    expect(rowIcons.map((i) => [i.getAttribute("data-addition-icon"), i.getAttribute("fill")])).toEqual([
+      ["hop", "var(--series-1)"],
+      ["other", "var(--series-other)"],
+    ]);
     // Written as its own list after the hops.
     expect(await download()).toContain(
       '    "hops": [\n      { "name": "Hallertauer Tradition", "grams": 30, "alpha": 5.5, "minutes": 60 }\n    ],\n' +
@@ -1455,11 +1465,15 @@ describe("App, the Malt and Hops tabs (QE-34, QE-35)", () => {
     ]);
     const dots = [...schedule().querySelectorAll("[data-schedule-hop]")];
     expect(dots.map((g) => (g as HTMLElement).dataset.scheduleHop)).toEqual(["1", "2", "0"]);
-    expect(dots.map((g) => g.querySelector("circle")!.getAttribute("fill"))).toEqual(["var(--series-2)", "var(--series-3)", "var(--series-1)"]);
+    expect(dots.map((g) => g.querySelector("[data-addition-icon=hop]")!.getAttribute("fill"))).toEqual([
+      "var(--series-2)",
+      "var(--series-3)",
+      "var(--series-1)",
+    ]);
     expect(dots[0].querySelector("title")!.textContent).toBe("Hallertauer Tradition: 30 g, add at 0 min (start), cooks 60 min");
     expect(dots[2].querySelector("title")!.textContent).toBe("Saaz: 10 g, add at 60 min (flame-out), cooks 0 min");
     // The start of the boil is at the left, its end at the right.
-    const cx = dots.map((g) => Number(g.querySelector("circle")!.getAttribute("cx")));
+    const cx = dots.map((g) => Number(g.querySelector("[data-addition-icon]")!.getAttribute("x")));
     expect(cx[0]).toBeLessThan(cx[1]);
     expect(cx[1]).toBeLessThan(cx[2]);
     const ticks = [...schedule().querySelectorAll("[data-schedule-tick] text")].map((t) => t.textContent);

@@ -53,6 +53,8 @@ import { useWidth } from "./useWidth";
 const CELL = "px-1 py-2 align-middle first:pl-2 last:pr-2 sm:px-2 sm:first:pl-3 sm:last:pr-3";
 const HEAD = `${CELL} text-[11px] font-semibold text-stone-600 sm:text-xs dark:text-stone-300`;
 const NUMBER = "whitespace-nowrap text-right tabular-nums";
+/** A value shown as text in a field's place (the acid malt, EDT-070): the input's box without its frame. */
+const PLAIN_VALUE = "block w-full py-1.5 text-sm text-ink ring-1 ring-transparent ring-inset dark:text-ink-light";
 
 /** The chart colours in their fixed order (EDT-047); rows from the 9th on share "other". */
 const SERIES = 8;
@@ -631,8 +633,10 @@ function IngredientGroup(props: {
         <tr class="border-t border-line dark:border-white/10" data-acid-malt>
           <td class={CELL} />
           <td class={`${CELL} min-w-32 sm:min-w-0 [&_input]:px-2! sm:[&_input]:px-3!`} data-ingredient-name>
-            {/* Like the other rows, but its fields can't be changed: they come from the Water treatment. */}
-            <TextField label={`Name, ${ACID_MALT.name}`} compact readOnly value={acid.name} invalid={false} onChange={() => undefined} />
+            {/* Like the other rows, as text where their fields' text sits (QE-70): it comes from the Water treatment. */}
+            <span class={`${PLAIN_VALUE} px-2 sm:px-3`} data-acid-malt-value="name">
+              {acid.name as string}
+            </span>
             <span class={`${HINT_STYLE} mt-1 block`} data-acid-malt-hint>
               From the Water treatment ({String(acidShare)} % of the total malt); change it on the{" "}
               {props.onWater ? (
@@ -661,7 +665,9 @@ function IngredientGroup(props: {
                     style={{ background: beerColourHex(acid.ebc as number) }}
                   />
                 )}
-                <NumberField label={`${c.label}, ${ACID_MALT.name}`} compact readOnly value={acid[c.field]} invalid={false} onChange={() => undefined} />
+                <span class={`${PLAIN_VALUE} px-1.5 text-right tabular-nums sm:px-3`} data-acid-malt-value={c.field}>
+                  {String(acid[c.field])}
+                </span>
               </div>
             </td>
           ))}

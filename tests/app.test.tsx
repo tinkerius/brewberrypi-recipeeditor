@@ -1753,13 +1753,9 @@ describe("App, the Malt and Hops tabs (QE-34, QE-35)", () => {
       batch: { liters: 24 },
     });
     const acid = () => section("malts").querySelector<HTMLTableRowElement>("[data-acid-malt]");
-    // A row like the others (QE-68): the same fields, which can't be changed, and no "read-only" label.
-    const fields = [...acid()!.querySelectorAll<HTMLInputElement>("input")];
-    expect(fields.map((f) => [f.value, f.readOnly])).toEqual([
-      ["Acid malt", true],
-      ["5", true],
-      ["46", true],
-    ]);
+    // A row like the others (QE-68), its values as text where the fields' text sits (QE-70), no "read-only" label.
+    expect(acid()!.querySelectorAll("input")).toHaveLength(0);
+    expect([...acid()!.querySelectorAll("[data-acid-malt-value]")].map((v) => v.textContent)).toEqual(["Acid malt", "5", "46"]);
     expect(acid()!.textContent).not.toContain("read-only");
     expect(acid()!.querySelector("[data-acid-malt-hint]")!.textContent).toBe(
       "From the Water treatment (1 % of the total malt); change it on the Water tab.",

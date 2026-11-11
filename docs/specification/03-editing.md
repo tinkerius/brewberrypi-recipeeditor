@@ -502,8 +502,9 @@ temperature of their own. The typical durations of `EDT-038` and the flags:
 
 - `EDT-070` The acid malt's share (`EDT-069`) is of the **total malt, the acid malt included**: its weight is
   % ÷ (100 − %) × the Malt tab's malts (1 % with 4.6 kg: 46.5 g). While acid malt is ticked with a share, the Malt
-  table shows it as a row after the malts, **like the others** (`QE-68`) but with fields that can't be changed (muted):
-  the name "Acid malt", its EBC (about 5, with its colour swatch), its weight in whole grams ("46") and its share, and
+  table shows it as a row after the malts, **like the others** (`QE-68`) but with its values as plain text instead of
+  fields, each exactly where the fields' text sits in its column (`QE-70`): the name "Acid malt", its EBC (about 5,
+  with its colour swatch), its weight in whole grams ("46") and its share, and
   under its name the hint "From the Water treatment (1 % of the total malt); change it on the Water tab." ("Water
   tab" a link that opens it); no handle and no ✕. It is counted with the malts — the
   Total ("4646 g"), the shares, the donut, the beer colour (`EDT-048`), the mash thickness (`EDT-052`), the water

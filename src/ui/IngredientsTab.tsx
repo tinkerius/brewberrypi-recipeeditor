@@ -474,6 +474,24 @@ function IngredientTable(props: { kind: "malts" | "hops"; recipe: Recipe; proble
             <td class={`${CELL} ${NUMBER}`}>{total > 0 ? "100 %" : ""}</td>
             <td class={CELL} />
           </tr>
+          {kind === "hops" && (
+            // Everything that goes into the boil (EDT-060, QE-43): hops and other additions; no share.
+            <tr data-ingredient-total-all class="border-t border-line dark:border-white/10">
+              <td class={CELL} />
+              <td class={CELL}>Total ingredients</td>
+              {columns.map((c) =>
+                c.field === "grams" ? (
+                  <td key={c.field} class={`${CELL} ${NUMBER}`}>
+                    {total + totalGrams(ingredientsOf(props.recipe, "others"))} g
+                  </td>
+                ) : (
+                  <td key={c.field} class={CELL} />
+                ),
+              )}
+              <td class={CELL} />
+              <td class={CELL} />
+            </tr>
+          )}
         </tfoot>
       </table>
     </div>
@@ -656,23 +674,23 @@ export function IngredientsTab(props: {
           ? "The malts of the brew with their amounts and colours. The shares are of the total malt weight."
           : "The hops and other additions of the boil with their amounts and cooking times. The shares and the bitterness are of the hops."}
       </p>
-      {/* The donut at the left, the figure at the right (EDT-047); stacked on a phone. */}
-      <div class="mt-3 flex flex-col gap-4 sm:flex-row sm:items-start" data-overview>
-        {list.some((e) => validGrams(e.grams)) && (
-          <div class="shrink-0">
-            <ShareDonut kind={kind} list={list} />
-          </div>
-        )}
-        <div class="min-w-0 flex-1 space-y-3 rounded-lg bg-stone-50 p-3 ring-1 ring-line dark:bg-white/5 dark:ring-white/10">
-          <FigureLine kind={kind} recipe={props.recipe} onWater={props.onWater} />
-        </div>
-      </div>
-      <section class="mt-6" aria-labelledby={`${kind}-table-title`}>
-        <h3 id={`${kind}-table-title`} class={`${SECTION_TITLE_STYLE} mb-2`}>
-          {kind === "malts" ? "Malt" : "Boil Ingredients"}
+      <section class="mt-4" aria-labelledby={`${kind}-overview-title`}>
+        <h3 id={`${kind}-overview-title`} class={`${SECTION_TITLE_STYLE} mb-2`}>
+          {kind === "malts" ? "Malt Overview" : "Hops Overview"}
         </h3>
-        <IngredientTable kind={kind} recipe={props.recipe} problems={props.problems} onChange={props.onChange} />
+        {/* The donut at the left, the figure at the right (EDT-047); stacked on a phone. */}
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-start" data-overview>
+          {list.some((e) => validGrams(e.grams)) && (
+            <div class="shrink-0">
+              <ShareDonut kind={kind} list={list} />
+            </div>
+          )}
+          <div class="min-w-0 flex-1 space-y-3 rounded-lg bg-stone-50 p-3 ring-1 ring-line dark:bg-white/5 dark:ring-white/10">
+            <FigureLine kind={kind} recipe={props.recipe} onWater={props.onWater} />
+          </div>
+        </div>
       </section>
+      {/* On Boiling the schedule comes before the table (QE-43). */}
       {kind === "hops" && (
         <section class="mt-6" aria-labelledby="boil-schedule-title">
           <h3 id="boil-schedule-title" class={`${SECTION_TITLE_STYLE} mb-2`}>
@@ -681,6 +699,12 @@ export function IngredientsTab(props: {
           <HopSchedule hops={list} others={ingredientsOf(props.recipe, "others")} />
         </section>
       )}
+      <section class="mt-6" aria-labelledby={`${kind}-table-title`}>
+        <h3 id={`${kind}-table-title`} class={`${SECTION_TITLE_STYLE} mb-2`}>
+          {kind === "malts" ? "Malt" : "Boil Ingredients"}
+        </h3>
+        <IngredientTable kind={kind} recipe={props.recipe} problems={props.problems} onChange={props.onChange} />
+      </section>
     </>
   );
 }

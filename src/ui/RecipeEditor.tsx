@@ -141,9 +141,9 @@ export function ProblemList(props: {
 /** The recipe's tabs (GUI-032, QE-28, QE-32, QE-34, QE-35); more come later. */
 const RECIPE_TABS = [
   { id: "malts", label: "Malt" },
+  { id: "mashing", label: "Mashing" },
   { id: "hops", label: "Boiling" },
   { id: "water", label: "Water" },
-  { id: "mashing", label: "Mashing" },
   { id: "mash", label: "Mash Process" },
 ] as const;
 type RecipeTab = (typeof RECIPE_TABS)[number]["id"];

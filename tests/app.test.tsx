@@ -263,7 +263,7 @@ describe("App, the website's top bar and footer (QE-27)", () => {
 });
 
 describe("App, the recipe's tabs (QE-28)", () => {
-  it("ACC-048 shows the tabs Malt, selected, Boiling, Water, Mashing and Mash Process with the goals; the problems are below them", async () => {
+  it("ACC-048 shows the tabs Malt, selected, Mashing, Boiling, Water and Mash Process with the goals; the problems are below them", async () => {
     const store = new MemoryStore();
     await store.put(newDoc("Kept", { version: 3, name: "Kept", mashing_process: { goals: [{ type: "HeatUp" }] } }));
     await show(store);
@@ -271,9 +271,9 @@ describe("App, the recipe's tabs (QE-28)", () => {
     const tabs = () => [...recipe.querySelectorAll<HTMLElement>("[role=tablist] [role=tab]")];
     expect(tabs().map((t) => [t.textContent, t.getAttribute("aria-selected")])).toEqual([
       ["Malt", "true"],
+      ["Mashing", "false"],
       ["Boiling", "false"],
       ["Water", "false"],
-      ["Mashing", "false"],
       ["Mash Process", "false"],
     ]);
     expect(recipe.querySelector("[role=tabpanel] [data-ingredients=malts]")).not.toBeNull();
@@ -1359,6 +1359,8 @@ describe("App, the Malt and Hops tabs (QE-34, QE-35)", () => {
     expect(other.querySelector("[data-ingredient-share]")!.textContent).toBe("");
     expect(recipe().querySelectorAll("[data-share-chart] [data-share-slice]")).toHaveLength(1);
     expect(total("hops")).toEqual(["Total hops", "30 g", "100 %"]);
+    const all = [...section("hops").querySelectorAll("[data-ingredient-total-all] td")].map((td) => td.textContent);
+    expect([all[1], all[all.length - 3], all[all.length - 2]]).toEqual(["Total ingredients", "40 g", ""]);
     // In the schedule: added 45 min after the start, as a grey square.
     const schedule = recipe().querySelector("[data-hop-schedule]")!;
     const items = [...schedule.querySelectorAll<HTMLTableRowElement>("[data-schedule-list] tbody tr")].map((tr) => [...tr.cells].map((td) => td.textContent));
@@ -1392,17 +1394,20 @@ describe("App, the Malt and Hops tabs (QE-34, QE-35)", () => {
     expect(swatch(2).className).toContain("invisible");
   });
 
-  it("ACC-076 the Malt tab has the heading Malt before its table, the Boiling tab Boil Ingredients before it and Boil Schedule after it", async () => {
+  it("ACC-076 Malt: Malt Overview, then Malt; Boiling: Hops Overview, Boil Schedule, then Boil Ingredients", async () => {
     await open();
     const headings = () => [...recipe().querySelectorAll("[role=tabpanel] h3")].map((h) => h.textContent?.trim());
-    expect(headings()).toEqual(["Malt"]);
-    const malt = recipe().querySelector("[role=tabpanel] h3")!;
-    expect(malt.compareDocumentPosition(section("malts")) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    const after = (a: Element, b: Element) => (a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0;
+    expect(headings()).toEqual(["Malt Overview", "Malt"]);
+    const [overview, malt] = [...recipe().querySelectorAll("[role=tabpanel] h3")];
+    expect(after(overview, recipe().querySelector("[data-overview]")!)).toBe(true);
+    expect(after(malt, section("malts"))).toBe(true);
     await showTab("hops");
-    expect(headings()).toEqual(["Boil Ingredients", "Boil Schedule"]);
-    const [hops, schedule] = [...recipe().querySelectorAll("[role=tabpanel] h3")];
-    expect(hops.compareDocumentPosition(section("hops")) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(section("hops").compareDocumentPosition(schedule) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(headings()).toEqual(["Hops Overview", "Boil Schedule", "Boil Ingredients"]);
+    const [, schedule, ingredients] = [...recipe().querySelectorAll("[role=tabpanel] h3")];
+    expect(after(schedule, recipe().querySelector("[data-hop-schedule]")!)).toBe(true);
+    expect(after(recipe().querySelector("[data-hop-schedule]")!, ingredients)).toBe(true);
+    expect(after(ingredients, section("hops"))).toBe(true);
   });
 
   it("ACC-077 the hop schedule boils as long as the longest cooking time and adds each hop that much earlier", async () => {

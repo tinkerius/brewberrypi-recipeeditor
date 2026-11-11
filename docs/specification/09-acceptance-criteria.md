@@ -67,8 +67,8 @@ a release that changes sign-in or Drive behaviour.
   it.
 - `ACC-047` (QE-27, GUI-001, GUI-004) The top bar shows "BrewberryPi" as a link to https://brewberrypi.org/, "Recipe
   Editor" and Cloud Sync; the footer links to brewberrypi.org, the privacy policy, the terms and the source code.
-- `ACC-048` (QE-28, QE-34, QE-35, GUI-032) Below the recipe's title is a tab list with the tabs **Malt**, **Boiling**,
-  **Water**, **Mashing** and **Mash Process**, in this order, Malt selected (it shows the malt table); the Mash Process panel holds the goals and, as the list's last row, + Add goal; the problems are below the panel, not in it.
+- `ACC-048` (QE-28, QE-34, QE-35, GUI-032) Below the recipe's title is a tab list with the tabs **Malt**, **Mashing**,
+  **Boiling**, **Water** and **Mash Process**, in this order, Malt selected (it shows the malt table); the Mash Process panel holds the goals and, as the list's last row, + Add goal; the problems are below the panel, not in it.
 - `ACC-049` (QE-29, GUI-024, NFR-002) "Hide sidebar" collapses the recipe list to a strip with "Show sidebar" and
   New recipe, the recipe stays shown, and the browser remembers it (also after the page is shown again); with a
   recipe not downloaded, the strip shows "1 recipe not downloaded". Ctrl+B expands it again and the browser forgets
@@ -156,8 +156,8 @@ a release that changes sign-in or Drive behaviour.
 - `ACC-075` (EDT-050, EDT-045, FMT-006) The Malt and Boiling tabs have no batch fields; the knockout volume and the
   original gravity are entered on the Water tab; 20 l and 12.6 °P are written as `"batch": { "liters": 20, "plato": 12.6 }`; 0 l and
   41 °P are problems whose entries open the Water tab; clearing both removes `batch`.
-- `ACC-076` (EDT-041, QE-36, QE-42) The Malt tab has the heading Malt before its table; the Boiling tab Boil Ingredients
-  before its table and Boil Schedule after it.
+- `ACC-076` (EDT-041, QE-36, QE-42) The Malt tab has the headings Malt Overview (above the donut and figure) and Malt
+  (above the table); the Boiling tab Hops Overview, Boil Schedule and Boil Ingredients, in this order (`QE-43`).
 - `ACC-077` (EDT-054) Hops Saaz 10 g 0 min, Hallertauer Tradition 30 g 60 min, Tettnanger 20 g 10 min and Cascade
   15 g without cooking time: "Total boil time: 60 min"; the table (Add at, Ingredient, Cooking time, Amount) lists 0 min
   (start) Hallertauer Tradition 60 min 30 g, 50 min Tettnanger 10 min 20 g, 60 min (flame-out) Saaz 0 min 10 g; the
@@ -190,7 +190,7 @@ a release that changes sign-in or Drive behaviour.
 - `ACC-085` (EDT-060, QE-42) On the Boiling tab (so named), with Hallertauer Tradition 30 g 5.5 % 60 min (19 IBU):
   below the hops the label "Other additions — not in the shares or the bitterness"; + Add other addition adds a row
   with the focus on its name and no α field; Irish Moss 10 g 15 min leaves 19 IBU, the hop's 100 %, one donut slice
-  and "Total hops 30 g"; the schedule adds it at 45 min as a grey square; the file has
+  and "Total hops 30 g", with "Total ingredients 40 g" below it; the schedule adds it at 45 min as a grey square; the file has
   `"others": [ { "name": "Irish Moss", "grams": 10, "minutes": 15 } ]` after `hops`; without grams it is
   "Other addition 1: Other addition 1 needs an amount in grams.", whose entry opens the Boiling tab.
 

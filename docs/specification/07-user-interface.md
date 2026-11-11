@@ -53,10 +53,10 @@ in the brand colours. Unlike the website, the editor also has a dark mode, follo
 - `GUI-030` Title: the recipe name, editable in place (`EDT-010`; "Untitled recipe" while it has none); below it
   `<id>.json` (not editable here, `EDT-003`); the state (`BRW-004`,
   `DRV-010`) at the right. Then the tabs (`GUI-032`), and below them the problems (`EDT-020`).
-- `GUI-032` The recipe's sections are **tabs** below its title (`QE-28`). So far there are five, in this order:
-  **Malt** (selected when a recipe is opened) and **Boiling** (hops and other additions; `QE-42`): the ingredients (`EDT-041`..`EDT-050`, `EDT-054`,
-  `QE-34`, `QE-35`); **Water**: the brewing-day water (`EDT-051`..`EDT-053`, `QE-36`);
-  **Mashing**: the mashing plan (`EDT-030`..`EDT-035`, `QE-32`); and **Mash Process**: the goals in brewing order, one line each with one open for editing (`EDT-011`..`EDT-015`, `QE-26`), and
+- `GUI-032` The recipe's sections are **tabs** below its title (`QE-28`). So far there are five, in this order (`QE-43`):
+  **Malt** (selected when a recipe is opened): the malts (`EDT-041`..`EDT-050`, `QE-34`, `QE-35`); **Mashing**: the
+  mashing plan (`EDT-030`..`EDT-035`, `QE-32`); **Boiling**: the hops and other additions (`EDT-041`..`EDT-054`,
+  `EDT-060`, `QE-42`); **Water**: the brewing-day water (`EDT-051`..`EDT-053`, `QE-36`); and **Mash Process**: the goals in brewing order, one line each with one open for editing (`EDT-011`..`EDT-015`, `QE-26`), and
   **+ Add goal**.
   The problems, notices and actions are below the tabs, for the whole recipe. The tabs follow the ARIA tab pattern
   (tab list, selected tab, panel; the arrow keys move between tabs).

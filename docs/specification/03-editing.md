@@ -206,8 +206,9 @@ temperature of their own. The typical durations of `EDT-038` and the flags:
 
 - `EDT-041` The tabs **Malt** and **Boiling** (`GUI-032`, `QE-42`) hold the brew's ingredients (app `RCP-013`), each tab one
   table, with the donut of the shares at the left and the figure computed from the table at the right above it
-  (stacked on a phone; `QE-37`). The table has the heading **Malt** or **Boil Ingredients** (`QE-36`, `QE-42`); on the Boiling tab the **Boil Schedule** (`EDT-054`)
-  follows it under its own heading. Like the mashing plan, they are design information for the brewer; they do not change the goals, and the
+  (stacked on a phone; `QE-37`) under the heading **Malt Overview** or **Hops Overview** (`QE-43`). The table has the
+  heading **Malt** or **Boil Ingredients** (`QE-36`, `QE-42`); on the Boiling tab the **Boil Schedule** (`EDT-054`)
+  comes before it, under its own heading (`QE-43`): overview, schedule, ingredients. Like the mashing plan, they are design information for the brewer; they do not change the goals, and the
   app does not use them.
 - `EDT-042` A table has a drag handle, then the columns (`QE-40`) — Malt: **Name**, **EBC** (its colour), **Absolute
   amount (g)** (a whole number), **Relative amount (%)**; Hops: **Name**, **α %** (its alpha acid), **Cooking time
@@ -311,7 +312,8 @@ temperature of their own. The typical durations of `EDT-038` and the flags:
   hops without alpha acid: in the Boiling tab's table below the hops' add row, under the label "Other additions — not
   in the shares or the bitterness", their rows (Name, Cooking time, Absolute amount; no α %, no share) and the add row
   **+ Add other addition**; sorted by drag and drop among themselves (`EDT-046`). They are not in the shares, the
-  donut, the hop total ("Total hops") or the bitterness, but in the Boil Schedule (a grey square instead of a dot).
+  donut, the hop total ("Total hops") or the bitterness; a second total line below it, **Total ingredients**, sums
+  the hops and the other additions (grams only, no share; `QE-43`). They are in the Boil Schedule (a grey square instead of a dot).
   Their problems read "Other addition n" and open the Boiling tab.
 
 ## 3.8 Water (`QE-36`)

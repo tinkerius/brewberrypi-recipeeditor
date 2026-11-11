@@ -96,8 +96,11 @@ const COLUMNS: Record<IngredientKind, Column[]> = {
   ],
 };
 
-/** Whether a kind's rows have shares of the total weight (EDT-043): malts and hops; other additions don't (EDT-060). */
-const HAS_SHARES: Record<IngredientKind, boolean> = { malts: true, hops: true, others: false };
+/**
+ * Whether a kind's table has the column Relative amount (EDT-043): only the malts. The hops' shares are in their donut
+ * (QE-52); other additions have none (EDT-060).
+ */
+const HAS_SHARES: Record<IngredientKind, boolean> = { malts: true, hops: false, others: false };
 
 /** Each row's share of the total weight as a donut, with a legend (EDT-047). */
 function ShareDonut(props: { kind: IngredientKind; list: Ingredient[] }) {
@@ -466,13 +469,23 @@ function IngredientGroup(props: {
               />
             </td>
             <td class={`${CELL} min-w-32 sm:min-w-0 [&_input]:px-2! sm:[&_input]:px-3!`} data-ingredient-name>
-              <TextField
-                label={`Name, ${one} ${i + 1}`}
-                compact
-                value={entry.name}
-                invalid={invalid(i, "name")}
-                onChange={(name) => setField(i, "name", name)}
-              />
+              {/* A boil ingredient's icon in its colour, as in the donut and the Boil Schedule (QE-52). */}
+              <div class="flex items-center gap-2">
+                {kind !== "malts" && (
+                  <span class="shrink-0" data-row-icon>
+                    <AdditionIcon kind={kind} colour={rowColour(kind, i)} />
+                  </span>
+                )}
+                <div class="min-w-0 flex-1">
+                  <TextField
+                    label={`Name, ${one} ${i + 1}`}
+                    compact
+                    value={entry.name}
+                    invalid={invalid(i, "name")}
+                    onChange={(name) => setField(i, "name", name)}
+                  />
+                </div>
+              </div>
             </td>
             {columns.map((c) =>
               !fields.includes(c.field) ? (

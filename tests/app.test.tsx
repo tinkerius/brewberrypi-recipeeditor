@@ -983,11 +983,13 @@ describe("App, the Malt and Hops tabs (QE-34, QE-35)", () => {
       ? rows(kind)[i].querySelector<HTMLInputElement>(`[data-addition="${addition}"] [data-addition-field=${f}] input`)!
       : rows(kind)[i].querySelector<HTMLInputElement>(`[data-ingredient-field=${f}] input`)!;
   const shares = (kind: string) => rows(kind).map((r) => r.querySelector("[data-ingredient-share]")!.textContent);
-  /** The Total line: its label, total weight and share. */
+  /** The Total line: its label, total weight and (malts only, QE-52) share. */
   const total = (kind: string) => {
     const tds = [...section(kind).querySelectorAll("[data-ingredient-total] td")].map((td) => td.textContent);
-    return [tds[1], tds[tds.length - 3], tds[tds.length - 2]]; // the grams just before the share
+    return kind === "malts" ? [tds[1], tds[tds.length - 3], tds[tds.length - 2]] : [tds[1], tds[tds.length - 2]];
   };
+  /** The shares in the donut's legend (the hops' shares are only there, QE-52). */
+  const legendShares = () => [...recipe().querySelectorAll("[data-share-legend] li")].map((li) => li.lastElementChild!.textContent);
   const figure = () => recipe().querySelector("[data-figure] [data-figure-value]")!.textContent;
   const hint = () => recipe().querySelector("[data-figure-hint]")!.textContent;
   const batchField = (label: string) =>
@@ -1068,7 +1070,6 @@ describe("App, the Malt and Hops tabs (QE-34, QE-35)", () => {
       "α %",
       "Additions (cooking time · amount)",
       "Absolute amount (g)",
-      "Relative amount (%)",
       "Remove",
     ]);
     expect(section("hops").textContent).toContain("No hop yet.");
@@ -1085,11 +1086,11 @@ describe("App, the Malt and Hops tabs (QE-34, QE-35)", () => {
     for (const name of ["Hallertauer", "Saaz", "Tettnanger"]) {
       await add("hops", name, "10");
     }
-    expect(shares("hops")).toEqual(["33.3 %", "33.3 %", "33.3 %"]);
-    expect(total("hops")).toEqual(["Total", "30 g", "100 %"]);
+    expect(legendShares()).toEqual(["33.3 %", "33.3 %", "33.3 %"]);
+    expect(total("hops")).toEqual(["Total", "30 g"]);
     await type(field("hops", 2, "grams"), "");
-    expect(shares("hops")).toEqual(["50 %", "50 %", "–"]);
-    expect(total("hops")).toEqual(["Total", "20 g", "100 %"]);
+    expect(legendShares()).toEqual(["50 %", "50 %"]);
+    expect(total("hops")).toEqual(["Total", "20 g"]);
   });
 
   it("ACC-069 reports a row without a name or a whole amount, marks its fields, and the problem opens its tab", async () => {
@@ -1392,11 +1393,11 @@ describe("App, the Malt and Hops tabs (QE-34, QE-35)", () => {
     await type(field("others", 0, "minutes"), "15");
     // Not in the bitterness, the shares, the donut or the hop total.
     expect(figure()).toBe("19 IBU");
-    expect(shares("hops")).toEqual(["100 %"]);
+    expect(legendShares()).toEqual(["100 %"]);
     expect(other.querySelector("[data-ingredient-share]")).toBeNull(); // no share column
     expect(recipe().querySelectorAll("[data-share-chart] [data-share-slice]")).toHaveLength(1);
     expect(recipe().querySelector("[data-share-chart] [data-share-slice]")!.getAttribute("stroke")).toBe("var(--hop-1)");
-    expect(total("hops")).toEqual(["Total", "30 g", "100 %"]);
+    expect(total("hops")).toEqual(["Total", "30 g"]);
     // Each table has its own Total; there is no total of both.
     const othersTotal = [...section("others").querySelectorAll("[data-ingredient-total] td")].map((td) => td.textContent);
     expect([othersTotal[1], othersTotal[othersTotal.length - 2]]).toEqual(["Total", "10 g"]);
@@ -1443,8 +1444,8 @@ describe("App, the Malt and Hops tabs (QE-34, QE-35)", () => {
     await add("hops", "Saaz", "10", { alpha: "4", minutes: "0" });
     // The hop's absolute amount is the sum of its additions; its share and the Total use it.
     expect(rows("hops").map((r) => r.querySelector("[data-entry-total]")!.textContent)).toEqual(["30 g", "10 g"]);
-    expect(shares("hops")).toEqual(["75 %", "25 %"]);
-    expect(total("hops")).toEqual(["Total", "40 g", "100 %"]);
+    expect(legendShares()).toEqual(["75 %", "25 %"]);
+    expect(total("hops")).toEqual(["Total", "40 g"]);
     // The bitterness counts each addition with its own cooking time.
     await setKnockout("20", "hops");
     await setOnWater("Original gravity", "12.6", "hops");
@@ -1505,6 +1506,32 @@ describe("App, the Malt and Hops tabs (QE-34, QE-35)", () => {
     // A single addition has no count.
     await type(field("hops", 1, "minutes"), "30");
     expect(list()[0].querySelector("[data-schedule-count]")).toBeNull();
+  });
+
+  it("ACC-088 each boil ingredient's row shows its icon in its colour; the hops' table has no share column", async () => {
+    await open();
+    await showTab("hops");
+    for (const name of ["Hallertauer", "Saaz", "Tettnanger", "Cascade"]) {
+      await add("hops", name, "10");
+    }
+    await act(async () => button("+ Add other addition").click());
+    const icon = (kind: string, i: number) => rows(kind)[i].querySelector("[data-ingredient-name] [data-row-icon] [data-addition-icon]")!;
+    expect([0, 1, 2, 3].map((i) => [icon("hops", i).getAttribute("data-addition-icon"), icon("hops", i).getAttribute("fill")])).toEqual([
+      ["hop", "var(--hop-1)"],
+      ["hop", "var(--hop-2)"],
+      ["hop", "var(--hop-3)"],
+      ["hop", "var(--hop-more)"],
+    ]);
+    expect([icon("others", 0).getAttribute("data-addition-icon"), icon("others", 0).getAttribute("fill")]).toEqual(["other", "var(--addition-1)"]);
+    // The same colour as the hop's donut slice.
+    expect(recipe().querySelector("[data-share-chart] [data-share-slice]")!.getAttribute("stroke")).toBe("var(--hop-1)");
+    expect(section("hops").querySelector("[data-ingredient-share]")).toBeNull();
+    expect([...section("hops").querySelectorAll("thead th")].map((th) => th.textContent)).not.toContain("Relative amount (%)");
+    // Malts keep their share column and have no icon.
+    await showTab("malts");
+    await add("malts", "Pilsner malt", "4500");
+    expect(rows("malts")[0].querySelector("[data-row-icon]")).toBeNull();
+    expect(shares("malts")).toEqual(["100 %"]);
   });
 
   it("ACC-083 shows each malt's colour from its EBC next to the field", async () => {

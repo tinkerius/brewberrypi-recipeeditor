@@ -212,17 +212,21 @@ temperature of their own. The typical durations of `EDT-038` and the flags:
   app does not use them.
 - `EDT-042` A table has a drag handle, then the columns (`QE-40`) — Malt: **Name**, **EBC** (its colour), **Absolute
   amount (g)** (a whole number), **Relative amount (%)**; Hops: **Name**, **α %** (its alpha acid), **Additions
-  (cooking time · amount)** (`EDT-061`), **Absolute amount (g)** (the sum of its additions, computed), **Relative
-  amount (%)** — and a button ✕ ("Remove malt" / "Remove hop") per row; EBC, α % and min may stay empty (an empty one is left out
+  (cooking time · amount)** (`EDT-061`), **Absolute amount (g)** (the sum of its additions, computed), no Relative
+  amount (its share is in the donut, `EDT-047`; `QE-52`) — and a button ✕ ("Remove malt" / "Remove hop") per row; EBC, α % and min may stay empty (an empty one is left out
   of the file). After the last row and before the Total line, an add row like the goal list's (`EDT-012`),
   **+ Add malt** (or **+ Add hop**), adds an empty row at the end, whose name field gets the focus. The rows keep
   the brewer's order. ✕ removes the row. An empty table says "No malt yet." / "No hop yet."; a table without rows
   is left out of the file, and `ingredients` too when both are empty.
-- `EDT-043` The **Relative amount (%)** column is a row's share of its table's total weight (a hop's, the sum of its
-  additions, of all hops), rounded to one
+- `EDT-043` The **Relative amount (%)** column (the Malt table only, `QE-52`) is a malt's share of the malts' total
+  weight, rounded to one
   decimal ("90 %", "33.3 %"), with a swatch in its colour of the donut (`EDT-047`); it is computed, never stored. A
   row whose amount is not a whole number ≥ 1 yet shows "–" and does not count. The last line, **Total**, sums the
-  table's amounts ("5000 g", under Absolute amount) and shows "100 %" while the total is above 0.
+  table's amounts ("5000 g", under Absolute amount) and, in the Malt table, "100 %" while the total is above 0. The
+  hops' shares (a hop's, the sum of its additions, of all hops) are shown only in their donut and its legend
+  (`EDT-047`). In both boil tables (`EDT-060`) the Name cell starts with the row's icon in its colour — a hop cone in
+  the hop's green, a jar in the addition's violet, as in the donut and the Boil Schedule (`EDT-054`; `QE-46`..`QE-48`,
+  `QE-52`).
 - `EDT-044` A row needs a name and an amount: until it has both, it is a problem (`FMT-004`) and the recipe cannot
   be saved or downloaded; the field with the problem is marked. The same name may appear twice. An EBC below 0, an
   alpha acid outside 0–100 % or a boil time that is not a whole number ≥ 0 is a problem too.
@@ -334,8 +338,8 @@ temperature of their own. The typical durations of `EDT-038` and the flags:
   acid are entered once, and the cell **Additions (cooking time · amount)** holds one line per addition, a cooking
   time (min, may stay empty) and an amount (g, a whole number ≥ 1); **+ addition** below them adds a line, ✕ next to
   a line removes it (only while there is more than one). A new row starts with one empty addition. The row's
-  **Absolute amount (g)** is the sum of its additions' amounts (computed), and its share, the donut and the Total use
-  it. The bitterness counts each addition with its own cooking time; the Boil Schedule has one entry per addition
+  **Absolute amount (g)** is the sum of its additions' amounts (computed), and its share in the donut and the Total
+  use it. The bitterness counts each addition with its own cooking time; the Boil Schedule has one entry per addition
   (the hop's colour and icon on each). Problems name the addition ("Hop 1, addition 2 needs an amount in grams.").
 
 ## 3.8 Water (`QE-36`)

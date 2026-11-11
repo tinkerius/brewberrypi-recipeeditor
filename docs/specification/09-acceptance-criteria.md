@@ -124,12 +124,13 @@ a release that changes sign-in or Drive behaviour.
   35 min of rests, 43 min heating at 1 °C/min." and the profile; a heating rate of 2 shows "Total mash time 1 h 57
   min: 1 h 35 min of rests, 22 min heating at 2 °C/min."
 - `ACC-067` (QE-34, QE-35, EDT-041, EDT-042) The Malt tab has a table with Name, EBC, Absolute amount (g), Relative amount (%)
-  and a Total line, the Boiling tab one with Name, α %, Additions (cooking time · amount), Absolute amount (g), Relative amount (%) and
+  and a Total line, the Boiling tab one with Name, α %, Additions (cooking time · amount), Absolute amount (g) and
   a Total line, saying "No malt yet." / "No hop yet." for a recipe without `ingredients`; + Add malt / + Add
   hop is the table's last row before the Total line, and adds an empty row above it whose name field has the focus; ✕ removes a row; removing the last row of both tables removes
   `ingredients` from the recipe.
 - `ACC-068` (EDT-043) Malts Pilsner malt 4500 g and Munich malt 500 g show 90 % and 10 % and the total 5000 g, 100 %;
-  three hops of 10 g each show 33.3 % each and 30 g; a row without an amount shows "–" and doesn't count.
+  three hops of 10 g each show 33.3 % each in the donut's legend and the Total 30 g; a malt without an amount shows
+  "–", and a row without an amount doesn't count.
 - `ACC-069` (EDT-044, EDT-045, FMT-004) A new row is reported as "Malt 1: Malt 1 needs a name." and
   "… needs an amount in grams.", with its fields marked; 12.5 g is "Malt 1: the amount must be a whole number of
   grams.", 0 g "… must be at least 1 g."; clicking "Malt 1" from the Mash Process tab opens the
@@ -208,6 +209,9 @@ a release that changes sign-in or Drive behaviour.
   "0 min (start)" and "50 min", each "2×" on its first row only (the second row reads it out to screen readers);
   each row has its own bar, those of a group starting together; "60 min" is on its bar, "10 min" next to its shorter
   one; a single addition at a time has no count.
+- `ACC-088` (EDT-043, QE-52) With four hops and an other addition, each row's Name cell starts with its icon: hop
+  cones in the first, second and third green and the muted tone (the first also the donut slice's colour), a jar in
+  the first violet; the hops' table has no Relative amount column; a malt row has no icon and keeps its share.
 
 ## 9.3 Browser drafts
 

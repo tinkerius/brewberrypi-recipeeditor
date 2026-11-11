@@ -184,7 +184,6 @@ export function WaterTreatment(props: { recipe: Recipe; problems: Problem[]; war
       ? notesWhere(issues, (p) => p === path(step) || (step === "boil" && p === path("carbonate_hardness")))
       : notesAt(issues, path("alkalinity"));
     const checkbox = `treatment-step-${id}`;
-    const alkalinity = t.alkalinity;
     return (
       <>
         <tr class={`${ROW} ${step && ticked ? PLANNED : ""}`} data-treatment={id} data-treatment-on={step && ticked ? "" : undefined}>
@@ -200,7 +199,8 @@ export function WaterTreatment(props: { recipe: Recipe; problems: Problem[]; war
             )}
           </td>
           <td class={CELL}>{name(info, step ? checkbox : undefined)}</td>
-          <td class={`${CELL} w-28 sm:w-44`}>{ticked && input(info.field, step !== undefined && step !== "boil")}</td>
+          {/* The tap water's residual alkalinity is entered in the Effect column: it is the starting value (QE-71). */}
+          <td class={`${CELL} w-28 sm:w-44`}>{step && ticked && input(info.field, step !== "boil")}</td>
           {/* What it comes to for this brew, read-only (QE-66). */}
           <td class={`${CELL} text-right`}>
             <div class={`${VALUE} justify-end text-sm whitespace-nowrap tabular-nums text-stone-700 dark:text-stone-300`} data-total-cell>
@@ -224,13 +224,24 @@ export function WaterTreatment(props: { recipe: Recipe; problems: Problem[]; war
           </td>
           <td class={`${CELL} text-right`}>
             <div class={`${VALUE} justify-end text-sm font-semibold whitespace-nowrap tabular-nums text-ink dark:text-ink-light`} data-effect-cell>
-              {step
-                ? ticked
-                  ? effectValue(effect)
-                  : "–"
-                : typeof alkalinity === "number" && Number.isFinite(alkalinity)
-                  ? degrees(alkalinity)
-                  : "–"}
+              {step ? (
+                ticked ? (
+                  effectValue(effect)
+                ) : (
+                  "–"
+                )
+              ) : (
+                <span class="font-normal [&_input]:w-16! sm:[&_input]:w-20!" data-alkalinity-input>
+                  <NumberField
+                    label={info.field.label}
+                    compact
+                    unit="°dH"
+                    value={t.alkalinity}
+                    invalid={props.problems.some((p) => p.path === path("alkalinity"))}
+                    onChange={(v) => props.onChange(withTreatmentField(props.recipe, "alkalinity", v))}
+                  />
+                </span>
+              )}
             </div>
           </td>
           <td class={`${CELL} w-7 text-right sm:w-10`}>{toggle(id, `About: ${info.name}`)}</td>

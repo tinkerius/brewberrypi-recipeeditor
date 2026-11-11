@@ -263,12 +263,12 @@ a release that changes sign-in or Drive behaviour.
   (4 L/kg) is no warning; with hop additions of 90 and 10 min and 20 L: "20 L + 3 L (90 min, ~10 %/h) + 4.5 L
   (~1 L/kg) + 1 L = 28.5 L". The hop table's heads read "α %" over "2–20" and "Additions (cooking time · amount)"
   over "cooking time up to 90 min".
-- `ACC-097` (EDT-069, QE-61..QE-64, QE-69, FMT-006) With Pilsner malt 4600 g 7 EBC, 18 L mash water and 24 L knockout
+- `ACC-097` (EDT-069, QE-61..QE-64, QE-69, QE-71, FMT-006) With Pilsner malt 4600 g 7 EBC, 18 L mash water and 24 L knockout
   volume, the Water tab's Water treatment is a table like the Rests table with the heads Step, Value, Typical and
   Effect (and, for screen readers, Used and About) and the result in its foot; it has Residual alkalinity (tap water)
   and the steps Boil the mash water, Brewing gypsum, Acid malt and Lactic acid 80 %, each with a
-  checkbox and, unticked, no field and the effect "–". The result is "–", with 10.3 °dH "10.3 °dH" (also the first
-  effect), the target "at most 2 °dH (9 EBC, like Pils)" and its warning. Ticked, a step's field is empty: boiling's
+  checkbox and, unticked, no field and the effect "–". The tap water's residual alkalinity is entered in the
+  Effect column (`QE-71`). The result is "–", with 10.3 °dH "10.3 °dH", the target "at most 2 °dH (9 EBC, like Pils)" and its warning. Ticked, a step's field is empty: boiling's
   effect is "–" and its carbonate hardness an error ("⊘ Boiling the mash water needs the tap water's carbonate
   hardness.", `QE-69`), its ⓘ explains boiling, with 14 °dH "−7.9 °dH"; gypsum is
   "⊘ The brewing gypsum needs an amount." until 1 g/10 L gives "−0.9 °dH" (its ⓘ: "Its calcium lowers the residual
@@ -284,7 +284,7 @@ a release that changes sign-in or Drive behaviour.
   carbonate hardness gives "ΔRA = 0 °dH (…)"; without the inputs only the formulas.
 - `ACC-099` (EDT-069, EDT-070, QE-66) With 4.6 kg of malt and 18 L mash water, 1 % acid malt is 46.5 g (1/99 of
   4600 g; the total malt 4646 g), 1 g/10 L gypsum 1.8 g and 0.5 ml/10 L lactic acid 0.9 ml in the Total column ("1.8 g",
-  "46 g", "0.9 ml"; nothing for boiling); the units read "°dH residual alkalinity", "°dH carbonate hardness",
+  "46 g", "0.9 ml"; nothing for boiling); the units read "°dH" (the tap water's, in the Effect column), "°dH carbonate hardness",
   "g/10 L mash water", "% of total malt", "ml/10 L mash water"; without mash water there are no totals of the doses.
 - `ACC-100` (EDT-070, QE-67, QE-68, QE-70) With Pilsner malt 4600 g 7 EBC and 1 % acid malt in the Water treatment, the Malt table
   shows after it a row like the others with its values as text, no input fields ("Acid malt", 5 EBC with its swatch,

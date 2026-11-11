@@ -452,13 +452,13 @@ temperature of their own. The typical durations of `EDT-038` and the flags:
   box from tablet width on, scrolling sideways inside itself), head row, cells, bold names (short ones on a phone:
   "Tap water RA", "Boil", "Gypsum", "Acid malt", "Lactic acid", "After treatment"), the planned rows' highlight for
   ticked steps and an ⓘ per row that opens its explanation below it, one at a time. Its columns: the checkbox,
-  **Step**, **Value** (the field and its unit, spelled out, `QE-66`: "°dH residual alkalinity", "°dH carbonate
-  hardness", "g/10 L mash water", "% of total malt", "ml/10 L mash water"), **Total** (read-only, `QE-66`: what the
+  **Step**, **Value** (the field and its unit, spelled out, `QE-66`: "°dH carbonate hardness", "g/10 L mash water", "% of total malt", "ml/10 L mash water"), **Total** (read-only, `QE-66`: what the
   step comes to for this brew — gypsum and lactic acid for the mash water, e.g. "1.8 g" and "0.9 ml" for 18 L; the
   acid malt in whole grams, "46 g"; "–" while it can't be worked out, nothing for boiling), **Typical** (the typical value, the field's errors and warnings right
   after it, and what to enter while an effect can't be worked out), **Effect** and the ⓘ. Its rows (inputs left
   empty are left out of the file, `treatment` when it holds nothing, and `water` when that is empty):
-  **Residual alkalinity (tap water)** (°dH, any number; "From the water analysis."), then the **steps**, each ticked
+  **Residual alkalinity (tap water)** (°dH, any number, entered **right in the Effect column** as the starting
+  value, its Value column empty, `QE-71`; "From the water analysis."), then the **steps**, each ticked
   to use it like a mashing rest (`QE-63`; a checkbox before its name, "Tick the steps you use."): **Boil the mash
   water** (`QE-69`; ticked: `boil: true` and, in its row, the tap water's **carbonate hardness** in °dH ≥ 0, "°dH
   carbonate hardness", then mandatory, app `Q-47`),
@@ -468,7 +468,7 @@ temperature of their own. The typical durations of `EDT-038` and the flags:
   amount."; boiling without the carbonate hardness: "Boiling the mash water needs the tap water's carbonate
   hardness."), and clearing it keeps the step ticked.
   Unticked, a step has no field and no effect, and leaves the file (boiling with the carbonate hardness). The column
-  **Effect** (`QE-62`) holds the tap water's residual alkalinity as the starting value ("10.3 °dH") and each step's
+  **Effect** (`QE-62`) holds the tap water's residual alkalinity as the starting value (its field, `QE-71`) and each step's
   effect on it, signed ("−0.9 °dH"; "–" while unused or not worked out, "Enter the carbonate hardness." then under
   Typical); each row's ⓘ says what the step does and shows how its value is worked out (`QE-65`): its formula and, once
   it can be worked out, the same formula with the recipe's numbers and the result, rounded as shown (tap water

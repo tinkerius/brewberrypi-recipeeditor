@@ -2049,7 +2049,9 @@ describe("App, the Water tab (QE-36)", () => {
     }
     expect(result()).toBe("–");
     await type(amount("alkalinity")!, "10.3");
-    expect([effect("alkalinity"), result()]).toEqual(["10.3 °dH", "10.3 °dH"]);
+    // Entered right in the Effect column, as the starting value (QE-71); its Value column stays empty.
+    expect(section().querySelector("[data-treatment=alkalinity] [data-effect-cell] input")).toBe(amount("alkalinity"));
+    expect(result()).toBe("10.3 °dH");
     // The target for the beer colour (here 9 EBC), with a warning above it.
     expect(section().querySelector("[data-treatment=result] [data-typical]")!.textContent).toBe("at most 2 °dH (9 EBC, like Pils)");
     expect(section().querySelector("[data-treatment=result] [data-field-warning]")!.textContent).toBe(
@@ -2089,7 +2091,7 @@ describe("App, the Water tab (QE-36)", () => {
     const total = (row: string) => section().querySelector(`[data-treatment=${row}] [data-total-cell]`)!.textContent;
     expect(["boil", "gypsum", "acid_malt", "lactic_acid"].map(total)).toEqual(["", "1.8 g", "46 g", "0.9 ml"]);
     expect([...section().querySelectorAll("[data-unit]")].map((u) => u.textContent)).toEqual([
-      "°dH residual alkalinity",
+      "°dH",
       "°dH carbonate hardness",
       "g/10 L mash water",
       "% of total malt",

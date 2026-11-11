@@ -172,8 +172,8 @@ a release that changes sign-in or Drive behaviour.
   top-up water 32.5 L and a mash thickness of 3.2 L/kg (typical 2.5–4 L/kg); "Enter the mash water." before, and
   "Enter the malts on the Malt tab." without malts. With a knockout volume of 20 L the Malt tab no longer asks for it.
 - `ACC-080` (EDT-055) At 9 EBC the colour scale has the styles Pils, Pale Ale, Märzen, Dunkel, Stout, the marker
-  between Pils and Pale Ale and "In the range of: Helles, Weissbier."; with roasted barley above 80 EBC the marker
-  is at the scale's end and it says "Darker than a typical stout."; no scale without a colour.
+  between Pils and Pale Ale, the label "9 EBC on a scale from 0 to 80 EBC, like Helles, Weissbier" and no line
+  naming the styles; with roasted barley above 80 EBC the marker is at the scale's end; no scale without a colour.
 - `ACC-081` (EDT-057, EDT-045, FMT-006) The Water tab has the headings Water and Gravity; Gravity has Original
   gravity (target) and Final gravity (°P). The alcohol is "–" with "Enter the original gravity and the final
   gravity."; 12 °P and 2.5 °P give 5.1 % vol and 79 % apparent attenuation and are written as

@@ -1288,7 +1288,7 @@ describe("App, the Malt and Hops tabs (QE-34, QE-35)", () => {
     const scale = recipe().querySelector("[data-style-scale=colour]")!;
     expect([...scale.querySelectorAll("[data-scale-style]")].map((g) => g.textContent)).toEqual(["Pils", "Pale Ale", "Märzen", "Dunkel", "Stout"]);
     expect(scale.querySelector("svg")!.getAttribute("aria-label")).toBe("9 EBC on a scale from 0 to 80 EBC, like Helles, Weissbier");
-    expect(scale.querySelector("[data-scale-styles]")!.textContent).toBe("In the range of: Helles, Weissbier.");
+    expect(scale.querySelector("[data-scale-styles]")).toBeNull(); // no "In the range of" line (QE-45)
     const markerX = () => Number(recipe().querySelector("[data-style-scale=colour] [data-scale-marker] line")!.getAttribute("x1"));
     const at9 = markerX();
     // Pils (6) left of the marker, Pale Ale (15) right of it.
@@ -1297,7 +1297,6 @@ describe("App, the Malt and Hops tabs (QE-34, QE-35)", () => {
     expect(styleX("Pale Ale")).toBeGreaterThan(at9);
     // A black beer sits at the end of the scale.
     await add("malts", "Roasted barley", "800", { ebc: "1300" });
-    expect(recipe().querySelector("[data-style-scale=colour] [data-scale-styles]")!.textContent).toBe("Darker than a typical stout.");
     expect(markerX()).toBe(640 - 10);
   });
 

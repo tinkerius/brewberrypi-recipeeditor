@@ -28,9 +28,6 @@ function StyleScale(props: {
   stops: { offset: number; colour: string }[];
   styles: Style[];
   holding: string[];
-  /** The line below the scale naming the styles in range (the colour scale only; QE-44). */
-  rangeLine: boolean;
-  above: string;
 }) {
   const { box, width } = useWidth();
   const pad = 10;
@@ -90,15 +87,6 @@ function StyleScale(props: {
           <line x1={marker} x2={marker} y1={barY - 2} y2={barY + barH + 2} stroke-width={2} class="stroke-ink dark:stroke-ink-light" />
         </g>
       </svg>
-      {props.rangeLine && (
-        <p class="text-xs text-stone-600 dark:text-stone-300" data-scale-styles>
-          {props.holding.length > 0
-            ? `In the range of: ${props.holding.join(", ")}.`
-            : props.value > props.max
-              ? props.above
-              : "Between the common styles."}
-        </p>
-      )}
     </div>
   );
 }
@@ -118,8 +106,6 @@ export function BeerColourScale(props: { ebc: number }) {
       stops={stops}
       styles={BEER_STYLES}
       holding={stylesOfColour(props.ebc)}
-      rangeLine
-      above="Darker than a typical stout."
     />
   );
 }
@@ -141,8 +127,6 @@ export function BitternessScale(props: { ibu: number }) {
       stops={stops}
       styles={BITTERNESS_STYLES}
       holding={stylesOfBitterness(props.ibu)}
-      rangeLine={false}
-      above="More bitter than a typical IPA."
     />
   );
 }

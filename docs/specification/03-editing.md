@@ -268,9 +268,10 @@ temperature of their own. The typical durations of `EDT-038` and the flags:
   without any cooking time it says "Enter the hops' amounts and cooking times to see when each goes into the boil."
 - `EDT-055` Below the beer colour, a **colour scale** shows where it lies among common beers: the SRM colour chart
   as a bar from 0 to 80 EBC (numbers 0, 20, 40, 60, "80+"), a marker at the beer's colour (a darker beer at the end),
-  and the styles Pils, Pale Ale, Märzen, Dunkel and Stout at their typical colours. Below it: "In the range of:
-  Helles, Weissbier." for the styles whose range holds the rounded colour, "Darker than a typical stout." above
-  80 EBC, else "Between the common styles.". The styles' ranges (EBC, from the BJCP 2021 guidelines' SRM × 1.97):
+  and the styles Pils, Pale Ale, Märzen, Dunkel and Stout at their typical colours; no line below it naming the
+  styles (`QE-45`; the scale's label for screen readers still names those whose range holds the rounded colour,
+  "9 EBC on a scale from 0 to 80 EBC, like Helles, Weissbier"). The styles' ranges (EBC, from the BJCP 2021
+  guidelines' SRM × 1.97):
 
 | Style | EBC | On the scale |
 |---|---|---|
@@ -284,7 +285,7 @@ temperature of their own. The typical durations of `EDT-038` and the flags:
 
 - `EDT-056` Below the bitterness, a **bitterness scale** like the colour scale (`EDT-055`): a bar from 0 to 100 IBU
   ("100+") in hop greens, light to dark, a marker at the bitterness, the styles Weissbier, Helles, Pils, Pale Ale and
-  IPA at their typical bitterness (no "In the range of" line, unlike the colour scale; `QE-44`). Below it **BU:GU**,
+  IPA at their typical bitterness (no line naming the styles; `QE-44`). Below it **BU:GU**,
   the bitterness against the original gravity (IBU / ((SG − 1) · 1000)), as a heading line like the bitterness's
   ("BU:GU: **0.37** balanced", `QE-44`) with two decimals and how it reads: below 0.35 "malty", up to 0.55
   "balanced", up to 0.8 "bitter", above "very bitter". The styles' bitterness (IBU, BJCP 2021):

@@ -638,9 +638,10 @@ export function additionText(addAt: number, boil: number, cooking: number): stri
 
 /**
  * The hop schedule (EDT-054): the boil lasts as long as the longest cooking time; each hop goes in at that boil time
- * minus its own cooking time, counted from the start of the boil. Shown as a timeline from the start of the boil (left)
- * to its end (right), one row and dot per hop in its donut colour with a line for how long it cooks, and as a table in
- * the order of addition. Hops without a cooking time are named in a hint.
+ * minus its own cooking time, counted from the start of the boil. Shown as one table in the order of addition (QE-51):
+ * the additions that go in together grouped under their add time, each row with its ingredient, amount and a bar on a
+ * timeline from the start of the boil (left) to its end (right) for how long it cooks, in the row's colour. Additions
+ * without a cooking time are named in a hint.
  */
 function HopSchedule(props: { hops: Ingredient[]; others: Ingredient[] }) {
   const { box, width } = useWidth();
@@ -682,102 +683,149 @@ function HopSchedule(props: { hops: Ingredient[]; others: Ingredient[] }) {
   const timed = cooked
     .map((e, order) => ({ ...e, order, cooking: e.a.minutes as number, addAt: boil - (e.a.minutes as number) }))
     .sort((a, b) => a.addAt - b.addAt || a.order - b.order);
-  const ROW = 26;
-  const LABEL = 96;
-  const top = 8;
-  const axisY = top + timed.length * ROW + 4;
-  const height = axisY + 30;
-  const x0 = LABEL;
-  const x1 = width - 12;
+  // The timeline column's width, estimated from the box (the table's other columns take about 440 px; on a phone the
+  // bar has its own line): for the ticks and whether a bar's cooking time fits on it.
+  const phone = width < 560;
+  const line = Math.max(120, phone ? width - 24 : width - 440);
   const span = Math.max(1, boil);
-  const x = (minuteOfBoil: number) => x0 + (minuteOfBoil / span) * (x1 - x0);
-  const step = [5, 10, 15, 30, 60].find((st) => span / st <= Math.max(2, Math.floor((x1 - x0) / 70))) ?? 120;
+  const at = (minuteOfBoil: number) => `${(minuteOfBoil / span) * 100}%`;
+  const step = [5, 10, 15, 30, 60].find((st) => span / st <= Math.max(2, Math.floor(line / 70))) ?? 120;
   const ticks = Array.from({ length: Math.floor(span / step) + 1 }, (_, k) => k * step).filter((m) => m <= boil);
   if (!ticks.includes(boil)) {
     ticks.push(boil);
   }
+  const grid = ticks.map((m) => (
+    <span key={m} class="absolute inset-y-0 border-l border-stone-200 dark:border-white/10" style={{ left: at(m) }} />
+  ));
+  // On a phone each row is a grid: the add time on its own line, then ingredient and amount, then the bar (QE-51).
+  const ROW_GRID = "max-sm:grid max-sm:grid-cols-[1fr_auto] max-sm:px-1";
   return (
     <div ref={box} data-hop-schedule>
       <p class="mb-2 text-sm text-ink dark:text-ink-light" data-boil-time>
         <span class="font-medium">Total boil time:</span> <span class="font-semibold tabular-nums">{boil} min</span>
       </p>
-      <div class="rounded-lg bg-stone-50 ring-1 ring-line dark:bg-white/5 dark:ring-white/10">
-        <svg
-          width={width}
-          height={height}
-          viewBox={`0 0 ${width} ${height}`}
-          role="img"
-          aria-label={`Hop schedule over a ${boil}-minute boil: ${timed
-            .map((e) => `${name(e)} ${e.a.grams} g added at ${additionText(e.addAt, boil, e.cooking)}`)
-            .join(", ")}`}
-          class="block max-w-full text-ink dark:text-ink-light"
-        >
-          {ticks.map((m) => (
-            <g key={m} data-schedule-tick>
-              <line x1={x(m)} x2={x(m)} y1={top} y2={axisY} class="stroke-stone-200 dark:stroke-white/10" />
-              <text x={x(m)} y={axisY + 14} text-anchor="middle" class="fill-stone-500 text-[10px] dark:fill-stone-400">
-                {m === 0 ? "start" : m === boil ? "end" : m}
-              </text>
-            </g>
-          ))}
-          <line x1={x0} x2={x1} y1={axisY} y2={axisY} class="stroke-stone-400 dark:stroke-stone-500" />
-          <text x={x1} y={axisY + 26} text-anchor="end" class="fill-stone-500 text-[10px] dark:fill-stone-400">
-            min after the start of the boil
-          </text>
-          {timed.map((e, row) => {
-            const { h, addAt, cooking } = e;
-            const y = top + row * ROW + ROW / 2;
-            return (
-              <g key={key(e)} data-schedule-hop={key(e)}>
-                <title>{`${name(e)}: ${e.a.grams} g, add at ${additionText(addAt, boil, cooking)}, cooks ${cooking} min`}</title>
-                <text x={8} y={y} dy="0.32em" class="fill-stone-600 text-[11px] tabular-nums dark:fill-stone-300">
-                  {additionText(addAt, boil, cooking)}
-                </text>
-                {/* How long it cooks: from its addition to the end of the boil. */}
-                <line x1={x(addAt)} x2={x(boil)} y1={y} y2={y} stroke={colour(e)} stroke-width={2} stroke-linecap="round" opacity={0.45} />
-                {/* A hop cone or a jar at the addition, in the row's colour (QE-46). */}
-                <AdditionIcon kind={e.kind} colour={colour(e)} size={18} x={x(addAt) - 9} y={y - 9} />
-              </g>
-            );
-          })}
-        </svg>
-      </div>
-      <div class="mt-3 overflow-x-auto rounded-lg ring-1 ring-line dark:ring-white/10">
-        <table class="w-full border-collapse text-sm" aria-label="Boil schedule" data-schedule-list>
-          <thead class="bg-stone-50 dark:bg-white/5">
-            <tr>
-              <th class={`${HEAD} text-left`}>Add at</th>
-              <th class={`${HEAD} text-left`}>Ingredient</th>
-              <th class={`${HEAD} text-right`}>Cooking time</th>
-              <th class={`${HEAD} text-right`}>Amount</th>
+      <div class="rounded-lg ring-1 ring-line dark:ring-white/10">
+        <table class="w-full border-collapse text-sm max-sm:block" aria-label="Boil schedule" data-schedule-list>
+          <thead class="bg-stone-50 max-sm:block dark:bg-white/5">
+            <tr class={ROW_GRID}>
+              <th class={`${HEAD} text-left max-sm:hidden`}>Add at</th>
+              <th class={`${HEAD} text-left max-sm:hidden`}>Ingredient</th>
+              <th class={`${HEAD} text-right max-sm:hidden`}>Amount</th>
+              {/* The time axis of the boil, from its start to its end (EDT-054). */}
+              <th class={`${HEAD} w-full max-sm:col-span-2 sm:min-w-48`} data-schedule-axis>
+                <span class="sr-only">Cooking time</span>
+                <div class="relative mx-2 h-4" aria-hidden="true">
+                  {ticks.map((m) => (
+                    <span
+                      key={m}
+                      class={`absolute top-0 whitespace-nowrap font-normal text-stone-500 tabular-nums dark:text-stone-400 ${
+                        m === 0 ? "" : m === boil ? "-translate-x-full" : "-translate-x-1/2"
+                      }`}
+                      style={{ left: at(m) }}
+                      data-schedule-tick
+                    >
+                      {m === 0 ? "start" : m === boil ? "end" : m}
+                    </span>
+                  ))}
+                </div>
+              </th>
             </tr>
           </thead>
-          <tbody>
-            {timed.map((e) => (
-              <tr key={key(e)} class="border-t border-line dark:border-white/10" data-schedule-row={key(e)}>
-                <td class={`${CELL} whitespace-nowrap tabular-nums text-ink dark:text-ink-light`}>
-                  <span class="inline-flex items-center gap-2">
-                    <AdditionIcon kind={e.kind} colour={colour(e)} />
-                    {additionText(e.addAt, boil, e.cooking)}
-                  </span>
-                </td>
-                <td class={`${CELL} text-ink dark:text-ink-light`}>
-                  {name(e)}
-                  {/* A hop's alpha acid after its name (QE-46, QE-47): "Hallertauer (12 % α)". */}
-                  {e.kind === "hops" && validAlpha(e.h.alpha) && (
-                    // On a phone on its own line, never broken in the middle.
-                    <span class="block whitespace-nowrap text-stone-500 sm:inline dark:text-stone-400" data-schedule-alpha>
-                      {" "}
-                      ({e.h.alpha} % α)
+          <tbody class="max-sm:block">
+            {timed.map((e, n) => {
+              const first = n === 0 || timed[n - 1].addAt !== e.addAt;
+              const together = timed.filter((t) => t.addAt === e.addAt).length;
+              const when = additionText(e.addAt, boil, e.cooking);
+              const tooltip = `${name(e)}: ${e.a.grams} g, add at ${when}, cooks ${e.cooking} min`;
+              // The cooking time on the bar while it fits, else just left of it (a flame-out addition: a thin mark).
+              const fits = (e.cooking / span) * line >= 56;
+              return (
+                <tr
+                  key={key(e)}
+                  class={`${ROW_GRID} ${
+                    first ? "border-t border-line dark:border-white/10" : "border-t border-dashed border-line/60 dark:border-white/5"
+                  }`}
+                  data-schedule-row={key(e)}
+                  data-schedule-hop={key(e)}
+                  data-schedule-first={first ? "" : undefined}
+                  title={tooltip}
+                >
+                  {/* The add time once per group of additions that go in together; read out on every row. */}
+                  <td
+                    class={`${CELL} whitespace-nowrap tabular-nums text-ink max-sm:col-span-2 max-sm:pb-0 dark:text-ink-light ${
+                      first ? "" : "max-sm:hidden"
+                    }`}
+                    data-schedule-at
+                  >
+                    {first ? (
+                      <>
+                        {when}
+                        {together > 1 && (
+                          <span
+                            class="ml-2 rounded-full bg-stone-100 px-1.5 text-xs text-stone-600 dark:bg-white/10 dark:text-stone-300"
+                            title={`${together} additions at ${when}`}
+                            data-schedule-count
+                          >
+                            {together}×
+                          </span>
+                        )}
+                      </>
+                    ) : (
+                      <span class="sr-only">{when}</span>
+                    )}
+                  </td>
+                  <td class={`${CELL} text-ink max-sm:pb-0 dark:text-ink-light`} data-schedule-ingredient>
+                    <span class="inline-flex items-center gap-2">
+                      {/* A hop cone or a jar, in the row's colour (QE-46). */}
+                      <AdditionIcon kind={e.kind} colour={colour(e)} />
+                      <span>
+                        {name(e)}
+                        {/* A hop's alpha acid after its name (QE-46, QE-47): "Hallertauer (12 % α)". */}
+                        {e.kind === "hops" && validAlpha(e.h.alpha) && (
+                          <span class="whitespace-nowrap text-stone-500 dark:text-stone-400" data-schedule-alpha>
+                            {" "}
+                            ({e.h.alpha} % α)
+                          </span>
+                        )}
+                      </span>
                     </span>
-                  )}
-                </td>
-                <td class={`${CELL} ${NUMBER} text-stone-600 dark:text-stone-300`}>{e.cooking} min</td>
-                <td class={`${CELL} ${NUMBER} text-ink dark:text-ink-light`}>{e.a.grams as number} g</td>
-              </tr>
-            ))}
+                  </td>
+                  <td class={`${CELL} ${NUMBER} text-ink max-sm:pb-0 dark:text-ink-light`} data-schedule-amount>
+                    {e.a.grams as number} g
+                  </td>
+                  <td class={`${CELL} max-sm:col-span-2 max-sm:pt-1`} data-schedule-cooking>
+                    <div class="relative mx-2 h-6 max-sm:h-5">
+                      {grid}
+                      <div
+                        class="absolute inset-y-1 right-0 flex items-center justify-end rounded-r-sm pr-1.5 text-[11px] font-semibold text-ink tabular-nums max-sm:inset-y-0.5 dark:text-ink-light"
+                        // A tint of the row's colour, with a solid edge where it goes in (legible in both modes).
+                        style={{
+                          left: e.cooking === 0 ? "calc(100% - 7px)" : at(e.addAt),
+                          background: e.cooking === 0 ? colour(e) : `color-mix(in srgb, ${colour(e)} 35%, transparent)`,
+                          borderLeft: `3px solid ${colour(e)}`,
+                        }}
+                        data-schedule-bar
+                      >
+                        {fits && `${e.cooking} min`}
+                      </div>
+                      {!fits && (
+                        <span
+                          class="absolute top-1/2 -translate-x-full -translate-y-1/2 pr-1.5 text-[11px] font-semibold whitespace-nowrap text-ink tabular-nums dark:text-ink-light"
+                          style={{ left: e.cooking === 0 ? "calc(100% - 7px)" : at(e.addAt) }}
+                        >
+                          {e.cooking} min
+                        </span>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
+        <p class={`${HINT_STYLE} px-3 pb-2 pt-1 text-right text-[11px]`} data-schedule-caption>
+          Bar: cooking time · min after the start of the boil
+        </p>
       </div>
       {missing}
     </div>

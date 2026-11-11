@@ -160,11 +160,12 @@ a release that changes sign-in or Drive behaviour.
   41 °P are problems whose entries open the Water tab; clearing both removes `batch`.
 - `ACC-076` (EDT-041, QE-36, QE-42) The Malt tab has the headings Malt Overview (above the donut and figure) and Malt
   (above the table); the Boiling tab Hops Overview, Boil Schedule and Boil Ingredients, in this order (`QE-43`).
-- `ACC-077` (EDT-054, QE-47, QE-48) Hops Saaz 10 g 0 min, Hallertauer Tradition 30 g 60 min, Tettnanger 20 g 10 min and Cascade
-  15 g without cooking time: "Total boil time: 60 min"; the table (Add at, Ingredient, Cooking time, Amount) lists 0 min
-  (start) Hallertauer Tradition 60 min 30 g, 50 min Tettnanger 10 min 20 g, 60 min (flame-out) Saaz 0 min 10 g; the
-  dots go from left (start) to right (end) in the hops' greens (their donut colours; a 4th hop's in the muted tone), with tooltips ("…, add at 0 min (start),
-  cooks 60 min"); it says "No cooking time yet: hop 4."; without cooking times it asks for them.
+- `ACC-077` (EDT-054, QE-47, QE-48, QE-51) Hops Saaz 10 g 0 min, Hallertauer Tradition 30 g 60 min, Tettnanger 20 g 10 min and Cascade
+  15 g without cooking time: "Total boil time: 60 min"; the table (Add at, Ingredient, Amount, the cooking time on the
+  time axis) lists 0 min (start) Hallertauer Tradition 30 g 60 min, 50 min Tettnanger 20 g 10 min, 60 min
+  (flame-out) Saaz 10 g 0 min; the bars start at 0 %, at 50/60 of the axis and as a mark at its end, from "start" to
+  "end", in the hops' greens (their donut colours; a 4th hop's in the muted tone), with tooltips ("…, add at 0 min
+  (start), cooks 60 min"); it says "No cooking time yet: hop 4."; without cooking times it asks for them.
 - `ACC-078` (EDT-051, EDT-053, FMT-006) The Water tab has the heading Water and the fields Mash water, Sparge water,
   Top-up water and Knockout volume (target) (L) with their hints (then the Gravity fields, `ACC-081`); 16, 14 and 2 are written as
   `"water": { "mash": 16, "sparge": 14, "top_up": 2 }`; −1 is a problem whose entry opens the Water tab; clearing
@@ -203,6 +204,10 @@ a release that changes sign-in or Drive behaviour.
   green; the file has `"additions": [ { "minutes": 60, "grams": 20 }, { "minutes": 10, "grams": 10 } ]`; the ✕ of an
   addition shows only while there are two, and removing one leaves 20 g; an addition without an amount is
   "Hop 1, addition 2 needs an amount in grams."
+- `ACC-087` (EDT-054, QE-51) Hallertauer 60 min, Magnum 60 min, Bramling 10 min and Irish Moss 10 min: two groups,
+  "0 min (start)" and "50 min", each "2×" on its first row only (the second row reads it out to screen readers);
+  each row has its own bar, those of a group starting together; "60 min" is on its bar, "10 min" next to its shorter
+  one; a single addition at a time has no count.
 
 ## 9.3 Browser drafts
 

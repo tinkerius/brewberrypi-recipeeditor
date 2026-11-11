@@ -1405,8 +1405,8 @@ describe("App, the Malt and Hops tabs (QE-34, QE-35)", () => {
     const schedule = recipe().querySelector("[data-hop-schedule]")!;
     const items = [...schedule.querySelectorAll<HTMLTableRowElement>("[data-schedule-list] tbody tr")].map((tr) => [...tr.cells].map((td) => td.textContent));
     expect(items).toEqual([
-      ["0 min (start)", "Hallertauer Tradition (5.5 % α)", "60 min", "30 g"],
-      ["45 min", "Irish Moss", "15 min", "10 g"],
+      ["0 min (start)", "Hallertauer Tradition (5.5 % α)", "30 g", "60 min"],
+      ["45 min", "Irish Moss", "10 g", "15 min"],
     ]);
     // A jar for another addition, in the grey "other" colour; a hop cone in its donut colour for a hop (QE-46).
     const jar = schedule.querySelector("[data-schedule-hop=other-0-0] [data-addition-icon]")!;
@@ -1453,9 +1453,9 @@ describe("App, the Malt and Hops tabs (QE-34, QE-35)", () => {
     const schedule = recipe().querySelector("[data-hop-schedule]")!;
     const items = [...schedule.querySelectorAll<HTMLTableRowElement>("[data-schedule-list] tbody tr")].map((tr) => [...tr.cells].map((td) => td.textContent));
     expect(items).toEqual([
-      ["0 min (start)", "Hallertauer Tradition (5.5 % α)", "60 min", "20 g"],
-      ["50 min", "Hallertauer Tradition (5.5 % α)", "10 min", "10 g"],
-      ["60 min (flame-out)", "Saaz (4 % α)", "0 min", "10 g"],
+      ["0 min (start)", "Hallertauer Tradition (5.5 % α)", "20 g", "60 min"],
+      ["50 min", "Hallertauer Tradition (5.5 % α)", "10 g", "10 min"],
+      ["60 min (flame-out)", "Saaz (4 % α)", "10 g", "0 min"],
     ]);
     expect([...schedule.querySelectorAll("[data-schedule-list] tbody [data-addition-icon]")].map((i) => i.getAttribute("fill"))).toEqual([
       "var(--hop-1)",
@@ -1472,6 +1472,39 @@ describe("App, the Malt and Hops tabs (QE-34, QE-35)", () => {
     await act(async () => (removeButtons()[1] as HTMLElement).click());
     expect(removeButtons()).toHaveLength(0);
     expect(rows("hops")[0].querySelector("[data-entry-total]")!.textContent).toBe("20 g");
+  });
+
+  it("ACC-087 additions that go in at the same time are grouped under one add time, each with its own bar", async () => {
+    await open();
+    await showTab("hops");
+    await add("hops", "Hallertauer", "20", { alpha: "5", minutes: "60" });
+    await add("hops", "Magnum", "10", { alpha: "12", minutes: "60" });
+    await add("hops", "Bramling", "15", { alpha: "5", minutes: "10" });
+    await act(async () => button("+ Add other addition").click());
+    await type(nameField("others", 0), "Irish Moss");
+    await type(field("others", 0, "grams"), "5");
+    await type(field("others", 0, "minutes"), "10");
+    const list = () => [...recipe().querySelectorAll<HTMLTableRowElement>("[data-schedule-list] tbody tr")];
+    // The add time is shown once per group, with the number of additions; the other rows only read it out.
+    expect(list().map((tr) => tr.hasAttribute("data-schedule-first"))).toEqual([true, false, true, false]);
+    expect(list().map((tr) => tr.querySelector("[data-schedule-at]")!.textContent)).toEqual(["0 min (start)2×", "0 min (start)", "50 min2×", "50 min"]);
+    expect(list()[1].querySelector("[data-schedule-at] .sr-only")).not.toBeNull();
+    expect(list().map((tr) => tr.querySelector("[data-schedule-ingredient]")!.textContent)).toEqual([
+      "Hallertauer (5 % α)",
+      "Magnum (12 % α)",
+      "Bramling (5 % α)",
+      "Irish Moss",
+    ]);
+    // Each row its own bar; the bars of a group start together.
+    const bars = list().map((tr) => tr.querySelector<HTMLElement>("[data-schedule-bar]")!);
+    expect(bars.map((b) => b.style.left)).toEqual(["0%", "0%", `${(50 / 60) * 100}%`, `${(50 / 60) * 100}%`]);
+    // The cooking time on a long bar, next to a short one.
+    expect(bars[0].textContent).toBe("60 min");
+    expect(bars[2].textContent).toBe("");
+    expect(list()[2].querySelector("[data-schedule-cooking]")!.textContent).toBe("10 min");
+    // A single addition has no count.
+    await type(field("hops", 1, "minutes"), "30");
+    expect(list()[0].querySelector("[data-schedule-count]")).toBeNull();
   });
 
   it("ACC-083 shows each malt's colour from its EBC next to the field", async () => {
@@ -1511,17 +1544,15 @@ describe("App, the Malt and Hops tabs (QE-34, QE-35)", () => {
     await add("hops", "Tettnanger", "20", { minutes: "10" });
     await add("hops", "Cascade", "15");
     expect(schedule().querySelector("[data-boil-time]")!.textContent).toBe("Total boil time: 60 min");
-    expect([...schedule().querySelectorAll("[data-schedule-list] thead th")].map((th) => th.textContent)).toEqual([
-      "Add at",
-      "Ingredient",
-      "Cooking time",
-      "Amount",
-    ]);
+    // One table (QE-51): Add at, Ingredient, Amount, and the cooking time as a bar on the boil's time axis.
+    const heads = [...schedule().querySelectorAll("[data-schedule-list] thead th")];
+    expect(heads.slice(0, 3).map((th) => th.textContent)).toEqual(["Add at", "Ingredient", "Amount"]);
+    expect(heads[3].querySelector(".sr-only")!.textContent).toBe("Cooking time");
     const items = [...schedule().querySelectorAll<HTMLTableRowElement>("[data-schedule-list] tbody tr")].map((tr) => [...tr.cells].map((td) => td.textContent));
     expect(items).toEqual([
-      ["0 min (start)", "Hallertauer Tradition", "60 min", "30 g"],
-      ["50 min", "Tettnanger", "10 min", "20 g"],
-      ["60 min (flame-out)", "Saaz", "0 min", "10 g"],
+      ["0 min (start)", "Hallertauer Tradition", "30 g", "60 min"],
+      ["50 min", "Tettnanger", "20 g", "10 min"],
+      ["60 min (flame-out)", "Saaz", "10 g", "0 min"],
     ]);
     const dots = [...schedule().querySelectorAll("[data-schedule-hop]")];
     expect(dots.map((g) => (g as HTMLElement).dataset.scheduleHop)).toEqual(["hop-1-0", "hop-2-0", "hop-0-0"]);
@@ -1535,13 +1566,13 @@ describe("App, the Malt and Hops tabs (QE-34, QE-35)", () => {
     await type(field("hops", 3, "minutes"), "30");
     expect(schedule().querySelector("[data-schedule-hop=hop-3-0] [data-addition-icon]")!.getAttribute("fill")).toBe("var(--hop-more)");
     await type(field("hops", 3, "minutes"), "");
-    expect(dots[0].querySelector("title")!.textContent).toBe("Hallertauer Tradition: 30 g, add at 0 min (start), cooks 60 min");
-    expect(dots[2].querySelector("title")!.textContent).toBe("Saaz: 10 g, add at 60 min (flame-out), cooks 0 min");
-    // The start of the boil is at the left, its end at the right.
-    const cx = dots.map((g) => Number(g.querySelector("[data-addition-icon]")!.getAttribute("x")));
-    expect(cx[0]).toBeLessThan(cx[1]);
-    expect(cx[1]).toBeLessThan(cx[2]);
-    const ticks = [...schedule().querySelectorAll("[data-schedule-tick] text")].map((t) => t.textContent);
+    expect((dots[0] as HTMLElement).title).toBe("Hallertauer Tradition: 30 g, add at 0 min (start), cooks 60 min");
+    expect((dots[2] as HTMLElement).title).toBe("Saaz: 10 g, add at 60 min (flame-out), cooks 0 min");
+    // The start of the boil is at the left, its end at the right: each bar from its addition to the end.
+    const bars = dots.map((g) => g.querySelector<HTMLElement>("[data-schedule-bar]")!);
+    expect(bars.map((b) => b.style.left)).toEqual(["0%", `${(50 / 60) * 100}%`, "calc(100% - 7px)"]);
+    expect(bars.map((b) => b.style.borderLeft)).toEqual(["3px solid var(--hop-2)", "3px solid var(--hop-3)", "3px solid var(--hop-1)"]);
+    const ticks = [...schedule().querySelectorAll("[data-schedule-tick]")].map((t) => t.textContent);
     expect([ticks[0], ticks.at(-1)]).toEqual(["start", "end"]);
     expect(schedule().querySelector("[data-schedule-missing]")!.textContent).toBe("No cooking time yet: hop 4.");
   });

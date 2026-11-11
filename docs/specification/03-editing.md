@@ -263,18 +263,22 @@ temperature of their own. The typical durations of `EDT-038` and the flags:
   hints (`EDT-048`, `EDT-049`); they have no batch fields. A field left empty is left out of the
   file, and `batch` too when both are.
 - `EDT-054` The **Boil Schedule** (`QE-41`, `QE-42`) works back from the cooking times of the hops and the other
-  additions (`EDT-060`), one entry per addition (`EDT-061`): the **total boil time** is the longest cooking time of those with an amount ("Total boil time: 60 min"; `QE-44`), and each hop goes
+  additions (`EDT-060`), one entry per addition (`EDT-061`): the **total boil time** is the longest cooking time of those with an amount ("Total boil time: 60 min"; `QE-44`), and each goes
   in at that time minus its own cooking time, counted from the start of the boil (a 60-minute hop at "0 min
-  (start)", a 10-minute hop at "50 min", a 0-minute hop at "60 min (flame-out)"); ties keep the table order. A
-  timeline over the boil from its start ("start", left) to its end ("end", right), axis "min after the start of the
-  boil", has one row per hop or other addition with an icon at its addition — a hop cone in the hop's donut colour
-  (`EDT-047`), a jar in the addition's shade of violet (`QE-46`, `QE-47`) — a line to the end for how long
-  it cooks, the addition time at the left and a tooltip ("Hallertauer Tradition: 30 g, add at 0 min (start), cooks
-  60 min"). Below it a table in the order of addition with the headers **Add at**, **Ingredient**, **Cooking time** and
-  **Amount** (`QE-40`), the same icon before the time, and a hop's alpha acid after its name ("Hallertauer (12 %
-  α)"; `QE-46`, `QE-47`). The Boil Ingredients tables' headings Hops and Other additions carry the same icons. Rows with an
-  amount but no cooking time are named in a hint ("No cooking time yet: hop 4."); without any cooking time it says
-  "Enter the amounts and cooking times to see when each goes into the boil."
+  (start)", a 10-minute hop at "50 min", a 0-minute hop at "60 min (flame-out)"); ties keep the hops before the other
+  additions, each in table order. It is **one table** (`QE-51`) in the order of addition with the columns **Add at**,
+  **Ingredient** (a hop cone in the hop's donut colour, `EDT-047`, or a jar in the addition's violet, `QE-46`,
+  `QE-47`, then the name and a hop's alpha acid: "Hallertauer (12 % α)"), **Amount** and a timeline whose header is
+  the boil's time axis ("start" at the left, "end" at the right, the minutes between) with its grid lines through
+  every row. Each row has a bar from its addition to the end of the boil, a tint of its colour with a solid edge where
+  it goes in, with its cooking time on it ("60 min"), or just left of it when the bar is too short; a 0-minute
+  addition is a thin mark at the end. Additions at the same time form a group: the add time only on the group's
+  first row, with their number ("3×") when there are several, a solid line between groups and a dashed one inside a
+  group. Below, "Bar: cooking time · min after the start of the boil". Each row has the tooltip "Hallertauer
+  Tradition: 30 g, add at 0 min (start), cooks 60 min". On a phone a group's add time takes its own line and each
+  addition two: ingredient and amount, then its bar. The Boil Ingredients tables' headings Hops and Other additions
+  carry the same icons. Rows with an amount but no cooking time are named in a hint ("No cooking time yet: hop 4.");
+  without any cooking time it says "Enter the amounts and cooking times to see when each goes into the boil."
 - `EDT-055` Below the beer colour, a **colour scale** shows where it lies among common beers: the SRM colour chart
   as a bar from 0 to 80 EBC (numbers 0, 20, 40, 60, "80+"), a marker at the beer's colour (a darker beer at the end),
   and the styles Pils, Pale Ale, Märzen, Dunkel and Stout at their typical colours; no line below it naming the

@@ -144,14 +144,47 @@ export function withAdditions(entry: Ingredient, additions: Addition[]): Ingredi
 }
 
 /**
- * The grams an entry counts with (EDT-043, EDT-061): a malt's amount, or the sum of a hop's or another addition's
- * valid amounts; 0 while there is none.
+ * The grams an entry counts with (EDT-043, EDT-061): the sum of a hop's or another addition's valid amounts (an entry
+ * with additions never counts a `grams` of its own), or a malt's amount; 0 while there is none.
  */
 export function entryGrams(entry: Ingredient): number {
-  if (validGrams(entry.grams)) {
-    return entry.grams;
+  if (Array.isArray(entry.additions)) {
+    return additionsOf(entry).reduce((sum, a) => sum + (validGrams(a.grams) ? a.grams : 0), 0);
   }
-  return additionsOf(entry).reduce((sum, a) => sum + (validGrams(a.grams) ? a.grams : 0), 0);
+  return validGrams(entry.grams) ? entry.grams : 0;
+}
+
+/**
+ * Moves the amount and cooking time a hop or another addition had of its own (one addition per entry, the shape of
+ * version 3 before brewberrypi-app Q-43; never released) into its additions (FMT-003, QE-53): the only addition while
+ * it has none, else the first one unless an addition with the same values is there. Nothing is dropped. Returns what
+ * changed, one line per entry, for the "Converted" notice.
+ */
+export function convertSingleAdditions(recipe: Recipe): { recipe: Recipe; changes: string[] } {
+  if (!isObject(recipe.ingredients)) {
+    return { recipe, changes: [] };
+  }
+  const changes: string[] = [];
+  const ingredients: Record<string, unknown> = { ...recipe.ingredients };
+  for (const kind of ["hops", "others"] as const) {
+    const list = ingredients[kind];
+    if (!Array.isArray(list)) {
+      continue;
+    }
+    ingredients[kind] = list.map((entry, i) => {
+      if (!isObject(entry) || (entry.grams === undefined && entry.minutes === undefined)) {
+        return entry;
+      }
+      const { grams, minutes, ...rest } = entry;
+      const own: Addition = { ...(minutes !== undefined ? { minutes } : {}), ...(grams !== undefined ? { grams } : {}) };
+      const additions = Array.isArray(rest.additions) ? rest.additions : [];
+      const known = additions.some((a) => isObject(a) && a.minutes === own.minutes && a.grams === own.grams);
+      const label = `${INGREDIENT_LABELS[kind].one.toLowerCase()} ${i + 1}${typeof entry.name === "string" && entry.name ? ` "${entry.name}"` : ""}`;
+      changes.push(`${label}: its own amount and cooking time are moved into its additions`);
+      return { ...rest, additions: known ? additions : [own, ...additions] };
+    });
+  }
+  return { recipe: { ...recipe, ingredients }, changes };
 }
 
 function finite(value: unknown): value is number {
@@ -560,12 +593,14 @@ export function readRecipe(json: unknown): ReadRecipe {
       rest.goals = flatGoals;
     }
   }
-  const recipe: Recipe = {
+  const converted = convertSingleAdditions({
     version: FORMAT_VERSION,
     ...rest,
     name: typeof source.name === "string" ? source.name : "",
     mashing_process: process,
-  };
+  } as Recipe);
+  const recipe = converted.recipe;
+  changes.push(...converted.changes);
   return { recipe, converted: changes.length > 0 ? `Converted: ${changes.join("; ")}.` : undefined };
 }
 

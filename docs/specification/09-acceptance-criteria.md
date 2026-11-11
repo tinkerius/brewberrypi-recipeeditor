@@ -212,6 +212,11 @@ a release that changes sign-in or Drive behaviour.
 - `ACC-088` (EDT-043, QE-52) With four hops and an other addition, each row's Name cell starts with its icon: hop
   cones in the first, second and third green and the muted tone (the first also the donut slice's colour), a jar in
   the first violet; the hops' table has no Relative amount column; a malt row has no icon and keeps its share.
+- `ACC-089` (FMT-003, EDT-061, QE-53) A hop `{ "name": "Hallertauer", "grams": 15, "alpha": 5, "minutes": 60 }` is read
+  as `{ "name": "Hallertauer", "alpha": 5, "additions": [ { "minutes": 60, "grams": 15 } ] }`, one with additions
+  gets its own as the first addition unless the same one is there, another addition likewise, with the notice
+  "Converted: hop 1 "Hallertauer": its own amount and cooking time are moved into its additions."; the result is
+  valid. A kept draft so converted shows 114 g for 15 g and 99 g, then 20 g after the second becomes 5 g.
 
 ## 9.3 Browser drafts
 

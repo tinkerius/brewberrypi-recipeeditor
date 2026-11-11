@@ -21,6 +21,11 @@ commit (`NFR-030`).
     and the editor says so (`EDT-021`);
   - a `version` that is not 1, 2 or 3 and not a whole number above 3 → written as the latest version, and the
     editor says so;
+  - a hop or other addition with an amount or cooking time of its own (`grams`, `minutes`; version 3 before app
+    `Q-43`, never released) → moved into its additions (`EDT-061`): its only addition while it has none, else its
+    first unless an addition with the same values is there; nothing is dropped, and the editor says so ("Converted:
+    hop 1 "Hallertauer": its own amount and cooking time are moved into its additions."). Drafts kept in the browser
+    are converted the same way when the editor starts (`QE-53`);
   - a `version` above the latest → **refused**: the recipe cannot be opened, with the message that it was written
     for a newer BrewberryPi app. The editor MUST NOT drop what it does not know.
   - not JSON → refused with the parser's message (upload: listed as not opened; Drive: shown as a load error).

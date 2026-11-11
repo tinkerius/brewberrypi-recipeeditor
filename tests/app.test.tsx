@@ -1534,6 +1534,24 @@ describe("App, the Malt and Hops tabs (QE-34, QE-35)", () => {
     expect(shares("malts")).toEqual(["100 %"]);
   });
 
+  it("ACC-089 a kept draft whose hop has its own amount opens converted, with the right total that follows edits", async () => {
+    await open({
+      version: 3,
+      name: "Brew",
+      mashing_process: { goals: [] },
+      ingredients: { hops: [{ name: "Hallertauer", alpha: 5, grams: 15, minutes: 60, additions: [{ minutes: 30, grams: 99 }] }] },
+    });
+    expect(recipe().textContent).toContain(
+      'Converted: hop 1 "Hallertauer": its own amount and cooking time are moved into its additions.',
+    );
+    await showTab("hops");
+    expect(rows("hops")[0].querySelectorAll("[data-addition]")).toHaveLength(2);
+    expect(rows("hops")[0].querySelector("[data-entry-total]")!.textContent).toBe("114 g");
+    expect(recipe().textContent).not.toContain('has no field "grams"');
+    await type(field("hops", 0, "grams", 1), "5");
+    expect(rows("hops")[0].querySelector("[data-entry-total]")!.textContent).toBe("20 g");
+  });
+
   it("ACC-083 shows each malt's colour from its EBC next to the field", async () => {
     await open();
     await add("malts", "Pilsner malt", "4500", { ebc: "3.5" });

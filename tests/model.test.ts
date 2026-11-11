@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
   changeGoalType,
+  convertSingleAdditions,
   emptyRecipe,
+  entryGrams,
   goalFields,
   goalLine,
   newGoal,
@@ -77,6 +79,50 @@ describe("readRecipe", () => {
     expect(read.recipe).toEqual({ version: 3, name: "Old", mashing_process: { goals: [{ type: "HeatUp", temperature: 62 }] } });
     expect(read.converted).toContain('moved into "mashing_process"');
     expect(validateRecipe(read.recipe)).toEqual([]);
+  });
+
+  it("ACC-089 moves a hop's or another addition's own amount and cooking time into its additions, and says so", () => {
+    const base = { version: 3, name: "Old hops", mashing_process: { goals: [] } };
+    const read = readRecipe({
+      ...base,
+      ingredients: {
+        malts: [{ name: "Pilsner malt", grams: 4500 }],
+        hops: [
+          { name: "Hallertauer", grams: 15, alpha: 5, minutes: 60 },
+          { name: "Saaz", grams: 15, minutes: 60, additions: [{ minutes: 60, grams: 99 }] },
+          { name: "Tettnanger", grams: 10, minutes: 5, additions: [{ minutes: 5, grams: 10 }] },
+          { name: "Cascade", alpha: 6, additions: [{ minutes: 0, grams: 30 }] },
+        ],
+        others: [{ name: "Irish Moss", grams: 5 }],
+      },
+    });
+    expect(read.recipe!.ingredients).toEqual({
+      malts: [{ name: "Pilsner malt", grams: 4500 }],
+      hops: [
+        { name: "Hallertauer", alpha: 5, additions: [{ minutes: 60, grams: 15 }] },
+        { name: "Saaz", additions: [{ minutes: 60, grams: 15 }, { minutes: 60, grams: 99 }] },
+        { name: "Tettnanger", additions: [{ minutes: 5, grams: 10 }] }, // the same addition is not repeated
+        { name: "Cascade", alpha: 6, additions: [{ minutes: 0, grams: 30 }] },
+      ],
+      others: [{ name: "Irish Moss", additions: [{ grams: 5 }] }],
+    });
+    expect(read.converted).toBe(
+      'Converted: hop 1 "Hallertauer": its own amount and cooking time are moved into its additions; ' +
+        'hop 2 "Saaz": its own amount and cooking time are moved into its additions; ' +
+        'hop 3 "Tettnanger": its own amount and cooking time are moved into its additions; ' +
+        'other addition 1 "Irish Moss": its own amount and cooking time are moved into its additions.',
+    );
+    expect(validateRecipe(read.recipe)).toEqual([]);
+    // A recipe in the current shape is not changed.
+    const current = { ...base, ingredients: { hops: [{ name: "Cascade", additions: [{ minutes: 0, grams: 30 }] }] } };
+    expect(convertSingleAdditions(current as never).changes).toEqual([]);
+    expect(readRecipe(current).converted).toBeUndefined();
+  });
+
+  it("counts a hop's additions, never an own amount it still has (EDT-061)", () => {
+    expect(entryGrams({ name: "H", grams: 15, additions: [{ minutes: 60, grams: 99 }, { grams: 5 }, { grams: 5 }] })).toBe(109);
+    expect(entryGrams({ name: "Pilsner malt", grams: 4500 })).toBe(4500);
+    expect(entryGrams({ name: "H", additions: [] })).toBe(0);
   });
 
   it("writes an invalid format version as the current one, and says so", () => {

@@ -10,7 +10,7 @@ import { fingerprint, freeId, hasPendingChanges, newDoc, problemsOf, type Doc } 
 import { pickRecipeFiles } from "./drive/picker";
 import { CHANGE_POLL_MS, FULL_SYNC_MS, driveDoc, inPool, mergeDriveList } from "./driveSync";
 import { downloadRecipe, readRecipeFile } from "./file";
-import { emptyRecipe, readRecipe, type Recipe } from "./model";
+import { convertSingleAdditions, emptyRecipe, readRecipe, type Recipe } from "./model";
 import { firstSample } from "./samples";
 import { openDraftStore, type DraftStore } from "./store/BrowserStore";
 import { DriveError, DriveStore, NameTakenError, VersionConflictError, type DriveFile } from "./store/DriveStore";
@@ -167,6 +167,18 @@ export function App(props: { openDrafts?: () => Promise<DraftStore>; auth?: Goog
       setDrafts(store);
       try {
         let kept = sortDocs(await store.all());
+        // Drafts kept before a hop could have several additions are converted once (FMT-003, QE-53).
+        kept = await Promise.all(
+          kept.map(async (doc) => {
+            const { recipe, changes } = convertSingleAdditions(doc.recipe);
+            if (changes.length === 0) {
+              return doc;
+            }
+            const converted: Doc = { ...doc, recipe, notice: `Converted: ${changes.join("; ")}.` };
+            await store.put(converted);
+            return converted;
+          }),
+        );
         const sample = firstSample();
         if (store.firstUse && kept.length === 0 && sample) {
           // EDT-016: a new workspace gets an example, once.

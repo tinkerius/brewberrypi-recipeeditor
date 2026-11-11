@@ -44,8 +44,10 @@ export interface Recipe {
   mashing?: unknown;
   /** The malts and hops (app RCP-013); absent while there are none. */
   ingredients?: unknown;
-  /** The batch volume and original gravity (app RCP-014); absent while neither is set. */
+  /** The knockout volume and original gravity (app RCP-014); absent while neither is set. */
   batch?: unknown;
+  /** The brewing-day water in litres (app RCP-015); absent while none is set. */
+  water?: unknown;
   [key: string]: unknown;
 }
 
@@ -156,6 +158,65 @@ export function withBatchField(recipe: Recipe, field: BatchField, value: unknown
   }
   const { batch: _old, ...others } = recipe;
   return Object.keys(batch).length === 0 ? others : { ...others, batch: { ...ordered, ...batch } };
+}
+
+/** The water volumes of the Water tab (app RCP-015, EDT-051), in the file's key order. */
+export const WATER_FIELDS = ["mash", "sparge", "top_up"] as const;
+export type WaterField = (typeof WATER_FIELDS)[number];
+
+/** Each water volume's label and what it is for (EDT-051). */
+export const WATER_LABELS: Record<WaterField, { label: string; hint: string }> = {
+  mash: { label: "Mash water", hint: "Mashed in with the malt (strike water)." },
+  sparge: { label: "Sparge water", hint: "Rinses the sugar out of the grain while lautering." },
+  top_up: { label: "Top-up water", hint: "Added after lautering to reach the original gravity." },
+};
+
+export const validWater = (v: unknown): v is number => finite(v) && v >= 0;
+
+export function waterOf(recipe: Recipe): Record<string, unknown> {
+  return isObject(recipe.water) ? recipe.water : {};
+}
+
+/** The recipe with a water volume set, or removed when `value` is undefined; empty water leaves the file (EDT-051). */
+export function withWaterField(recipe: Recipe, field: WaterField, value: unknown): Recipe {
+  const water = { ...waterOf(recipe) };
+  if (value === undefined) {
+    delete water[field];
+  } else {
+    water[field] = value;
+  }
+  const ordered: Record<string, unknown> = {};
+  for (const key of WATER_FIELDS) {
+    if (key in water) {
+      ordered[key] = water[key];
+    }
+  }
+  const { water: _old, ...others } = recipe;
+  return Object.keys(water).length === 0 ? others : { ...others, water: { ...ordered, ...water } };
+}
+
+/** The total water in litres (EDT-052): the sum of the valid volumes; undefined while none is set. */
+export function totalWater(recipe: Recipe): number | undefined {
+  const water = waterOf(recipe);
+  const volumes = WATER_FIELDS.map((f) => water[f]).filter(validWater);
+  return volumes.length === 0 ? undefined : volumes.reduce((sum, v) => sum + v, 0);
+}
+
+/**
+ * The mash thickness in litres per kg of malt (EDT-052): the mash water over the malt weight of the Malt tab; or what
+ * is missing.
+ */
+export function mashThickness(recipe: Recipe): { value: number } | { missing: ("mash" | "malts")[] } {
+  const mash = waterOf(recipe).mash;
+  const kg = totalGrams(ingredientsOf(recipe, "malts")) / 1000;
+  const missing: ("mash" | "malts")[] = [];
+  if (!validWater(mash)) {
+    missing.push("mash");
+  }
+  if (kg <= 0) {
+    missing.push("malts");
+  }
+  return missing.length > 0 ? { missing } : { value: (mash as number) / kg };
 }
 
 /**
@@ -467,11 +528,11 @@ const indentGoal = (goal: Goal) =>
 /**
  * The file content, formatted like the app's shipped recipes: "version" first (RCP-008), one line per goal, then the
  * mashing plan, one line per rest in catalogue order, then the ingredients, one line per malt and hop, then the
- * batch on one line (FMT-006). The editor does not write "$schema" (optional,
+ * batch and the water, each on one line (FMT-006). The editor does not write "$schema" (optional,
  * ignored by the app).
  */
 export function serializeRecipe(recipe: Recipe): string {
-  const { $schema: _schema, version, name, mashing_process: process, mashing, ingredients, batch, ...rest } = recipe;
+  const { $schema: _schema, version, name, mashing_process: process, mashing, ingredients, batch, water, ...rest } = recipe;
   const { goals, ...processRest } = process;
   const lines: string[] = [];
   if (version !== undefined) {
@@ -538,6 +599,12 @@ export function serializeRecipe(recipe: Recipe): string {
     lines[lines.length - 1] += ",";
     const one = isObject(batch) && Object.keys(batch).length > 0 ? indentGoal(batch as Goal) : JSON.stringify(batch);
     lines.push(`  "batch": ${one}`);
+  }
+  if (water !== undefined) {
+    // One line: { "mash": 16, "sparge": 14, "top_up": 2 } (FMT-006).
+    lines[lines.length - 1] += ",";
+    const one = isObject(water) && Object.keys(water).length > 0 ? indentGoal(water as Goal) : JSON.stringify(water);
+    lines.push(`  "water": ${one}`);
   }
   for (const [key, value] of Object.entries(rest)) {
     lines[lines.length - 1] += ",";

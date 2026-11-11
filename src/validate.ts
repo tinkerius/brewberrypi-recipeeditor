@@ -15,6 +15,8 @@ import {
   isMashRestId,
   type GoalField,
   type IngredientKind,
+  WATER_FIELDS,
+  WATER_LABELS,
 } from "./model";
 
 export interface Problem {
@@ -27,11 +29,12 @@ export interface Problem {
   message: string;
 }
 
-const TOP_LEVEL = new Set(["$schema", "version", "name", "mashing_process", "mashing", "ingredients", "batch"]);
+const TOP_LEVEL = new Set(["$schema", "version", "name", "mashing_process", "mashing", "ingredients", "batch", "water"]);
 export const GOALS_PATH = "mashing_process.goals";
 export const MASHING_PATH = "mashing";
 export const INGREDIENTS_PATH = "ingredients";
 export const BATCH_PATH = "batch";
+export const WATER_PATH = "water";
 
 /** Which goal fields are allowed and required, per goal type (the schema's allOf branches). */
 const GOAL_FIELDS: Record<string, { required: GoalField[]; allowed: GoalField[] }> = {
@@ -219,7 +222,7 @@ function checkBatch(batch: unknown, problems: Problem[]) {
     const number = typeof value === "number" && Number.isFinite(value);
     if (key === "liters") {
       if (!number || value <= 0) {
-        problems.push({ path: at, message: "The batch volume must be a number above 0 litres." });
+        problems.push({ path: at, message: "The knockout volume must be a number above 0 litres." });
       }
     } else if (key === "plato") {
       if (!number || value < 0 || value > 40) {
@@ -227,6 +230,23 @@ function checkBatch(batch: unknown, problems: Problem[]) {
       }
     } else {
       problems.push({ path: at, message: `The batch has no field "${key}".` });
+    }
+  }
+}
+
+/** The water (app RCP-015): the mash, sparge and top-up water, each a number of at least 0 litres. */
+function checkWater(water: unknown, problems: Problem[]) {
+  if (!isObject(water)) {
+    problems.push({ path: WATER_PATH, message: "The water must be an object with mash, sparge and top_up." });
+    return;
+  }
+  for (const [key, value] of Object.entries(water)) {
+    const at = `${WATER_PATH}.${key}`;
+    if (!(WATER_FIELDS as readonly string[]).includes(key)) {
+      problems.push({ path: at, message: `The water has no field "${key}".` });
+    } else if (typeof value !== "number" || !Number.isFinite(value) || value < 0) {
+      const label = WATER_LABELS[key as (typeof WATER_FIELDS)[number]].label;
+      problems.push({ path: at, message: `The ${label.toLowerCase()} must be a number of at least 0 litres.` });
     }
   }
 }
@@ -261,6 +281,9 @@ export function validateRecipe(recipe: unknown): Problem[] {
   }
   if ("batch" in recipe) {
     checkBatch(recipe.batch, problems);
+  }
+  if ("water" in recipe) {
+    checkWater(recipe.water, problems);
   }
   const process = recipe.mashing_process;
   if (!isObject(process)) {

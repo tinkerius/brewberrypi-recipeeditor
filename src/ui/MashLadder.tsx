@@ -9,7 +9,7 @@
  */
 
 import type { ComponentChildren } from "preact";
-import { useEffect, useRef, useState } from "preact/hooks";
+import { useState } from "preact/hooks";
 import { MASH_RESTS, MASH_TEMPERATURE_LIMIT, MASH_REST_IDS, type MashRestId } from "../mashRests";
 import {
   DEFAULT_HEATING_RATE,
@@ -23,6 +23,7 @@ import {
 } from "../mashSchedule";
 import { NumberField } from "./fields";
 import { HINT_STYLE } from "./styles";
+import { useWidth } from "./useWidth";
 
 const HEIGHT = 300;
 const TOP = 16;
@@ -49,21 +50,6 @@ function tooltip(id: MashRestId, step?: MashStep): string {
 
 function plannedText(step: MashStep): string {
   return `Planned: ${step.targetTemp} °C for ${formatMinutes(step.holdMinutes)}`;
-}
-
-function useWidth() {
-  const box = useRef<HTMLDivElement>(null);
-  const [width, setWidth] = useState(640);
-  useEffect(() => {
-    const element = box.current;
-    if (!element || typeof ResizeObserver === "undefined") {
-      return;
-    }
-    const observer = new ResizeObserver(([entry]) => setWidth(Math.max(280, Math.floor(entry.contentRect.width))));
-    observer.observe(element);
-    return () => observer.disconnect();
-  }, []);
-  return { box, width };
 }
 
 export function MashLadder(props: { plan: Record<string, unknown>; selected?: MashRestId; onSelect: (id: MashRestId) => void }) {

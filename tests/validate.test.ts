@@ -127,6 +127,16 @@ const CASES: [string, unknown][] = [
   ["batch liters a string", { ...valid, batch: { liters: "20" } }],
   ["batch plato negative", { ...valid, batch: { plato: -1 } }],
   ["batch plato above 40", { ...valid, batch: { plato: 40.5 } }],
+  // The water (app RCP-015, Q-40)
+  ["water", { ...valid, water: { mash: 16, sparge: 14, top_up: 2 } }],
+  ["water empty", { ...valid, water: {} }],
+  ["water top_up 0", { ...valid, water: { top_up: 0 } }],
+  ["water decimals", { ...valid, water: { sparge: 14.5 } }],
+  ["water not an object", { ...valid, water: 16 }],
+  ["water extra field", { ...valid, water: { strike: 16 } }],
+  ["water negative", { ...valid, water: { mash: -1 } }],
+  ["water a string", { ...valid, water: { sparge: "14" } }],
+  ["water null", { ...valid, water: { top_up: null } }],
 ];
 
 describe("validateRecipe", () => {

@@ -68,7 +68,7 @@ a release that changes sign-in or Drive behaviour.
 - `ACC-047` (QE-27, GUI-001, GUI-004) The top bar shows "BrewberryPi" as a link to https://brewberrypi.org/, "Recipe
   Editor" and Cloud Sync; the footer links to brewberrypi.org, the privacy policy, the terms and the source code.
 - `ACC-048` (QE-28, QE-34, QE-35, GUI-032) Below the recipe's title is a tab list with the tabs **Malt**, **Hops**,
-  **Mashing** and **Mash Process**, in this order, Malt selected (it shows the malt table); the Mash Process panel holds the goals and, as the list's last row, + Add goal; the problems are below the panel, not in it.
+  **Water**, **Mashing** and **Mash Process**, in this order, Malt selected (it shows the malt table); the Mash Process panel holds the goals and, as the list's last row, + Add goal; the problems are below the panel, not in it.
 - `ACC-049` (QE-29, GUI-024, NFR-002) "Hide sidebar" collapses the recipe list to a strip with "Show sidebar" and
   New recipe, the recipe stays shown, and the browser remembers it (also after the page is shown again); with a
   recipe not downloaded, the strip shows "1 recipe not downloaded". Ctrl+B expands it again and the browser forgets
@@ -144,16 +144,29 @@ a release that changes sign-in or Drive behaviour.
   legend Pilsner malt 90 %, Munich malt 10 %, and 5000 g in its middle; each row's swatch has its slice's colour; a
   9th row's slice is "other". No donut without amounts.
 - `ACC-073` (EDT-048, EDT-050) The beer colour is "–" with "Add malts with their amounts."; with Pilsner malt 4500 g
-  3.5 EBC and Munich malt 500 g without EBC, "Enter the EBC of malt 2 and the batch volume."; with Munich malt
+  3.5 EBC and Munich malt 500 g without EBC, "Enter the EBC of malt 2 and the knockout volume."; with Munich malt
   15 EBC and 20 l it is "9 EBC" with the swatch #FFBF42. An EBC of −1 is "Malt 2: the colour must be a number of
   at least 0 EBC."
 - `ACC-074` (EDT-049, EDT-050) The bitterness of Hallertauer Tradition 30 g, 5.5 %, 60 min in 20 l at 12.6 °P is
   "19 IBU"; until the boil time, volume and gravity are entered it is "–" with "Enter the alpha acid and boil time
-  of hop 1 and the batch volume and the original gravity."; a hop of 0 min adds nothing. 101 % and 2.5 min are
+  of hop 1 and the knockout volume and the original gravity."; a hop of 0 min adds nothing. 101 % and 2.5 min are
   problems.
-- `ACC-075` (EDT-050, EDT-045, FMT-006) The Malt tab has the field Batch volume, the Hops tab Batch volume (the same
-  value) and Original gravity; 20 l and 12.6 °P are written as `"batch": { "liters": 20, "plato": 12.6 }`; 0 l and
+- `ACC-075` (EDT-050, EDT-045, FMT-006) The Malt tab has the field Knockout volume, the Hops tab Knockout volume (the
+  same value) and Original gravity; 20 l and 12.6 °P are written as `"batch": { "liters": 20, "plato": 12.6 }`; 0 l and
   41 °P are problems whose entries open the Malt and the Hops tab; clearing both removes `batch`.
+- `ACC-076` (EDT-041, QE-36) The Malt tab has the heading Malt before its table; the Hops tab Hops before its table
+  and Hop Schedule after it.
+- `ACC-077` (EDT-054) Hops Saaz 10 g 0 min, Hallertauer Tradition 30 g 60 min, Tettnanger 20 g 10 min and Cascade
+  15 g without boil time: the schedule lists 60 min Hallertauer Tradition 30 g, 10 min Tettnanger 20 g, flame-out
+  Saaz 10 g, with dots from left to right in the hops' donut colours and tooltips ("… 60 min before the end of the
+  boil", "Saaz: 10 g, flame-out"), and says "No boil time yet: hop 4."; without boil times it asks for them.
+- `ACC-078` (EDT-051, EDT-053, FMT-006) The Water tab has the heading Water and the fields Mash water, Sparge water,
+  Top-up water and Knockout volume (L) with their hints; 16, 14 and 2 are written as
+  `"water": { "mash": 16, "sparge": 14, "top_up": 2 }`; −1 is a problem whose entry opens the Water tab; clearing
+  all three removes `water`.
+- `ACC-079` (EDT-052, EDT-050) With 5000 g of malt: total water "–", then 14 L, then with 16 L mash and 2.5 L
+  top-up water 32.5 L and a mash thickness of 3.2 L/kg (typical 2.5–4 L/kg); "Enter the mash water." before, and
+  "Enter the malts on the Malt tab." without malts. A knockout volume of 20 L shows on the Malt tab too.
 
 ## 9.3 Browser drafts
 

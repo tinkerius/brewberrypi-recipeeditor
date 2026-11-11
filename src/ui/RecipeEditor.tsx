@@ -1,15 +1,16 @@
-/** The selected recipe: file name, name, its tabs (malt, hops, mashing plan, goals), problems and the actions. */
+/** The selected recipe: file name, name, its tabs (malt, hops, water, mashing plan, goals), problems and actions. */
 
 import type { ComponentChildren } from "preact";
 import { useEffect, useRef, useState } from "preact/hooks";
 import { problemsOf, type Doc } from "../doc";
 import { INGREDIENT_LABELS, MASH_RESTS, goalsOf, isMashRestId, newGoal, withGoals, type Goal, type Recipe } from "../model";
-import { BATCH_PATH, GOALS_PATH, INGREDIENTS_PATH, MASHING_PATH } from "../validate";
+import { BATCH_PATH, GOALS_PATH, INGREDIENTS_PATH, MASHING_PATH, WATER_PATH } from "../validate";
 import { ADD_ROW_LINE, AddRowButton } from "./AddRow";
 import { GoalEditor } from "./GoalEditor";
 import { GoalTypeDialog } from "./GoalTypeDialog";
 import { IngredientsTab } from "./IngredientsTab";
 import { MashingTab } from "./MashingTab";
+import { WaterTab } from "./WaterTab";
 import { RecipeTitle } from "./RecipeTitle";
 import { Tabs } from "./Tabs";
 import { moveItem } from "./reorder";
@@ -25,8 +26,12 @@ const PATH_LABELS: Record<string, string> = {
   [MASHING_PATH]: "Mashing",
   [INGREDIENTS_PATH]: "Ingredients",
   [BATCH_PATH]: "Batch",
-  [`${BATCH_PATH}.liters`]: "Batch volume",
+  [`${BATCH_PATH}.liters`]: "Knockout volume",
   [`${BATCH_PATH}.plato`]: "Original gravity",
+  [WATER_PATH]: "Water",
+  [`${WATER_PATH}.mash`]: "Mash water",
+  [`${WATER_PATH}.sparge`]: "Sparge water",
+  [`${WATER_PATH}.top_up`]: "Top-up water",
 };
 
 /** The goal a problem is about, if any (its index). */
@@ -35,12 +40,18 @@ function goalOf(path: string): number | undefined {
   return goal ? Number(goal[1]) : undefined;
 }
 
-/** The tab a problem of the ingredients or the batch is on (EDT-045): the hops and the gravity on Hops, else Malt. */
-function ingredientsTab(path: string): "malts" | "hops" | undefined {
+/**
+ * The tab a problem of the ingredients, the batch or the water is on (EDT-045, EDT-051): the hops and the gravity on
+ * Hops, the water on Water, else Malt.
+ */
+function ingredientsTab(path: string): "malts" | "hops" | "water" | undefined {
+  const about = (prefix: string) => path === prefix || path.startsWith(`${prefix}.`);
   if (path.startsWith(`${INGREDIENTS_PATH}.hops`) || path === `${BATCH_PATH}.plato`) {
     return "hops";
   }
-  const about = (prefix: string) => path === prefix || path.startsWith(`${prefix}.`);
+  if (about(WATER_PATH)) {
+    return "water";
+  }
   return about(INGREDIENTS_PATH) || about(BATCH_PATH) ? "malts" : undefined;
 }
 
@@ -68,13 +79,13 @@ function describePath(path: string): string {
 
 /**
  * The problems (EDT-020); a goal's problem opens that goal when its "Goal n" is clicked, a problem of the mashing
- * plan opens the Mashing tab (EDT-035), one of the malts, hops or batch the Malt or Hops tab (EDT-045).
+ * plan opens the Mashing tab (EDT-035), one of the malts, hops, batch or water its tab (EDT-045, EDT-051).
  */
 export function ProblemList(props: {
   doc: Doc;
   onGoal?: (index: number) => void;
   onMashing?: () => void;
-  onIngredients?: (tab: "malts" | "hops") => void;
+  onIngredients?: (tab: "malts" | "hops" | "water") => void;
 }) {
   const problems = problemsOf(props.doc);
   if (props.doc.loadError) {
@@ -130,6 +141,7 @@ export function ProblemList(props: {
 const RECIPE_TABS = [
   { id: "malts", label: "Malt" },
   { id: "hops", label: "Hops" },
+  { id: "water", label: "Water" },
   { id: "mashing", label: "Mashing" },
   { id: "mash", label: "Mash Process" },
 ] as const;
@@ -188,7 +200,9 @@ export function RecipeEditor(props: { doc: Doc; onChange: (recipe: Recipe) => vo
 
 
       <Tabs label="Recipe sections" tabs={RECIPE_TABS} selected={tab} onSelect={setTab}>
-        {tab === "malts" || tab === "hops" ? (
+        {tab === "water" ? (
+          <WaterTab recipe={doc.recipe} problems={problems} onChange={setRecipe} />
+        ) : tab === "malts" || tab === "hops" ? (
           <IngredientsTab key={tab} kind={tab} recipe={doc.recipe} problems={problems} onChange={setRecipe} />
         ) : tab === "mashing" ? (
           <MashingTab recipe={doc.recipe} problems={problems} onChange={setRecipe} />

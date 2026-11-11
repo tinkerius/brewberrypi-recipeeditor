@@ -17,6 +17,7 @@ import {
   ingredientsOf,
   shareOf,
   totalGrams,
+  validBoilMinutes,
   validGrams,
   withBatchField,
   withIngredients,
@@ -30,8 +31,9 @@ import { ADD_ROW_LINE, AddRowButton } from "./AddRow";
 import { DragHandle, DropLine } from "./DragHandle";
 import { NumberField, TextField } from "./fields";
 import { moveItem } from "./reorder";
-import { BUTTON_STYLES, HINT_STYLE } from "./styles";
+import { BUTTON_STYLES, HINT_STYLE, SECTION_TITLE_STYLE } from "./styles";
 import { useReorder } from "./useReorder";
+import { useWidth } from "./useWidth";
 
 const CELL = "px-1 py-2 align-middle first:pl-2 last:pr-2 sm:px-2 sm:first:pl-3 sm:last:pr-3";
 const HEAD = `${CELL} text-[11px] font-semibold text-stone-600 sm:text-xs dark:text-stone-300`;
@@ -146,7 +148,7 @@ function missingText(kind: IngredientKind, figure: Figure): string {
     needs.push(`${what} of ${rows}`);
   }
   for (const field of figure.batch ?? []) {
-    needs.push(field === "liters" ? "the batch volume" : "the original gravity");
+    needs.push(field === "liters" ? "the knockout volume" : "the original gravity");
   }
   return `Enter ${needs.join(" and ")}.`;
 }
@@ -184,15 +186,18 @@ function FigureLine(props: { kind: IngredientKind; recipe: Recipe }) {
         {figure.value === undefined
           ? missingText(props.kind, figure)
           : malts
-            ? "Morey's formula, from each malt's EBC and the batch volume."
-            : "Tinseth's formula, from each hop's alpha acid and boil time, the batch volume and the original gravity."}
+            ? "Morey's formula, from each malt's EBC and the knockout volume."
+            : "Tinseth's formula, from each hop's alpha acid and boil time, the knockout volume and the original gravity."}
       </p>
     </div>
   );
 }
 
-/** The batch fields the figure needs (EDT-050): the volume (both tabs) and the original gravity (Hops). */
-function BatchFields(props: { fields: BatchField[]; recipe: Recipe; problems: Problem[]; onChange: (recipe: Recipe) => void }) {
+/**
+ * The batch fields (EDT-050): the knockout volume (the wort at the end of the boil; Malt, Hops and Water tabs, one
+ * value) and the original gravity (Hops).
+ */
+export function BatchFields(props: { fields: BatchField[]; recipe: Recipe; problems: Problem[]; onChange: (recipe: Recipe) => void }) {
   const batch = batchOf(props.recipe);
   const invalid = (field: string) => props.problems.some((p) => p.path === `batch.${field}`);
   return (
@@ -200,7 +205,7 @@ function BatchFields(props: { fields: BatchField[]; recipe: Recipe; problems: Pr
       {props.fields.map((field) => (
         <NumberField
           key={field}
-          label={field === "liters" ? "Batch volume" : "Original gravity"}
+          label={field === "liters" ? "Knockout volume" : "Original gravity"}
           unit={field === "liters" ? "L" : "°P"}
           value={batch[field]}
           invalid={invalid(field)}
@@ -359,6 +364,109 @@ function IngredientTable(props: { kind: IngredientKind; recipe: Recipe; problems
   );
 }
 
+/** "60 min" before the end of the boil, or "flame-out" for 0 (EDT-054). */
+export function additionTime(minutes: number): string {
+  return minutes === 0 ? "flame-out" : `${minutes} min`;
+}
+
+/**
+ * The hop schedule (EDT-054): the hops with an amount and a boil time, longest boil first, as a timeline over the boil
+ * (from its start at the left to its end, flame-out, at the right), one dot per hop in its donut colour, and as a
+ * list. Hops without a boil time are named in a hint.
+ */
+function HopSchedule(props: { list: Ingredient[] }) {
+  const { box, width } = useWidth();
+  const name = (entry: Ingredient, i: number) => (typeof entry.name === "string" && entry.name ? entry.name : `Hop ${i + 1}`);
+  const withAmount = props.list.map((h, i) => ({ h, i })).filter(({ h }) => validGrams(h.grams));
+  const timed = withAmount
+    .filter(({ h }) => validBoilMinutes(h.minutes))
+    .sort((a, b) => (b.h.minutes as number) - (a.h.minutes as number) || a.i - b.i);
+  const untimed = withAmount.filter(({ h }) => !validBoilMinutes(h.minutes)).map(({ i }) => i + 1);
+  const missing =
+    untimed.length === 0 ? null : (
+      <p class={`${HINT_STYLE} mt-2`} data-schedule-missing>
+        No boil time yet: {untimed.length === 1 ? `hop ${untimed[0]}` : `hops ${untimed.join(", ")}`}.
+      </p>
+    );
+  // The outer box is always there, so its width is measured from the start (also while there is no chart yet).
+  if (timed.length === 0) {
+    return (
+      <div ref={box} data-hop-schedule>
+        <p class={HINT_STYLE}>Enter the hops' amounts and boil times to see when each goes into the boil.</p>
+        {missing}
+      </div>
+    );
+  }
+  const boil = Math.max(1, ...timed.map(({ h }) => h.minutes as number));
+  const ROW = 26;
+  const LABEL = 76;
+  const top = 8;
+  const axisY = top + timed.length * ROW + 4;
+  const height = axisY + 30;
+  const x0 = LABEL;
+  const x1 = width - 12;
+  const x = (minutesBeforeEnd: number) => x0 + ((boil - minutesBeforeEnd) / boil) * (x1 - x0);
+  const step = [5, 10, 15, 30, 60].find((s) => boil / s <= Math.max(2, Math.floor((x1 - x0) / 70))) ?? 120;
+  const ticks = Array.from({ length: Math.floor(boil / step) + 1 }, (_, k) => boil - k * step).filter((m) => m >= 0);
+  if (!ticks.includes(0)) {
+    ticks.push(0);
+  }
+  return (
+    <div ref={box} data-hop-schedule>
+      <div class="rounded-lg bg-stone-50 ring-1 ring-line dark:bg-white/5 dark:ring-white/10">
+        <svg
+          width={width}
+          height={height}
+          viewBox={`0 0 ${width} ${height}`}
+          role="img"
+          aria-label={`Hop schedule over a ${boil}-minute boil: ${timed
+            .map(({ h, i }) => `${name(h, i)} ${h.grams} g at ${additionTime(h.minutes as number)}`)
+            .join(", ")}`}
+          class="block max-w-full text-ink dark:text-ink-light"
+        >
+          {ticks.map((m) => (
+            <g key={m}>
+              <line x1={x(m)} x2={x(m)} y1={top} y2={axisY} class="stroke-stone-200 dark:stroke-white/10" />
+              <text x={x(m)} y={axisY + 14} text-anchor="middle" class="fill-stone-500 text-[10px] dark:fill-stone-400">
+                {m === 0 ? "end" : m}
+              </text>
+            </g>
+          ))}
+          <line x1={x0} x2={x1} y1={axisY} y2={axisY} class="stroke-stone-400 dark:stroke-stone-500" />
+          <text x={x1} y={axisY + 26} text-anchor="end" class="fill-stone-500 text-[10px] dark:fill-stone-400">
+            min before the end of the boil
+          </text>
+          {timed.map(({ h, i }, row) => {
+            const y = top + row * ROW + ROW / 2;
+            return (
+              <g key={i} data-schedule-hop={i}>
+                <title>{`${name(h, i)}: ${h.grams} g, ${additionTime(h.minutes as number)}${h.minutes ? " before the end of the boil" : ""}`}</title>
+                <text x={8} y={y} dy="0.32em" class="fill-stone-600 text-[11px] tabular-nums dark:fill-stone-300">
+                  {additionTime(h.minutes as number)}
+                </text>
+                {/* How long it boils: from its addition to the end of the boil. */}
+                <line x1={x(h.minutes as number)} x2={x(0)} y1={y} y2={y} stroke={seriesColour(i)} stroke-width={2} stroke-linecap="round" opacity={0.45} />
+                <circle cx={x(h.minutes as number)} cy={y} r={6} fill={seriesColour(i)} class="stroke-white stroke-2 dark:stroke-surface-dark" />
+              </g>
+            );
+          })}
+        </svg>
+      </div>
+      <ol class="mt-3 divide-y divide-line rounded-lg text-sm ring-1 ring-line dark:divide-white/10 dark:ring-white/10" data-schedule-list>
+        {timed.map(({ h, i }) => (
+          <li key={i} class="flex items-center gap-3 px-3 py-2">
+            <span aria-hidden="true" class="size-2.5 shrink-0 rounded-full" style={{ background: seriesColour(i) }} />
+            <span class="w-20 shrink-0 tabular-nums text-stone-600 dark:text-stone-300">{additionTime(h.minutes as number)}</span>
+            <span class="min-w-0 flex-1 truncate text-ink dark:text-ink-light">{name(h, i)}</span>
+            <span class="tabular-nums text-ink dark:text-ink-light">{h.grams as number} g</span>
+          </li>
+        ))}
+      </ol>
+      {missing}
+    </div>
+  );
+}
+
 /** An entry with a field set, or removed when cleared (an empty optional field leaves the file). */
 function withField(entry: Ingredient, field: string, value: unknown): Ingredient {
   if (value === undefined && field !== "name" && field !== "grams") {
@@ -393,9 +501,20 @@ export function IngredientsTab(props: { kind: IngredientKind; recipe: Recipe; pr
           <ShareDonut kind={kind} list={list} />
         </div>
       )}
-      <div class="mt-4">
+      <section class="mt-6" aria-labelledby={`${kind}-table-title`}>
+        <h3 id={`${kind}-table-title`} class={`${SECTION_TITLE_STYLE} mb-2`}>
+          {INGREDIENT_LABELS[kind].title}
+        </h3>
         <IngredientTable kind={kind} recipe={props.recipe} problems={props.problems} onChange={props.onChange} />
-      </div>
+      </section>
+      {kind === "hops" && (
+        <section class="mt-6" aria-labelledby="hop-schedule-title">
+          <h3 id="hop-schedule-title" class={`${SECTION_TITLE_STYLE} mb-2`}>
+            Hop Schedule
+          </h3>
+          <HopSchedule list={list} />
+        </section>
+      )}
     </>
   );
 }

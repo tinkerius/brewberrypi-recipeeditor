@@ -263,9 +263,11 @@ a release that changes sign-in or Drive behaviour.
   over "cooking time up to 90 min".
 - `ACC-097` (EDT-069, QE-61, FMT-006) With Pilsner malt 4600 g 7 EBC, 18 L mash water and 24 L knockout volume, the Water
   tab's section Water treatment has Residual alkalinity (tap water) °dH, Carbonate hardness (tap water) °dH, Boil the
-  brewing water, Brewing gypsum g/10 L, Acid malt (of the grist) %, Lactic acid 80 % ml/10 L; the result is "–", with
-  10.3 °dH "10.3 °dH", the target "at most 2 °dH (9 EBC, like Pils)" and its warning; boiling asks for the carbonate
-  hardness, with 14 °dH "−7.9 °dH"; 1 g/10 L gypsum "−0.9 °dH", 1 % acid malt "−2.4 °dH", 0.5 ml/10 L lactic acid
+  brewing water, Brewing gypsum g/10 L, Acid malt (of the grist) %, Lactic acid 80 % ml/10 L, and the columns Typical
+  and Effect (`QE-62`; the effects in it, apart from the hints; the tap water's "10.3 °dH" first, none for the
+  carbonate hardness, the result as its total); the result is "–", with
+  10.3 °dH "10.3 °dH", the target "at most 2 °dH (9 EBC, like Pils)" and its warning; boiling's effect is "–" and its
+  hint asks for the carbonate hardness, with 14 °dH "−7.9 °dH"; 1 g/10 L gypsum "−0.9 °dH", 1 % acid malt "−2.4 °dH", 0.5 ml/10 L lactic acid
   "−1.5 °dH"; the result "−2.4 °dH" without a warning; the file has `"water": { "mash": 18, "treatment": {
   "alkalinity": 10.3, "carbonate_hardness": 14, "boil": true, "gypsum": 1, "acid_malt": 1, "lactic_acid": 0.5 } }`;
   4 g/10 L gypsum warns, 101 % acid malt is "Acid malt: The acid malt must be a number from 0 to 100 % of the grist.";

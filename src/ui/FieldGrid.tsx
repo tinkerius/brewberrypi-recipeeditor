@@ -2,7 +2,8 @@
  * Form fields with their typical values (EDT-068, QE-60), laid out like the Mashing tab's rests: each row the field's
  * label, the field with its unit, a **Typical** column (the typical value, amber while the value is outside it, an ⓘ
  * button for how it is worked out, and the field's errors and warnings right after it, EDT-062), then a one-line hint.
- * On a phone the typical value ("Typical: …") and the hint go below the field.
+ * On a phone the typical value ("Typical: …") and the hint go below the field. A grid with an **Effect** column (the
+ * water treatment, EDT-069, QE-62) has it after Typical: what each row does to the result, the result as its total.
  */
 
 import type { ComponentChildren } from "preact";
@@ -11,18 +12,21 @@ import { FieldNotes, hasWarning, type Note } from "./notes";
 import { HINT_STYLE } from "./styles";
 
 // The same column widths in every grid, so the fields, typical values and hints line up across sections and tabs.
-const GRID =
-  "grid grid-cols-[auto_1fr] items-center gap-x-3 gap-y-1 sm:grid-cols-[11rem_10.5rem_15rem_1fr] [&_input]:max-w-full";
+const GRID = "grid grid-cols-[auto_1fr] items-center gap-x-3 gap-y-1 [&_input]:max-w-full";
+const COLUMNS = "sm:grid-cols-[11rem_10.5rem_15rem_1fr]";
+// Label and field as in every grid; Typical narrower, to make room for the Effect column.
+const COLUMNS_WITH_EFFECT = "sm:grid-cols-[11rem_10.5rem_11rem_6rem_1fr]";
 const HEAD = "hidden text-xs font-semibold text-stone-600 sm:block dark:text-stone-300";
 
-/** The grid, with its column header "Typical" (EDT-068). */
-export function FieldGrid(props: { children: ComponentChildren; [data: `data-${string}`]: unknown }) {
-  const { children, ...data } = props;
+/** The grid, with its column headers "Typical" (EDT-068) and, with `effect`, "Effect" (EDT-069). */
+export function FieldGrid(props: { children: ComponentChildren; effect?: boolean; [data: `data-${string}`]: unknown }) {
+  const { children, effect, ...data } = props;
   return (
-    <div class={GRID} {...data}>
+    <div class={`${GRID} ${effect ? COLUMNS_WITH_EFFECT : COLUMNS}`} {...data}>
       <span class={HEAD} aria-hidden="true" />
       <span class={HEAD} aria-hidden="true" />
       <span class={HEAD}>Typical</span>
+      {effect && <span class={`${HEAD} text-right`}>Effect</span>}
       <span class={HEAD} aria-hidden="true" />
       {children}
     </div>
@@ -66,6 +70,10 @@ export function FieldRow(props: {
   info?: { label: string; content: ComponentChildren };
   notes: Note[];
   hint: ComponentChildren;
+  /** In a grid with the Effect column: this row's effect ("" for none). */
+  effect?: ComponentChildren;
+  /** The Effect column's total: bold, with a line above it. */
+  total?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const warn = hasWarning(props.notes);
@@ -88,6 +96,18 @@ export function FieldRow(props: {
         </div>
         <FieldNotes notes={props.notes} class="mt-0.5" />
       </div>
+      {props.effect !== undefined && (
+        <div
+          class={
+            "col-start-2 text-sm tabular-nums sm:col-start-auto sm:text-right " +
+            (props.total ? "font-bold text-ink sm:border-t-2 sm:border-ink sm:pt-1 dark:text-ink-light dark:sm:border-ink-light" : "font-semibold text-ink dark:text-ink-light")
+          }
+          data-effect-cell
+        >
+          {props.effect !== "" && <span class="text-xs font-normal text-stone-500 sm:hidden dark:text-stone-400">Effect: </span>}
+          {props.effect}
+        </div>
+      )}
       <span class={`${HINT_STYLE} col-span-2 mb-2 sm:col-span-1 sm:mb-0`} data-field-hint>
         {props.hint}
       </span>

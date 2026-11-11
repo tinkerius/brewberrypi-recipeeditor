@@ -249,26 +249,25 @@ export function WaterTab(props: { recipe: Recipe; problems: Problem[]; warnings:
   );
 }
 
-/** What an effect does, or what is missing for it (EDT-069). */
-function effectText(effect: Effect): ComponentChildren {
-  if (effect === undefined) {
-    return null;
-  }
-  if ("value" in effect) {
-    return (
-      <span class={VALUE} data-effect>
-        {degrees(effect.value, true)}
-      </span>
-    );
+/** An effect in the Effect column (EDT-069, QE-62): signed °dH, or "–" while unused or not yet worked out. */
+function effectValue(effect: Effect): string {
+  return effect !== undefined && "value" in effect ? degrees(effect.value, true) : "–";
+}
+
+/** A measure's hint: what it does, and what to enter while its effect can't be worked out yet. */
+function effectHint(effect: Effect, about: string): string {
+  const sentence = `${about.charAt(0).toUpperCase()}${about.slice(1)}.`;
+  if (effect === undefined || "value" in effect) {
+    return sentence;
   }
   const what = { carbonate_hardness: "the carbonate hardness", malts: "the malts on the Malt tab", mash: "the mash water" };
-  return <span data-effect-missing>Enter {effect.missing.map((m) => what[m]).join(" and ")}.</span>;
+  return `Enter ${effect.missing.map((m) => what[m]).join(" and ")}. ${sentence}`;
 }
 
 /**
- * The water treatment (EDT-069, QE-61): the tap water's residual alkalinity and carbonate hardness, what is done to
- * the water and what each does to the residual alkalinity, and the result against the typical target for the beer's
- * colour.
+ * The water treatment (EDT-069, QE-61, QE-62): the tap water's residual alkalinity and carbonate hardness, what is
+ * done to the water, each measure's effect in its own column, and their total, the residual alkalinity after
+ * treatment, against the typical target for the beer's colour.
  */
 function WaterTreatment(props: { recipe: Recipe; problems: Problem[]; warnings: Warning[]; onChange: (recipe: Recipe) => void }) {
   const t = treatmentOf(props.recipe);
@@ -286,17 +285,19 @@ function WaterTreatment(props: { recipe: Recipe; problems: Problem[]; warnings: 
       onChange={(v) => set(field, v)}
     />
   );
-  const row = (field: TreatmentField, label: string, unit: string, hint: ComponentChildren, typical?: string) => (
+  const row = (field: TreatmentField, label: string, unit: string, effect: string, hint: string, typical?: string) => (
     <div class="contents" data-treatment={field}>
-      <FieldRow id={`treatment-${field}`} field={number(field, label, unit)} typical={typical} notes={notesAt(issues, path(field))} hint={hint} />
+      <FieldRow
+        id={`treatment-${field}`}
+        field={number(field, label, unit)}
+        typical={typical}
+        notes={notesAt(issues, path(field))}
+        effect={effect}
+        hint={hint}
+      />
     </div>
   );
-  const effect = (e: Effect, about: string) => (
-    <>
-      {effectText(e) ?? about}
-      {e !== undefined && <> · {about}</>}
-    </>
-  );
+  const alkalinity = t.alkalinity;
   const target = effects.target;
   return (
     <section class="mt-6" aria-labelledby="treatment-title" data-water-treatment>
@@ -306,9 +307,15 @@ function WaterTreatment(props: { recipe: Recipe; problems: Problem[]; warnings: 
       <p class={`${HINT_STYLE} mb-3`}>
         The residual alkalinity of the brewing water, in °dH: lower it for pale beers, so the mash gets the right pH.
       </p>
-      <FieldGrid data-treatment-fields>
-        {row("alkalinity", "Residual alkalinity (tap water)", "°dH", "From your water supplier's analysis.")}
-        {row("carbonate_hardness", "Carbonate hardness (tap water)", "°dH", "From the analysis; needed for boiling.")}
+      <FieldGrid effect data-treatment-fields>
+        {row(
+          "alkalinity",
+          "Residual alkalinity (tap water)",
+          "°dH",
+          typeof alkalinity === "number" && Number.isFinite(alkalinity) ? degrees(alkalinity) : "–",
+          "From the water analysis.",
+        )}
+        {row("carbonate_hardness", "Carbonate hardness (tap water)", "°dH", "", "From the analysis; for boiling.")}
         <div class="contents" data-treatment="boil">
           <FieldRow
             id="treatment-boil"
@@ -326,23 +333,45 @@ function WaterTreatment(props: { recipe: Recipe; problems: Problem[]; warnings: 
               </label>
             }
             notes={notesAt(issues, path("boil"))}
-            hint={effect(effects.boil, "precipitates carbonate hardness down to about 3 °dH")}
+            effect={effectValue(effects.boil)}
+            hint={effectHint(effects.boil, "down to about 3 °dH carbonate hardness")}
           />
         </div>
-        {row("gypsum", "Brewing gypsum", "g/10 L", effect(effects.gypsum, "its calcium lowers the alkalinity"), `up to ${TREATMENT_TYPICAL.gypsum} g/10 L`)}
-        {row("acid_malt", "Acid malt (of the grist)", "%", effect(effects.acidMalt, "its lactic acid acts in the mash"), `up to ${TREATMENT_TYPICAL.acidMalt} %`)}
-        {row("lactic_acid", "Lactic acid 80 %", "ml/10 L", effect(effects.lacticAcid, "about 3 °dH less per ml per 10 L"))}
+        {row(
+          "gypsum",
+          "Brewing gypsum",
+          "g/10 L",
+          effectValue(effects.gypsum),
+          effectHint(effects.gypsum, "its calcium lowers it"),
+          `up to ${TREATMENT_TYPICAL.gypsum} g/10 L`,
+        )}
+        {row(
+          "acid_malt",
+          "Acid malt (of the grist)",
+          "%",
+          effectValue(effects.acidMalt),
+          effectHint(effects.acidMalt, "its lactic acid acts in the mash"),
+          `up to ${TREATMENT_TYPICAL.acidMalt} %`,
+        )}
+        {row(
+          "lactic_acid",
+          "Lactic acid 80 %",
+          "ml/10 L",
+          effectValue(effects.lacticAcid),
+          effectHint(effects.lacticAcid, "about −3 °dH per ml per 10 L"),
+        )}
         <div class="contents" data-treatment="result">
           <FieldRow
             id="treatment-result"
             field={
               <>
                 <span class={`${LABEL_STYLE} font-semibold`}>Residual alkalinity after treatment</span>
-                <span class={`${VALUE} text-base`} data-treatment-result>
-                  {effects.result === undefined ? "–" : degrees(effects.result)}
-                </span>
+                {/* The result is the Effect column's total (QE-62). */}
+                <span aria-hidden="true" />
               </>
             }
+            effect={<span data-treatment-result>{effects.result === undefined ? "–" : degrees(effects.result)}</span>}
+            total
             typical={target ? `at most ${target.max} °dH (${target.ebc} EBC, like ${target.beers})` : "–"}
             info={{
               label: "The typical residual alkalinity by beer colour",
@@ -370,8 +399,8 @@ function WaterTreatment(props: { recipe: Recipe; problems: Problem[]; warnings: 
               effects.result === undefined
                 ? "Enter the tap water's residual alkalinity."
                 : target
-                  ? "The tap water's plus the effects above."
-                  : "The tap water's plus the effects above; the target needs the beer colour (Malt tab)."
+                  ? "The sum of the effects."
+                  : "The sum of the effects; the target needs the beer colour (Malt tab)."
             }
           />
         </div>

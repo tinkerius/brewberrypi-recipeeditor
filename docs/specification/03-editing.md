@@ -448,8 +448,12 @@ temperature of their own. The typical durations of `EDT-038` and the flags:
   **Residual alkalinity (tap water)** (°dH, any number; "From your water supplier's analysis."), **Carbonate
   hardness (tap water)** (°dH ≥ 0; "From the analysis; needed for boiling."), **Boil the brewing water** (a checkbox;
   unticked is left out), **Brewing gypsum** (g/10 L ≥ 0, typical up to 3), **Acid malt (of the grist)** (%, 0–100,
-  typical up to 5) and **Lactic acid 80 %** (ml/10 L ≥ 0). Each measure's hint starts with its effect on the residual
-  alkalinity, worked out from the chemistry (RA = carbonate hardness − calcium hardness/3.5 − magnesium
+  typical up to 5) and **Lactic acid 80 %** (ml/10 L ≥ 0). The grid has, after Typical, a column **Effect**
+  (`QE-62`; label and field as wide as in the other sections, Typical narrower): the tap water's residual alkalinity
+  as the starting value ("10.3 °dH"), nothing for the carbonate hardness, and each measure's effect on the residual
+  alkalinity, signed ("−0.9 °dH"; "–" while unused or not worked out, its hint then says what to enter: "Enter the
+  carbonate hardness."), on a phone "Effect: …" below the field; the hints only describe ("Its calcium lowers
+  it."). The effects are worked out from the chemistry (RA = carbonate hardness − calcium hardness/3.5 − magnesium
   hardness/7) and never stored:
   - boiling precipitates carbonate hardness down to about 3 °dH, with as much calcium hardness: −(KH − 3) · (1 −
     1/3.5) ("−7.9 °dH" for 14 °dH; "Enter the carbonate hardness." without it);
@@ -458,8 +462,8 @@ temperature of their own. The typical durations of `EDT-038` and the flags:
     over 0.357 mmol/L per °dH ("−2.4 °dH" for 1 % of 4.6 kg in 18 L; without the malts or the mash water it says what
     to enter);
   - lactic acid 80 % (1.2 g/ml): −2.99 °dH per ml/10 L.
-  The last row, **Residual alkalinity after treatment**, is the tap water's plus every effect worked out ("−2.4 °dH",
-  "–" without the tap water's), with its typical target by the beer colour of the Malt tab (`EDT-048`; "at most
+  The last row, **Residual alkalinity after treatment**, is the Effect column's total, bold below a line: the tap
+  water's plus every effect worked out ("−2.4 °dH", "–" without the tap water's; hint "The sum of the effects."), with its typical target by the beer colour of the Malt tab (`EDT-048`; "at most
   2 °dH (9 EBC, like Pils)", "–" without a colour; its ⓘ shows the table) and a warning above it (`EDT-064`):
 
 | Beer colour | Like | Residual alkalinity at most |

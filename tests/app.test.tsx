@@ -1962,7 +1962,10 @@ describe("App, the Water tab (QE-36)", () => {
       batch: { liters: 24 },
     });
     const section = () => recipe().querySelector("[data-water-treatment]")!;
-    const effect = (field: string) => section().querySelector(`[data-treatment=${field}] [data-field-hint]`)!.textContent;
+    // Each measure's effect in its own column (QE-62), its hint apart; the result is the column's total.
+    const effect = (field: string) => section().querySelector(`[data-treatment=${field}] [data-effect-cell]`)!.textContent;
+    const hint = (field: string) => section().querySelector(`[data-treatment=${field}] [data-field-hint]`)!.textContent;
+    expect([...section().querySelectorAll("[data-treatment-fields] > span")].map((h) => h.textContent)).toEqual(["", "", "Typical", "Effect", ""]);
     const result = () => section().querySelector("[data-treatment-result]")!.textContent;
     const treatmentInput = (field: string) => section().querySelector<HTMLInputElement>(`[data-treatment=${field}] input`)!;
     expect(section().querySelector("h3")!.textContent).toBe("Water treatment");
@@ -1984,15 +1987,17 @@ describe("App, the Water tab (QE-36)", () => {
     );
     // Boiling needs the carbonate hardness.
     await act(async () => treatmentInput("boil").click());
-    expect(effect("boil")).toBe("Enter the carbonate hardness. · precipitates carbonate hardness down to about 3 °dH");
+    expect([effect("boil"), hint("boil")]).toEqual(["Effect: –", "Enter the carbonate hardness. Down to about 3 °dH carbonate hardness."]);
     await type(treatmentInput("carbonate_hardness"), "14");
-    expect(effect("boil")).toBe("−7.9 °dH · precipitates carbonate hardness down to about 3 °dH");
+    expect([effect("boil"), hint("boil")]).toEqual(["Effect: −7.9 °dH", "Down to about 3 °dH carbonate hardness."]);
     await type(treatmentInput("gypsum"), "1");
-    expect(effect("gypsum")).toBe("−0.9 °dH · its calcium lowers the alkalinity");
+    expect([effect("gypsum"), hint("gypsum")]).toEqual(["Effect: −0.9 °dH", "Its calcium lowers it."]);
     await type(treatmentInput("acid_malt"), "1");
-    expect(effect("acid_malt")).toBe("−2.4 °dH · its lactic acid acts in the mash");
+    expect([effect("acid_malt"), hint("acid_malt")]).toEqual(["Effect: −2.4 °dH", "Its lactic acid acts in the mash."]);
     await type(treatmentInput("lactic_acid"), "0.5");
-    expect(effect("lactic_acid")).toBe("−1.5 °dH · about 3 °dH less per ml per 10 L");
+    expect([effect("lactic_acid"), hint("lactic_acid")]).toEqual(["Effect: −1.5 °dH", "About −3 °dH per ml per 10 L."]);
+    expect([effect("alkalinity"), effect("carbonate_hardness")]).toEqual(["Effect: 10.3 °dH", ""]);
+    expect(effect("result")).toBe("Effect: −2.4 °dH");
     expect(result()).toBe("−2.4 °dH");
     expect(section().querySelector("[data-field-row=treatment-result] [data-field-warning]")).toBeNull();
     expect(await download()).toContain(

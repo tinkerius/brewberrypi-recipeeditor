@@ -263,20 +263,19 @@ a release that changes sign-in or Drive behaviour.
   (4 L/kg) is no warning; with hop additions of 90 and 10 min and 20 L: "20 L + 3 L (90 min, ~10 %/h) + 4.5 L
   (~1 L/kg) + 1 L = 28.5 L". The hop table's heads read "α %" over "2–20" and "Additions (cooking time · amount)"
   over "cooking time up to 90 min".
-- `ACC-097` (EDT-069, QE-61, QE-63, FMT-006) With Pilsner malt 4600 g 7 EBC, 18 L mash water and 24 L knockout volume,
-  the Water tab's section Water treatment has Residual alkalinity (tap water) °dH and the steps Boil the brewing
-  water, Brewing gypsum, Acid malt (of the grist) and Lactic acid 80 %, each with a checkbox and, unticked, no field
-  and the effect "–"; ticked, its field is empty (gypsum: "⊘ The brewing gypsum needs an amount."; boiling asks for
-  the carbonate hardness in its row), clearing it keeps it ticked ("The lactic acid needs an amount."), and
-  unticking all leaves `"treatment": { "alkalinity": 10.3 }`; the columns Typical
-  and Effect (`QE-62`; the effects in it, apart from the hints; the tap water's "10.3 °dH" first, none for the
-  carbonate hardness, the result as its total); the result is "–", with
-  10.3 °dH "10.3 °dH", the target "at most 2 °dH (9 EBC, like Pils)" and its warning; boiling's effect is "–" and its
-  hint asks for the carbonate hardness, with 14 °dH "−7.9 °dH"; 1 g/10 L gypsum "−0.9 °dH", 1 % acid malt "−2.4 °dH", 0.5 ml/10 L lactic acid
-  "−1.5 °dH"; the result "−2.4 °dH" without a warning; the file has `"water": { "mash": 18, "treatment": {
-  "alkalinity": 10.3, "carbonate_hardness": 14, "boil": true, "gypsum": 1, "acid_malt": 1, "lactic_acid": 0.5 } }`;
-  4 g/10 L gypsum warns, 101 % acid malt is "Acid malt: The acid malt must be a number from 0 to 100 % of the grist.";
-  cleared and unticked, the treatment leaves the file.
+- `ACC-097` (EDT-069, QE-61..QE-64, FMT-006) With Pilsner malt 4600 g 7 EBC, 18 L mash water and 24 L knockout
+  volume, the Water tab's Water treatment is a table like the Rests table with the heads Step, Value, Typical and
+  Effect (and, for screen readers, Used and About) and the result in its foot; it has Residual alkalinity (tap water)
+  and the steps Boil the brewing water, Brewing gypsum, Acid malt (of the grist) and Lactic acid 80 %, each with a
+  checkbox and, unticked, no field and the effect "–". The result is "–", with 10.3 °dH "10.3 °dH" (also the first
+  effect), the target "at most 2 °dH (9 EBC, like Pils)" and its warning. Ticked, a step's field is empty: boiling's
+  effect is "–" with "Enter the carbonate hardness.", its ⓘ explains boiling, with 14 °dH "−7.9 °dH"; gypsum is
+  "⊘ The brewing gypsum needs an amount." until 1 g/10 L gives "−0.9 °dH" (its ⓘ: "Its calcium lowers the residual
+  alkalinity: …"); 1 % acid malt "−2.4 °dH", 0.5 ml/10 L lactic acid "−1.5 °dH"; the result "−2.4 °dH" without a
+  warning, its ⓘ shows the target table; the file has `"water": { "mash": 18, "treatment": { "alkalinity": 10.3,
+  "carbonate_hardness": 14, "boil": true, "gypsum": 1, "acid_malt": 1, "lactic_acid": 0.5 } }`; clearing the lactic
+  acid keeps it ticked ("The lactic acid needs an amount."); 4 g/10 L gypsum warns; unticking all leaves
+  `"treatment": { "alkalinity": 10.3 }`, and clearing that the treatment.
 
 ## 9.3 Browser drafts
 

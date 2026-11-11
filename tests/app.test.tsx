@@ -1974,16 +1974,31 @@ describe("App, the Water tab (QE-36)", () => {
       batch: { liters: 24 },
     });
     const section = () => recipe().querySelector("[data-water-treatment]")!;
-    // Each step's effect in its own column (QE-62), its hint apart; the result is the column's total.
+    // A table like the mash rests (QE-64): each step's effect in its own column (QE-62), its explanation behind its ⓘ,
+    // the result as the Effect column's total in the table's foot.
     const effect = (row: string) => section().querySelector(`[data-treatment=${row}] [data-effect-cell]`)!.textContent;
-    const hint = (row: string) => section().querySelector(`[data-treatment=${row}] [data-field-hint]`)!.textContent;
+    const missing = (row: string) => section().querySelector(`[data-treatment=${row}] [data-effect-missing]`)?.textContent;
+    async function about(row: string): Promise<string> {
+      await act(async () => section().querySelector<HTMLElement>(`[data-treatment=${row}] button[aria-label^=About]`)!.click());
+      const text = section().querySelector(`[data-treatment-about=${row}]`)!.textContent!;
+      await act(async () => section().querySelector<HTMLElement>(`[data-treatment=${row}] button[aria-label^=About]`)!.click());
+      return text;
+    }
     const result = () => section().querySelector("[data-treatment-result]")!.textContent;
     const amount = (row: string) => section().querySelector<HTMLInputElement>(`[data-treatment=${row}] input[type=text]`);
     // Ticked like the mashing rests (QE-63).
     const tickStep = (step: string) => act(async () => section().querySelector<HTMLInputElement>(`#treatment-step-${step}`)!.click());
-    expect([...section().querySelectorAll("[data-treatment-fields] > span")].map((h) => h.textContent)).toEqual(["", "", "Typical", "Effect", ""]);
+    expect([...section().querySelectorAll("[data-treatment-table] thead th")].map((h) => h.textContent)).toEqual([
+      "Used",
+      "Step",
+      "Value",
+      "Typical",
+      "Effect",
+      "About",
+    ]);
+    expect(section().querySelector("[data-treatment=result]")!.tagName).toBe("TFOOT");
     expect(section().querySelector("h3")!.textContent).toBe("Water treatment");
-    expect([...section().querySelectorAll("label[for]")].map((l) => l.textContent)).toEqual([
+    expect([...section().querySelectorAll("label[for] .sm\\:inline")].map((l) => l.textContent)).toEqual([
       "Boil the brewing water",
       "Brewing gypsum",
       "Acid malt (of the grist)",
@@ -1992,37 +2007,40 @@ describe("App, the Water tab (QE-36)", () => {
     // Unticked steps have no field and no effect.
     for (const step of ["boil", "gypsum", "acid_malt", "lactic_acid"]) {
       expect(amount(step)).toBeNull();
-      expect(effect(step)).toBe("Effect: –");
+      expect(effect(step)).toBe("–");
     }
     expect(result()).toBe("–");
     await type(amount("alkalinity")!, "10.3");
-    expect([effect("alkalinity"), result()]).toEqual(["Effect: 10.3 °dH", "10.3 °dH"]);
+    expect([effect("alkalinity"), result()]).toEqual(["10.3 °dH", "10.3 °dH"]);
     // The target for the beer colour (here 9 EBC), with a warning above it.
-    expect(section().querySelector("[data-field-row=treatment-result] [data-typical]")!.textContent).toBe("Typical: at most 2 °dH (9 EBC, like Pils)");
-    expect(section().querySelector("[data-field-row=treatment-result] [data-field-warning]")!.textContent).toBe(
+    expect(section().querySelector("[data-treatment=result] [data-typical]")!.textContent).toBe("at most 2 °dH (9 EBC, like Pils)");
+    expect(section().querySelector("[data-treatment=result] [data-field-warning]")!.textContent).toBe(
       "⚠ A residual alkalinity of 10.3 °dH after treatment is above the typical 2 °dH at most for a beer of 9 EBC.",
     );
     // Boiling: ticked, it asks for the tap water's carbonate hardness in its row.
     await tickStep("boil");
     expect(amount("boil")!.value).toBe("");
-    expect(effect("boil")).toBe("Effect: –");
-    expect(hint("boil")).toBe("Enter the carbonate hardness. The tap water's carbonate hardness (from the analysis) goes down to about 3 °dH.");
+    expect(effect("boil")).toBe("–");
+    expect(missing("boil")).toBe("Enter the carbonate hardness.");
+    expect(await about("boil")).toContain("Boiling precipitates it down to about 3 °dH");
     await type(amount("boil")!, "14");
-    expect(effect("boil")).toBe("Effect: −7.9 °dH");
+    expect([effect("boil"), missing("boil")]).toEqual(["−7.9 °dH", undefined]);
     // Gypsum: ticked, its amount is empty and an error until entered (no preset).
     await tickStep("gypsum");
     expect(amount("gypsum")!.value).toBe("");
     expect(section().querySelector("[data-treatment=gypsum] [data-field-error]")!.textContent).toBe("⊘ The brewing gypsum needs an amount.");
     await type(amount("gypsum")!, "1");
-    expect([effect("gypsum"), hint("gypsum")]).toEqual(["Effect: −0.9 °dH", "Its calcium lowers it."]);
+    expect(effect("gypsum")).toBe("−0.9 °dH");
+    expect(await about("gypsum")).toBe("Its calcium lowers the residual alkalinity: 1 g per 10 L adds 23 mg/L of calcium, about −0.93 °dH.");
     await tickStep("acid_malt");
     await type(amount("acid_malt")!, "1");
-    expect(effect("acid_malt")).toBe("Effect: −2.4 °dH");
+    expect(effect("acid_malt")).toBe("−2.4 °dH");
     await tickStep("lactic_acid");
     await type(amount("lactic_acid")!, "0.5");
-    expect(effect("lactic_acid")).toBe("Effect: −1.5 °dH");
-    expect(effect("result")).toBe("Effect: −2.4 °dH");
-    expect(section().querySelector("[data-field-row=treatment-result] [data-field-warning]")).toBeNull();
+    expect(effect("lactic_acid")).toBe("−1.5 °dH");
+    expect(effect("result")).toBe("−2.4 °dH");
+    expect(section().querySelector("[data-treatment=result] [data-field-warning]")).toBeNull();
+    expect(await about("result")).toContain("Typical at most, by the beer colour of the Malt tab:");
     expect(await download()).toContain(
       '"water": { "mash": 18, "treatment": { "alkalinity": 10.3, "carbonate_hardness": 14, "boil": true, "gypsum": 1, "acid_malt": 1, "lactic_acid": 0.5 } }',
     );

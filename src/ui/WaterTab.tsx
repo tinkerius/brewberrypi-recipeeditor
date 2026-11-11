@@ -9,7 +9,7 @@
 import type { ComponentChildren } from "preact";
 import type { Problem } from "../validate";
 import { TYPICAL, type Warning } from "../warnings";
-import { notesAt, notesWhere } from "./notes";
+import { notesAt } from "./notes";
 import {
   MASH_WATER_BY_STYLE,
   WATER_FIELDS,
@@ -29,20 +29,8 @@ import {
 } from "../model";
 import { NumberField } from "./fields";
 import { FieldGrid, FieldRow } from "./FieldGrid";
-import { HINT_STYLE, LABEL_STYLE, SECTION_TITLE_STYLE } from "./styles";
-import {
-  TARGET_BY_COLOUR,
-  TREATMENT_TYPICAL,
-  degrees,
-  treatmentEffects,
-  treatmentOf,
-  withTreatmentField,
-  stepOn,
-  withTreatmentStep,
-  type Effect,
-  type TreatmentField,
-  type TreatmentStep,
-} from "../waterTreatment";
+import { HINT_STYLE, SECTION_TITLE_STYLE } from "./styles";
+import { WaterTreatment } from "./WaterTreatment";
 
 /** Litres with at most one decimal: "32 L", "14.5 L". */
 function litres(value: number): string {
@@ -248,194 +236,6 @@ export function WaterTab(props: { recipe: Recipe; problems: Problem[]; warnings:
         </dd>
       </dl>
       <WaterTreatment {...props} />
-    </section>
-  );
-}
-
-/** An effect in the Effect column (EDT-069, QE-62): signed °dH, or "–" while unused or not yet worked out. */
-function effectValue(effect: Effect): string {
-  return effect !== undefined && "value" in effect ? degrees(effect.value, true) : "–";
-}
-
-/** A measure's hint: what it does, and what to enter while its effect can't be worked out yet. */
-function effectHint(effect: Effect, about: string): string {
-  const sentence = `${about.charAt(0).toUpperCase()}${about.slice(1)}.`;
-  if (effect === undefined || "value" in effect) {
-    return sentence;
-  }
-  const what = { carbonate_hardness: "the carbonate hardness", malts: "the malts on the Malt tab", mash: "the mash water" };
-  return `Enter ${effect.missing.map((m) => what[m]).join(" and ")}. ${sentence}`;
-}
-
-/** The label column's indent of rows without a checkbox, so all labels line up with the steps' (EDT-069). */
-const NO_CHECKBOX = "pl-6";
-
-/**
- * The water treatment (EDT-069, QE-61..QE-63): the tap water's residual alkalinity, the steps ticked like the mashing
- * rests (boiling, with the tap water's carbonate hardness; gypsum; acid malt; lactic acid), each step's effect in its
- * own column, and their total, the residual alkalinity after treatment, against the typical target for the beer's
- * colour. A ticked step starts empty (no preset).
- */
-function WaterTreatment(props: { recipe: Recipe; problems: Problem[]; warnings: Warning[]; onChange: (recipe: Recipe) => void }) {
-  const t = treatmentOf(props.recipe);
-  const effects = treatmentEffects(props.recipe);
-  const issues = { problems: props.problems, warnings: props.warnings };
-  const path = (field: string) => `water.treatment.${field}`;
-  const input = (field: TreatmentField, label: string, unit: string, keepTicked: boolean) => (
-    <NumberField
-      label={label}
-      hiddenLabel
-      unit={unit}
-      value={t[field] ?? undefined}
-      invalid={props.problems.some((p) => p.path === path(field))}
-      warn={props.warnings.some((w) => w.path === path(field))}
-      // Clearing a ticked step's amount keeps it ticked (empty, a problem until entered).
-      onChange={(v) => props.onChange(withTreatmentField(props.recipe, field, v === undefined && keepTicked ? null : v))}
-    />
-  );
-  /** A step: its checkbox and label, its field while ticked (EDT-069). */
-  const step = (
-    name: TreatmentStep,
-    label: string,
-    field: { key: TreatmentField; label: string; unit: string } | undefined,
-    effect: Effect,
-    about: string,
-    typical?: string,
-  ) => {
-    const on = stepOn(props.recipe, name);
-    const id = `treatment-step-${name}`;
-    return (
-      <div class="contents" data-treatment={name} data-treatment-on={on ? "" : undefined}>
-        <FieldRow
-          id={`treatment-${name}`}
-          field={
-            <>
-              <span class="flex items-center gap-2">
-                <input
-                  id={id}
-                  type="checkbox"
-                  class="size-4 shrink-0 accent-berry"
-                  checked={on}
-                  onChange={(e) => props.onChange(withTreatmentStep(props.recipe, name, e.currentTarget.checked))}
-                />
-                <label for={id} class={`${LABEL_STYLE} cursor-pointer`}>
-                  {label}
-                </label>
-              </span>
-              {on && field ? input(field.key, field.label, field.unit, name !== "boil") : <span aria-hidden="true" />}
-            </>
-          }
-          typical={typical}
-          notes={notesWhere(issues, (p) => p === path(name) || (name === "boil" && p === path("carbonate_hardness")))}
-          effect={on ? effectValue(effect) : "–"}
-          hint={effectHint(on ? effect : undefined, about)}
-        />
-      </div>
-    );
-  };
-  const alkalinity = t.alkalinity;
-  const target = effects.target;
-  return (
-    <section class="mt-6" aria-labelledby="treatment-title" data-water-treatment>
-      <h3 id="treatment-title" class={`${SECTION_TITLE_STYLE} mb-3`}>
-        Water treatment
-      </h3>
-      <p class={`${HINT_STYLE} mb-3`}>
-        The residual alkalinity of the brewing water, in °dH: lower it for pale beers, so the mash gets the right pH. Tick
-        the steps you use.
-      </p>
-      <FieldGrid effect data-treatment-fields>
-        <div class="contents" data-treatment="alkalinity">
-          <FieldRow
-            id="treatment-alkalinity"
-            field={
-              <>
-                <span class={`${LABEL_STYLE} ${NO_CHECKBOX}`} aria-hidden="true">
-                  Residual alkalinity (tap water)
-                </span>
-                {input("alkalinity", "Residual alkalinity (tap water)", "°dH", false)}
-              </>
-            }
-            notes={notesAt(issues, path("alkalinity"))}
-            effect={typeof alkalinity === "number" && Number.isFinite(alkalinity) ? degrees(alkalinity) : "–"}
-            hint="From the water analysis."
-          />
-        </div>
-        {step(
-          "boil",
-          "Boil the brewing water",
-          { key: "carbonate_hardness", label: "Carbonate hardness (tap water)", unit: "°dH KH" },
-          effects.boil,
-          "the tap water's carbonate hardness (from the analysis) goes down to about 3 °dH",
-        )}
-        {step(
-          "gypsum",
-          "Brewing gypsum",
-          { key: "gypsum", label: "Brewing gypsum", unit: "g/10 L" },
-          effects.gypsum,
-          "its calcium lowers it",
-          `up to ${TREATMENT_TYPICAL.gypsum} g/10 L`,
-        )}
-        {step(
-          "acid_malt",
-          "Acid malt (of the grist)",
-          { key: "acid_malt", label: "Acid malt (of the grist)", unit: "%" },
-          effects.acidMalt,
-          "its lactic acid acts in the mash",
-          `up to ${TREATMENT_TYPICAL.acidMalt} %`,
-        )}
-        {step(
-          "lactic_acid",
-          "Lactic acid 80 %",
-          { key: "lactic_acid", label: "Lactic acid 80 %", unit: "ml/10 L" },
-          effects.lacticAcid,
-          "about −3 °dH per ml per 10 L",
-        )}
-        <div class="contents" data-treatment="result">
-          <FieldRow
-            id="treatment-result"
-            field={
-              <>
-                <span class={`${LABEL_STYLE} ${NO_CHECKBOX} font-semibold`}>Residual alkalinity after treatment</span>
-                {/* The result is the Effect column's total (QE-62). */}
-                <span aria-hidden="true" />
-              </>
-            }
-            effect={<span data-treatment-result>{effects.result === undefined ? "–" : degrees(effects.result)}</span>}
-            total
-            typical={target ? `at most ${target.max} °dH (${target.ebc} EBC, like ${target.beers})` : "–"}
-            info={{
-              label: "The typical residual alkalinity by beer colour",
-              content: (
-                <>
-                  <p>The typical residual alkalinity at most, by the beer colour of the Malt tab:</p>
-                  <table class="mt-1" data-target-table>
-                    <tbody>
-                      {TARGET_BY_COLOUR.map((b) => (
-                        <tr key={b.max}>
-                          <td class="py-0.5 pr-4">{b.beers}</td>
-                          <td class="py-0.5 pr-4 whitespace-nowrap tabular-nums">
-                            {b.upToEbc === Infinity ? `over ${TARGET_BY_COLOUR[TARGET_BY_COLOUR.length - 2].upToEbc} EBC` : `up to ${b.upToEbc} EBC`}
-                          </td>
-                          <td class="py-0.5 whitespace-nowrap font-semibold tabular-nums">{b.max} °dH</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </>
-              ),
-            }}
-            notes={notesAt(issues, path("result"))}
-            hint={
-              effects.result === undefined
-                ? "Enter the tap water's residual alkalinity."
-                : target
-                  ? "The sum of the effects."
-                  : "The sum of the effects; the target needs the beer colour (Malt tab)."
-            }
-          />
-        </div>
-      </FieldGrid>
     </section>
   );
 }

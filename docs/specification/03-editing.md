@@ -447,8 +447,14 @@ temperature of their own. The typical durations of `EDT-038` and the flags:
 
 - `EDT-069` Below the water figures, the section **Water treatment** (app `RCP-015` `water.treatment`, `Q-46`) for the
   **residual alkalinity** of the brewing water, in °dH, with the hint "The residual alkalinity of the brewing water,
-  in °dH: lower it for pale beers, so the mash gets the right pH." Its rows (`EDT-068`; inputs left empty are left out
-  of the file, `treatment` when it holds nothing, and `water` when that is empty):
+  in °dH: lower it for pale beers, so the mash gets the right pH. Tick the steps you use." It is a **table in the
+  look of the Rests table** (`EDT-031`, its master, `QE-64`): the same frame (full card width on a phone, a framed
+  box from tablet width on, scrolling sideways inside itself), head row, cells, bold names (short ones on a phone:
+  "Tap water RA", "Boil", "Gypsum", "Acid malt", "Lactic acid", "After treatment"), the planned rows' highlight for
+  ticked steps and an ⓘ per row that opens its explanation below it, one at a time. Its columns: the checkbox,
+  **Step**, **Value** (the field and its unit), **Typical** (the typical value, the field's errors and warnings right
+  after it, and what to enter while an effect can't be worked out), **Effect** and the ⓘ. Its rows (inputs left
+  empty are left out of the file, `treatment` when it holds nothing, and `water` when that is empty):
   **Residual alkalinity (tap water)** (°dH, any number; "From the water analysis."), then the **steps**, each ticked
   to use it like a mashing rest (`QE-63`; a checkbox before its name, "Tick the steps you use."): **Boil the brewing
   water** (ticked: `boil: true` and, in its row, the tap water's **carbonate hardness** in °dH ≥ 0, "°dH KH"),
@@ -456,12 +462,10 @@ temperature of their own. The typical durations of `EDT-038` and the flags:
   **Lactic acid 80 %** (ml/10 L ≥ 0). A ticked step's field starts empty (no preset); while empty it is an error
   ("The brewing gypsum needs an amount.", "The acid malt needs its share of the grist.", "The lactic acid needs an
   amount."; boiling without the carbonate hardness only asks for it), and clearing it keeps the step ticked.
-  Unticked, a step has no field and no effect, and leaves the file (boiling with the carbonate hardness). The grid has, after Typical, a column **Effect**
-  (`QE-62`; label and field as wide as in the other sections, Typical narrower): the tap water's residual alkalinity
-  as the starting value ("10.3 °dH"), nothing for the carbonate hardness, and each measure's effect on the residual
-  alkalinity, signed ("−0.9 °dH"; "–" while unused or not worked out, its hint then says what to enter: "Enter the
-  carbonate hardness."), on a phone "Effect: …" below the field; the hints only describe ("Its calcium lowers
-  it."). The effects are worked out from the chemistry (RA = carbonate hardness − calcium hardness/3.5 − magnesium
+  Unticked, a step has no field and no effect, and leaves the file (boiling with the carbonate hardness). The column
+  **Effect** (`QE-62`) holds the tap water's residual alkalinity as the starting value ("10.3 °dH") and each step's
+  effect on it, signed ("−0.9 °dH"; "–" while unused or not worked out, "Enter the carbonate hardness." then under
+  Typical); each row's ⓘ says what the step does and how its effect is worked out. The effects are worked out from the chemistry (RA = carbonate hardness − calcium hardness/3.5 − magnesium
   hardness/7) and never stored:
   - boiling precipitates carbonate hardness down to about 3 °dH, with as much calcium hardness: −(KH − 3) · (1 −
     1/3.5) ("−7.9 °dH" for 14 °dH; "Enter the carbonate hardness." without it);
@@ -470,8 +474,8 @@ temperature of their own. The typical durations of `EDT-038` and the flags:
     over 0.357 mmol/L per °dH ("−2.4 °dH" for 1 % of 4.6 kg in 18 L; without the malts or the mash water it says what
     to enter);
   - lactic acid 80 % (1.2 g/ml): −2.99 °dH per ml/10 L.
-  The last row, **Residual alkalinity after treatment**, is the Effect column's total, bold below a line: the tap
-  water's plus every effect worked out ("−2.4 °dH", "–" without the tap water's; hint "The sum of the effects."), with its typical target by the beer colour of the Malt tab (`EDT-048`; "at most
+  The table's foot line, **Residual alkalinity after treatment**, is the Effect column's total, bold below a line:
+  the tap water's plus every effect worked out ("−2.4 °dH", "–" without the tap water's), with its typical target by the beer colour of the Malt tab (`EDT-048`; "at most
   2 °dH (9 EBC, like Pils)", "–" without a colour; its ⓘ shows the table) and a warning above it (`EDT-064`):
 
 | Beer colour | Like | Residual alkalinity at most |

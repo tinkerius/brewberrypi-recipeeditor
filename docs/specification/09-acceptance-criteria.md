@@ -69,7 +69,7 @@ a release that changes sign-in or Drive behaviour.
   Editor" and Cloud Sync; the footer links to brewberrypi.org, the privacy policy, the terms and the source code.
 - `ACC-048` (QE-28, QE-34, QE-35, QE-55, QE-56, GUI-032) Below the recipe's title is a tab list with the tabs
   **Overview**, **Malt**, **Mashing**, **Boiling**, **Water**, **Fermentation** and **Mash Process**, in this order,
-  Overview selected (it shows the description); Malt shows the malt table; the Mash Process panel holds the goals and, as the list's last row, + Add goal; the problems are below the panel, not in it.
+  Overview selected (it shows the description); Malt shows the malt table; the Mash Process panel holds the goals and, as the list's last row, + Add goal; the problems are on the Overview tab only (`QE-59`), not on the Mash Process tab.
 - `ACC-049` (QE-29, GUI-024, NFR-002) "Hide sidebar" collapses the recipe list to a strip with "Show sidebar" and
   New recipe, the recipe stays shown, and the browser remembers it (also after the page is shown again); with a
   recipe not downloaded, the strip shows "1 recipe not downloaded". Ctrl+B expands it again and the browser forgets
@@ -229,7 +229,7 @@ a release that changes sign-in or Drive behaviour.
   25 % alpha acid gives Boiling a red "1" and "⚠ 1" ("(1 error, 1 warning)"), the Malt tab none; an original
   gravity of 25 °P and a final gravity of 0.5 °P give Water "⚠ 3" (both gravities and the attenuation); fixed, the
   badge goes.
-- `ACC-092` (EDT-020) The errors are listed under "⊘ Incomplete — fix these before saving or downloading:", the
+- `ACC-092` (EDT-020, QE-59) On the Overview tab only, under the heading Status (none on the Boiling tab), the errors are listed under "⊘ Incomplete — fix these before saving or downloading:", the
   warnings apart under "⚠ Warnings — outside the typical range; the recipe stays valid:"; with only warnings the
   recipe is "Complete", the warnings stay listed, their entries open their tab, and it can be downloaded.
 - `ACC-093` (EDT-064, EDT-033, EDT-038) Warnings outside, none at the limits: mash thickness 2.5 and 4 L/kg none,

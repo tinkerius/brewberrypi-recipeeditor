@@ -12,7 +12,7 @@ the boil schedule, the hops (alpha acid, one or more additions each with cooking
 the original and final gravity with the alcohol, the yeast and the CO₂ target; and **Mash Process**,
 the goals the app brews. The app keeps the description, the ingredients, the batch, the water, the fermentation and the mashing plan in the
 file but doesn't use them. Errors (missing or wrong data) and warnings (values outside their typical range) are shown
-at their fields, listed below the tabs and counted on each tab. The editor writes the
+at their fields, listed on the Overview tab and counted on each tab. The editor writes the
 app's current format version. Files in the old format (goals at the top level) are converted when opened; files of a
 newer format version are refused. This editor creates and edits those files in the browser. It is a static site on GitHub
 Pages, with no backend.

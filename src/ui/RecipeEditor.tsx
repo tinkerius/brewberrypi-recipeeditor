@@ -17,7 +17,7 @@ import { RecipeTitle } from "./RecipeTitle";
 import { Tabs } from "./Tabs";
 import { moveItem } from "./reorder";
 import { useReorder } from "./useReorder";
-import { BUTTON_STYLES, CARD_STYLE, HINT_STYLE, LINK_STYLE } from "./styles";
+import { BUTTON_STYLES, CARD_STYLE, HINT_STYLE, LINK_STYLE, SECTION_TITLE_STYLE } from "./styles";
 import { warningsOf } from "../warnings";
 import { ERROR_TEXT, WARNING_TEXT, notesAt, type Issues } from "./notes";
 
@@ -241,6 +241,18 @@ export function RecipeEditor(props: { doc: Doc; onChange: (recipe: Recipe) => vo
   const reorder = useReorder<HTMLOListElement>(goals.length, moveGoal);
   const list = reorder.container;
 
+  const problemList = (
+    <ProblemList
+      doc={doc}
+      onGoal={(index) => {
+        setTab("mash");
+        setOpen(index, true);
+      }}
+      onMashing={() => setTab("mashing")}
+      onIngredients={(t) => setTab(t)}
+    />
+  );
+
   return (
     <section class={CARD_STYLE} aria-label="Recipe">
       <div class="flex flex-wrap items-start justify-between gap-3">
@@ -259,7 +271,19 @@ export function RecipeEditor(props: { doc: Doc; onChange: (recipe: Recipe) => vo
 
       <Tabs label="Recipe sections" tabs={RECIPE_TABS} selected={tab} onSelect={setTab} badges={badges}>
         {tab === "overview" ? (
-          <OverviewTab recipe={doc.recipe} problems={problems} onChange={setRecipe} />
+          <>
+            <OverviewTab recipe={doc.recipe} problems={problems} onChange={setRecipe} />
+            {/* The errors and warnings of the whole recipe: on the Overview tab only (QE-59); the other tabs show
+                theirs at the fields and count them on the tabs (EDT-062, EDT-063). */}
+            {!doc.loadError && (
+              <section class="mt-6" aria-labelledby="status-title" data-status>
+                <h3 id="status-title" class={`${SECTION_TITLE_STYLE} mb-2`}>
+                  Status
+                </h3>
+                <div class="space-y-2">{problemList}</div>
+              </section>
+            )}
+          </>
         ) : tab === "fermentation" ? (
           <FermentationTab recipe={doc.recipe} problems={problems} warnings={warnings} onChange={setRecipe} />
         ) : tab === "water" ? (
@@ -334,15 +358,8 @@ export function RecipeEditor(props: { doc: Doc; onChange: (recipe: Recipe) => vo
             {doc.notice} Download or save it to write the file in the current format.
           </p>
         )}
-        <ProblemList
-          doc={doc}
-          onGoal={(index) => {
-            setTab("mash");
-            setOpen(index, true);
-          }}
-          onMashing={() => setTab("mashing")}
-          onIngredients={(t) => setTab(t)}
-        />
+        {/* A file that could not be read says so on every tab. */}
+        {doc.loadError && problemList}
       </div>
       {props.actions && <div class="mt-4 flex flex-wrap gap-2">{props.actions}</div>}
     </section>

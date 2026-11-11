@@ -52,7 +52,7 @@ in the brand colours. Unlike the website, the editor also has a dark mode, follo
 
 - `GUI-030` Title: the recipe name, editable in place (`EDT-010`; "Untitled recipe" while it has none); the file
   name `<id>.json` is not repeated below it (it is in the recipe list, `GUI-021`; `QE-49`); the state (`BRW-004`,
-  `DRV-010`) at the right. Then the tabs (`GUI-032`), and below them the problems (`EDT-020`).
+  `DRV-010`) at the right. Then the tabs (`GUI-032`); the problems are on the Overview tab (`EDT-020`, `QE-59`).
 - `GUI-032` The recipe's sections are **tabs** below its title (`QE-28`). So far there are seven, in this order (`QE-43`,
   `QE-55`, `QE-56`): **Overview** (selected when a recipe is opened): the description (`EDT-065`); **Malt**: the
   malts (`EDT-041`..`EDT-050`, `QE-34`, `QE-35`); **Mashing**: the mashing plan (`EDT-030`..`EDT-035`, `QE-32`);
@@ -61,7 +61,8 @@ in the brand colours. Unlike the website, the editor also has a dark mode, follo
   yeast and the carbonation (`EDT-057`, `EDT-066`); and **Mash Process**: the goals in brewing order, one line each
   with one open for editing (`EDT-011`..`EDT-015`, `QE-26`), and **+ Add goal**. Each tab shows its errors and
   warnings (`EDT-063`).
-  The problems, notices and actions are below the tabs, for the whole recipe. The tabs follow the ARIA tab pattern
+  The notices and actions are below the tabs, for the whole recipe; the errors and warnings are listed on the Overview
+  tab only (`QE-59`), and a file that can't be read says so below every tab. The tabs follow the ARIA tab pattern
   (tab list, selected tab, panel; the arrow keys move between tabs).
 - `GUI-031` Actions below, signed in: **Save to Google Drive** and **Discard changes** (`DRV-006`). Download and
   Delete are only in the recipe's menu (`GUI-022`, `QE-22`).

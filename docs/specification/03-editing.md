@@ -74,8 +74,8 @@ Applies signed out (drafts, §4) and signed in (Drive recipes, §5) alike, unles
 
 - `EDT-020` The editor tells **errors** from **warnings** (`QE-54`). An error is missing or wrong data, a problem
   of the file (`FMT-004`): until it is fixed the recipe can't be saved or downloaded (`FMT-010`). A warning is a value
-  outside its typical range (`EDT-064`): the recipe stays complete and can be saved and downloaded. Below the tabs the
-  errors are listed in red under "⊘ Incomplete — fix these before saving or downloading:", then the warnings in
+  outside its typical range (`EDT-064`): the recipe stays complete and can be saved and downloaded. On the Overview tab
+  only (`QE-59`), under the heading **Status** below the description, the errors are listed in red under "⊘ Incomplete — fix these before saving or downloading:", then the warnings in
   amber under "⚠ Warnings — outside the typical range; the recipe stays valid:" (also below "✓ Complete …"), each
   with where it is. A goal's entry names the goal ("Goal 2"); clicking that opens the goal (`EDT-011`); an entry of
   another tab opens that tab. For an invalid file name the message says to rename it from the recipe's menu.
@@ -422,4 +422,6 @@ temperature of their own. The typical durations of `EDT-038` and the flags:
   **Description** (app `RCP-016`): the brewer's free text about the recipe, in a box of eight lines that can be made
   taller, with as many lines as needed. It is written as `"description"` right after `name` (its line breaks as
   `\n`); an empty description is left out of the file. A description that is not text is an error ("The
-  description must be text.") on the Overview tab.
+  description must be text.") on the Overview tab. Below the description, under **Status**, the recipe's errors and
+  warnings (`EDT-020`, `QE-59`); the other tabs show theirs at the fields and count them on the tab (`EDT-062`,
+  `EDT-063`).

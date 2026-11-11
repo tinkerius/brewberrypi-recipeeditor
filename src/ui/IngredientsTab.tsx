@@ -49,12 +49,12 @@ const NUMBER = "whitespace-nowrap text-right tabular-nums";
 const SERIES = 8;
 export const seriesColour = (i: number) => (i < SERIES ? `var(--series-${i + 1})` : "var(--series-other)");
 
-/** The shades of a kind's ramp (QE-47): five, then one muted shade for the 6th row on. */
-const SHADES = 5;
+/** The tones of a kind (QE-48): three that stay clearly apart, then one muted tone from the 4th row on. */
+const SHADES = 3;
 
 /**
- * A row's colour (EDT-047, QE-47): malts in the categorical colours, hops in shades of green, other additions in
- * shades of violet, dark to light in table order.
+ * A row's colour (EDT-047, QE-47, QE-48): malts in the categorical colours, hops in three greens, other additions in
+ * three violets, in table order, then a muted tone of the kind.
  */
 export function rowColour(kind: IngredientKind, i: number): string {
   if (kind === "malts") {
@@ -539,7 +539,7 @@ function HopSchedule(props: { hops: Ingredient[]; others: Ingredient[] }) {
   type Entry = { h: Ingredient; i: number; kind: "hops" | "others" };
   const one = (kind: Entry["kind"]) => INGREDIENT_LABELS[kind].one;
   const name = ({ h, i, kind }: Entry) => (typeof h.name === "string" && h.name ? h.name : `${one(kind)} ${i + 1}`);
-  // A hop as a hop cone in its shade of green (its donut colour), another addition as a jar in its shade of violet.
+  // A hop as a hop cone in its green (its donut colour), another addition as a jar in its violet (QE-48).
   const colour = ({ i, kind }: Entry) => rowColour(kind, i);
   const key = ({ i, kind }: Entry) => (kind === "hops" ? String(i) : `other-${i}`);
   const withAmount: Entry[] = [

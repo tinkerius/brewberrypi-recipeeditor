@@ -235,8 +235,11 @@ temperature of their own. The typical durations of `EDT-038` and the flags:
   order, with the total weight in its middle, a tooltip per slice ("Pilsner malt: 4500 g, 90 %") and a legend
   (swatch, name, share). The malts' slices take the categorical chart colours in a fixed order by row (validated for
   colour-vision deficiency in light and dark mode), from the 9th row on one "other" grey; the hops' slices take
-  shades of green, dark to light by row, and other additions (in the Boil Schedule) shades of violet — five shades
-  per kind, validated as ordinal ramps in light and dark mode, then one muted shade (`QE-47`). No donut
+  three greens (green, yellow-green, teal) by row, and other additions (in the Boil Schedule) three violets
+  (violet, lavender, magenta), then one muted tone of the kind from the 4th row (`QE-47`, `QE-48`). The three tones
+  of a kind stay apart for every pair, also under colour-vision deficiency, in light and dark mode (each with its own
+  tones; every check of the dataviz palette validator passes, names next to every icon make up for the one tone
+  near 3:1 contrast). No donut
   while no row has an amount.
 - `EDT-048` The Malt tab shows the **beer colour** in EBC by Morey's formula (MCU = Σ lb · °L / gal, SRM = 1.4922 ·
   MCU^0.6859, EBC = SRM · 1.97, each malt's EBC as °L = (EBC · 0.508 + 0.76) / 1.3546), rounded to a whole number

@@ -1472,6 +1472,10 @@ describe("App, the Malt and Hops tabs (QE-34, QE-35)", () => {
       "var(--hop-3)",
       "var(--hop-1)",
     ]);
+    // Three tones per kind that stay apart, then a muted tone (QE-48): Cascade is the 4th hop.
+    await type(field("hops", 3, "minutes"), "30");
+    expect(schedule().querySelector("[data-schedule-hop='3'] [data-addition-icon]")!.getAttribute("fill")).toBe("var(--hop-more)");
+    await type(field("hops", 3, "minutes"), "");
     expect(dots[0].querySelector("title")!.textContent).toBe("Hallertauer Tradition: 30 g, add at 0 min (start), cooks 60 min");
     expect(dots[2].querySelector("title")!.textContent).toBe("Saaz: 10 g, add at 60 min (flame-out), cooks 0 min");
     // The start of the boil is at the left, its end at the right.

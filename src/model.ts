@@ -115,17 +115,44 @@ export const INGREDIENT_LABELS: Record<IngredientKind, { title: string; one: str
 };
 
 /** A malt or a hop; a malt may have `ebc`, a hop `alpha` and `minutes` (app RCP-013, Q-39). */
-export type Ingredient = { name?: unknown; grams?: unknown; ebc?: unknown; alpha?: unknown; minutes?: unknown } & Record<
-  string,
-  unknown
->;
+export type Ingredient = {
+  name?: unknown;
+  grams?: unknown;
+  ebc?: unknown;
+  alpha?: unknown;
+  additions?: unknown;
+} & Record<string, unknown>;
 
-/** The fields an entry of each list may have besides name and grams (app RCP-013). */
+/** One time a hop or another addition goes into the boil (app RCP-013, Q-43): its cooking time and amount. */
+export type Addition = { minutes?: unknown; grams?: unknown } & Record<string, unknown>;
+
+/** The fields an entry of each list may have besides its name (app RCP-013, Q-43). */
 export const INGREDIENT_EXTRA_FIELDS: Record<IngredientKind, readonly string[]> = {
-  malts: ["ebc"],
-  hops: ["alpha", "minutes"],
-  others: ["minutes"],
+  malts: ["grams", "ebc"],
+  hops: ["alpha", "additions"],
+  others: ["additions"],
 };
+
+/** A hop's or another addition's additions (Q-43); none for a malt or while the list is not a list. */
+export function additionsOf(entry: Ingredient): Addition[] {
+  return Array.isArray(entry.additions) ? entry.additions.map((a) => (isObject(a) ? a : {})) : [];
+}
+
+/** An entry with its additions replaced, in the file's key order (EDT-061). */
+export function withAdditions(entry: Ingredient, additions: Addition[]): Ingredient {
+  return { ...entry, additions };
+}
+
+/**
+ * The grams an entry counts with (EDT-043, EDT-061): a malt's amount, or the sum of a hop's or another addition's
+ * valid amounts; 0 while there is none.
+ */
+export function entryGrams(entry: Ingredient): number {
+  if (validGrams(entry.grams)) {
+    return entry.grams;
+  }
+  return additionsOf(entry).reduce((sum, a) => sum + (validGrams(a.grams) ? a.grams : 0), 0);
+}
 
 function finite(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value);
@@ -266,17 +293,24 @@ export function beerColourOf(recipe: Recipe): Figure {
 /** The bitterness in IBU (EDT-049): every hop with an amount needs alpha and boil time, the batch volume and gravity. */
 export function bitternessOf(recipe: Recipe): Figure {
   const hops = ingredientsOf(recipe, "hops");
-  const counted = hops.map((h, i) => ({ h, i })).filter(({ h }) => validGrams(h.grams));
+  // Every addition with an amount counts (Q-43): it needs its hop's alpha acid and its own cooking time.
+  const counted = hops
+    .map((h, i) => ({ h, i, additions: additionsOf(h).filter((a) => validGrams(a.grams)) }))
+    .filter(({ additions }) => additions.length > 0);
   if (counted.length === 0) {
     return { noEntries: true };
   }
-  const rows = counted.filter(({ h }) => !validAlpha(h.alpha) || !validBoilMinutes(h.minutes)).map(({ i }) => i + 1);
+  const rows = counted
+    .filter(({ h, additions }) => !validAlpha(h.alpha) || additions.some((a) => !validBoilMinutes(a.minutes)))
+    .map(({ i }) => i + 1);
   const { liters, plato } = batchOf(recipe);
   const batch = (["liters", "plato"] as const).filter((f) => !(f === "liters" ? validLiters(liters) : validPlato(plato)));
   if (rows.length > 0 || batch.length > 0) {
     return { rows, batch: [...batch] };
   }
-  const values = counted.map(({ h }) => ({ grams: h.grams as number, alpha: h.alpha as number, minutes: h.minutes as number }));
+  const values = counted.flatMap(({ h, additions }) =>
+    additions.map((a) => ({ grams: a.grams as number, alpha: h.alpha as number, minutes: a.minutes as number })),
+  );
   return { value: bitternessIbu(values, liters as number, plato as number) };
 }
 
@@ -314,13 +348,14 @@ export function validGrams(grams: unknown): grams is number {
 
 /** The total weight of a list (EDT-043): the sum of its valid amounts, in grams. */
 export function totalGrams(list: Ingredient[]): number {
-  return list.reduce((sum, entry) => sum + (validGrams(entry.grams) ? entry.grams : 0), 0);
+  return list.reduce((sum, entry) => sum + entryGrams(entry), 0);
 }
 
 /** An entry's share of the list's total weight, in percent (EDT-043); undefined while its amount is not valid. */
 export function shareOf(entry: Ingredient, list: Ingredient[]): number | undefined {
   const total = totalGrams(list);
-  return validGrams(entry.grams) && total > 0 ? (entry.grams / total) * 100 : undefined;
+  const grams = entryGrams(entry);
+  return grams > 0 && total > 0 ? (grams / total) * 100 : undefined;
 }
 
 /** A share as text, rounded to one decimal: "90 %", "33.3 %" (EDT-043). */
@@ -546,6 +581,32 @@ const indentGoal = (goal: Goal) =>
     .join(", ")} }`;
 
 /**
+ * An ingredient on one line (FMT-006): its fields in order, its additions inline, each `minutes` before `grams`:
+ * `{ "name": "Hallertauer", "alpha": 12, "additions": [ { "minutes": 60, "grams": 20 } ] }`.
+ */
+function formatEntry(entry: Record<string, unknown>): string {
+  // Known fields in the file's order (name, grams, ebc, alpha, additions), then any other, as found.
+  const order = ["name", "grams", "ebc", "alpha", "additions"];
+  const known = order.filter((k) => k in entry).map((k) => [k, entry[k]] as const);
+  const fields = [...known, ...Object.entries(entry).filter(([k]) => !order.includes(k))]
+    .filter(([, v]) => v !== undefined)
+    .map(([k, v]) => {
+      if (k === "additions" && Array.isArray(v)) {
+        const items = v.map((a) => {
+          if (!isObject(a)) {
+            return JSON.stringify(a);
+          }
+          const { minutes, grams, ...rest } = a;
+          return indentGoal({ minutes, grams, ...rest } as unknown as Goal);
+        });
+        return `${JSON.stringify(k)}: [${items.length ? ` ${items.join(", ")} ` : ""}]`;
+      }
+      return `${JSON.stringify(k)}: ${JSON.stringify(v)}`;
+    });
+  return `{ ${fields.join(", ")} }`;
+}
+
+/**
  * The file content, formatted like the app's shipped recipes: "version" first (RCP-008), one line per goal, then the
  * mashing plan, one line per rest in catalogue order, then the ingredients, one line per malt and hop, then the
  * batch and the water, each on one line (FMT-006). The editor does not write "$schema" (optional,
@@ -601,7 +662,7 @@ export function serializeRecipe(recipe: Recipe): string {
       if (Array.isArray(value) && value.length > 0) {
         lines.push(`    ${JSON.stringify(key)}: [`);
         value.forEach((entry, i) => {
-          const text = isObject(entry) ? indentGoal(entry as Goal) : JSON.stringify(entry);
+          const text = isObject(entry) ? formatEntry(entry) : JSON.stringify(entry);
           lines.push(`      ${text}${i < value.length - 1 ? "," : ""}`);
         });
         lines.push(`    ]${comma}`);

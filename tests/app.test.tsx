@@ -101,7 +101,9 @@ describe("App, signed out", () => {
     await show(new MemoryStore());
     await act(async () => button("New recipe").click());
     await nameAs("Weizen", "Create");
-    expect(root.querySelector("[aria-label=Recipe]")?.textContent).toContain("Weizen.json");
+    // The file name is in the recipe list, not in the recipe's header (QE-49).
+    expect(root.querySelector("[aria-label=Recipes] [aria-current=true]")?.textContent).toContain("Weizen.json");
+    expect(root.querySelector("[aria-label=Recipe]")?.textContent).not.toContain("Weizen.json");
     expect(root.querySelector("[aria-label=Recipe] input")?.getAttribute("placeholder")).not.toBe("e.g. Weizen"); // no file name field
     expect(root.textContent).toContain("Incomplete");
     expect(root.textContent).toContain("The recipe needs a name.");
@@ -181,7 +183,8 @@ describe("App, the recipe menu", () => {
     expect(root.querySelector<HTMLInputElement>("[role=dialog] input")?.value).toBe("Kept-2");
     await act(async () => button("Duplicate").click());
     expect(listText()).toEqual([expect.stringContaining("Kept.json"), expect.stringContaining("Kept-2.json")]);
-    expect(root.querySelector("[aria-label=Recipe]")?.textContent).toContain("Kept-2.json");
+    // The copy is the open recipe: selected in the list (the header shows no file name, QE-49).
+    expect(root.querySelector("[aria-label=Recipes] [aria-current=true]")?.textContent).toContain("Kept-2.json");
   });
 
   it("ACC-014 deletes a recipe after asking", async () => {
@@ -974,8 +977,11 @@ describe("App, the Malt and Hops tabs (QE-34, QE-35)", () => {
   /** The rows of a kind: malts and hops each in their tab's table, other additions below the hops (EDT-060). */
   const rows = (kind: string) => [...recipe().querySelectorAll<HTMLTableRowElement>(`tbody tr[data-ingredient-kind=${kind}]`)];
   const nameField = (kind: string, i: number) => rows(kind)[i].querySelector<HTMLInputElement>("[data-ingredient-name] input")!;
-  const field = (kind: string, i: number, f: string) =>
-    rows(kind)[i].querySelector<HTMLInputElement>(`[data-ingredient-field=${f}] input`)!;
+  /** A row's field; a hop's or another addition's cooking time and amount are those of its first addition (EDT-061). */
+  const field = (kind: string, i: number, f: string, addition = 0) =>
+    kind !== "malts" && (f === "grams" || f === "minutes")
+      ? rows(kind)[i].querySelector<HTMLInputElement>(`[data-addition="${addition}"] [data-addition-field=${f}] input`)!
+      : rows(kind)[i].querySelector<HTMLInputElement>(`[data-ingredient-field=${f}] input`)!;
   const shares = (kind: string) => rows(kind).map((r) => r.querySelector("[data-ingredient-share]")!.textContent);
   /** The Total line: its label, total weight and share. */
   const total = (kind: string) => {
@@ -1056,7 +1062,15 @@ describe("App, the Malt and Hops tabs (QE-34, QE-35)", () => {
     expect(rows("malts")).toHaveLength(0);
     expect(await download()).not.toContain("ingredients");
     await showTab("hops");
-    expect(heads("hops")).toEqual(["Move", "Name", "α %", "Cooking time (min)", "Absolute amount (g)", "Relative amount (%)", "Remove"]);
+    expect(heads("hops")).toEqual([
+      "Move",
+      "Name",
+      "α %",
+      "Additions (cooking time · amount)",
+      "Absolute amount (g)",
+      "Relative amount (%)",
+      "Remove",
+    ]);
     expect(section("hops").textContent).toContain("No hop yet.");
     expect(section("hops").querySelector("tbody tr:last-child [data-add-row]")!.textContent).toBe("+ Add hop");
   });
@@ -1126,7 +1140,7 @@ describe("App, the Malt and Hops tabs (QE-34, QE-35)", () => {
         '      { "name": "Munich malt", "grams": 500 }\n' +
         "    ],\n" +
         '    "hops": [\n' +
-        '      { "name": "Hallertauer Tradition", "grams": 30, "alpha": 5.5, "minutes": 60 }\n' +
+        '      { "name": "Hallertauer Tradition", "alpha": 5.5, "additions": [ { "minutes": 60, "grams": 30 } ] }\n' +
         "    ]\n" +
         "  },\n" +
         '  "batch": { "liters": 20, "plato": 12.6 }\n}\n', // liters first, though the gravity was entered first
@@ -1139,7 +1153,7 @@ describe("App, the Malt and Hops tabs (QE-34, QE-35)", () => {
           { name: "Pilsner malt", grams: 4500, ebc: 3.5 },
           { name: "Munich malt", grams: 500 },
         ],
-        hops: [{ name: "Hallertauer Tradition", grams: 30, alpha: 5.5, minutes: 60 }],
+        hops: [{ name: "Hallertauer Tradition", alpha: 5.5, additions: [{ minutes: 60, grams: 30 }] }],
       },
       { liters: 20, plato: 12.6 },
     ]);
@@ -1253,7 +1267,7 @@ describe("App, the Malt and Hops tabs (QE-34, QE-35)", () => {
     await type(field("hops", 0, "alpha"), "101");
     expect(recipe().textContent).toContain("Hop 1: the alpha acid must be a number from 0 to 100 %.");
     await type(field("hops", 1, "minutes"), "2.5");
-    expect(recipe().textContent).toContain("Hop 2: the boil time must be a whole number of minutes, at least 0.");
+    expect(recipe().textContent).toContain("Hop 2, addition 1: the boil time must be a whole number of minutes, at least 0.");
   });
 
   it("ACC-075 the knockout volume and the gravity come from the Water tab; an empty batch leaves the file", async () => {
@@ -1363,7 +1377,7 @@ describe("App, the Malt and Hops tabs (QE-34, QE-35)", () => {
     expect([...section("others").querySelectorAll("thead th")].map((th) => th.textContent)).toEqual([
       "Move",
       "Name",
-      "Cooking time (min)",
+      "Additions (cooking time · amount)",
       "Absolute amount (g)",
       "Remove",
     ]);
@@ -1374,8 +1388,8 @@ describe("App, the Malt and Hops tabs (QE-34, QE-35)", () => {
     const other = rows("others")[0];
     expect(other.querySelector("[data-ingredient-field=alpha]")).toBeNull(); // no alpha acid
     await type(other.querySelector<HTMLInputElement>("[data-ingredient-name] input")!, "Irish Moss");
-    await type(other.querySelector<HTMLInputElement>("[data-ingredient-field=grams] input")!, "10");
-    await type(other.querySelector<HTMLInputElement>("[data-ingredient-field=minutes] input")!, "15");
+    await type(field("others", 0, "grams"), "10");
+    await type(field("others", 0, "minutes"), "15");
     // Not in the bitterness, the shares, the donut or the hop total.
     expect(figure()).toBe("19 IBU");
     expect(shares("hops")).toEqual(["100 %"]);
@@ -1395,7 +1409,7 @@ describe("App, the Malt and Hops tabs (QE-34, QE-35)", () => {
       ["45 min", "Irish Moss", "15 min", "10 g"],
     ]);
     // A jar for another addition, in the grey "other" colour; a hop cone in its donut colour for a hop (QE-46).
-    const jar = schedule.querySelector("[data-schedule-hop=other-0] [data-addition-icon]")!;
+    const jar = schedule.querySelector("[data-schedule-hop=other-0-0] [data-addition-icon]")!;
     expect([jar.getAttribute("data-addition-icon"), jar.getAttribute("fill")]).toEqual(["other", "var(--addition-1)"]);
     const rowIcons = [...schedule.querySelectorAll("[data-schedule-list] tbody [data-addition-icon]")];
     expect(rowIcons.map((i) => [i.getAttribute("data-addition-icon"), i.getAttribute("fill")])).toEqual([
@@ -1404,15 +1418,60 @@ describe("App, the Malt and Hops tabs (QE-34, QE-35)", () => {
     ]);
     // Written as its own list after the hops.
     expect(await download()).toContain(
-      '    "hops": [\n      { "name": "Hallertauer Tradition", "grams": 30, "alpha": 5.5, "minutes": 60 }\n    ],\n' +
-        '    "others": [\n      { "name": "Irish Moss", "grams": 10, "minutes": 15 }\n    ]\n',
+      '    "hops": [\n      { "name": "Hallertauer Tradition", "alpha": 5.5, "additions": [ { "minutes": 60, "grams": 30 } ] }\n    ],\n' +
+        '    "others": [\n      { "name": "Irish Moss", "additions": [ { "minutes": 15, "grams": 10 } ] }\n    ]\n',
     );
     // A problem names it and opens the Boiling tab.
-    await type(rows("others")[0].querySelector<HTMLInputElement>("[data-ingredient-field=grams] input")!, "");
-    expect(recipe().textContent).toContain("Other addition 1: Other addition 1 needs an amount in grams.");
+    await type(field("others", 0, "grams"), "");
+    expect(recipe().textContent).toContain("Other addition 1: Other addition 1, addition 1 needs an amount in grams.");
     await act(async () => recipe().querySelector<HTMLElement>("#tab-mash")!.click());
     await act(async () => button("Other addition 1").click());
     expect(recipe().querySelector("#tab-hops")!.getAttribute("aria-selected")).toBe("true");
+  });
+
+  it("ACC-086 a hop goes into the boil more than once: its additions are summed, each boils and is scheduled on its own", async () => {
+    await open();
+    await showTab("hops");
+    await add("hops", "Hallertauer Tradition", "20", { alpha: "5.5", minutes: "60" });
+    const addAddition = () => act(async () => rows("hops")[0].querySelector<HTMLElement>("[data-add-addition]")!.click());
+    const removeButtons = () => rows("hops")[0].querySelectorAll("[data-additions] button[aria-label^='Remove addition']");
+    expect(removeButtons()).toHaveLength(0); // one addition: nothing to remove
+    await addAddition();
+    expect(removeButtons()).toHaveLength(2);
+    await type(field("hops", 0, "minutes", 1), "10");
+    await type(field("hops", 0, "grams", 1), "10");
+    await add("hops", "Saaz", "10", { alpha: "4", minutes: "0" });
+    // The hop's absolute amount is the sum of its additions; its share and the Total use it.
+    expect(rows("hops").map((r) => r.querySelector("[data-entry-total]")!.textContent)).toEqual(["30 g", "10 g"]);
+    expect(shares("hops")).toEqual(["75 %", "25 %"]);
+    expect(total("hops")).toEqual(["Total", "40 g", "100 %"]);
+    // The bitterness counts each addition with its own cooking time.
+    await setKnockout("20", "hops");
+    await setOnWater("Original gravity", "12.6", "hops");
+    expect(figure()).toBe("15 IBU");
+    // One schedule entry per addition, both in the hop's colour.
+    const schedule = recipe().querySelector("[data-hop-schedule]")!;
+    const items = [...schedule.querySelectorAll<HTMLTableRowElement>("[data-schedule-list] tbody tr")].map((tr) => [...tr.cells].map((td) => td.textContent));
+    expect(items).toEqual([
+      ["0 min (start)", "Hallertauer Tradition (5.5 % α)", "60 min", "20 g"],
+      ["50 min", "Hallertauer Tradition (5.5 % α)", "10 min", "10 g"],
+      ["60 min (flame-out)", "Saaz (4 % α)", "0 min", "10 g"],
+    ]);
+    expect([...schedule.querySelectorAll("[data-schedule-list] tbody [data-addition-icon]")].map((i) => i.getAttribute("fill"))).toEqual([
+      "var(--hop-1)",
+      "var(--hop-1)",
+      "var(--hop-2)",
+    ]);
+    expect(await download()).toContain(
+      '{ "name": "Hallertauer Tradition", "alpha": 5.5, "additions": [ { "minutes": 60, "grams": 20 }, { "minutes": 10, "grams": 10 } ] }',
+    );
+    // An addition without an amount is a problem named by its number.
+    await type(field("hops", 0, "grams", 1), "");
+    expect(recipe().textContent).toContain("Hop 1: Hop 1, addition 2 needs an amount in grams.");
+    // Removing an addition leaves the other.
+    await act(async () => (removeButtons()[1] as HTMLElement).click());
+    expect(removeButtons()).toHaveLength(0);
+    expect(rows("hops")[0].querySelector("[data-entry-total]")!.textContent).toBe("20 g");
   });
 
   it("ACC-083 shows each malt's colour from its EBC next to the field", async () => {
@@ -1465,7 +1524,7 @@ describe("App, the Malt and Hops tabs (QE-34, QE-35)", () => {
       ["60 min (flame-out)", "Saaz", "0 min", "10 g"],
     ]);
     const dots = [...schedule().querySelectorAll("[data-schedule-hop]")];
-    expect(dots.map((g) => (g as HTMLElement).dataset.scheduleHop)).toEqual(["1", "2", "0"]);
+    expect(dots.map((g) => (g as HTMLElement).dataset.scheduleHop)).toEqual(["hop-1-0", "hop-2-0", "hop-0-0"]);
     // Hops in shades of green by table row (QE-47): Saaz is row 1, Hallertauer row 2, Tettnanger row 3.
     expect(dots.map((g) => g.querySelector("[data-addition-icon=hop]")!.getAttribute("fill"))).toEqual([
       "var(--hop-2)",
@@ -1474,7 +1533,7 @@ describe("App, the Malt and Hops tabs (QE-34, QE-35)", () => {
     ]);
     // Three tones per kind that stay apart, then a muted tone (QE-48): Cascade is the 4th hop.
     await type(field("hops", 3, "minutes"), "30");
-    expect(schedule().querySelector("[data-schedule-hop='3'] [data-addition-icon]")!.getAttribute("fill")).toBe("var(--hop-more)");
+    expect(schedule().querySelector("[data-schedule-hop=hop-3-0] [data-addition-icon]")!.getAttribute("fill")).toBe("var(--hop-more)");
     await type(field("hops", 3, "minutes"), "");
     expect(dots[0].querySelector("title")!.textContent).toBe("Hallertauer Tradition: 30 g, add at 0 min (start), cooks 60 min");
     expect(dots[2].querySelector("title")!.textContent).toBe("Saaz: 10 g, add at 60 min (flame-out), cooks 0 min");
@@ -1520,12 +1579,12 @@ describe("App, the Water tab (QE-36)", () => {
     });
   }
 
-  it("ACC-078 has the fields Mash water, Sparge water, Top-up water and Knockout volume; they are written on one line", async () => {
+  it("ACC-078 has the fields Mash water, Sparge water, Top-up water and Knockout volume (target); they are written on one line", async () => {
     await open();
     expect(recipe().querySelector("#tab-water")!.getAttribute("aria-selected")).toBe("true");
     expect(recipe().querySelector("[role=tabpanel] h3")!.textContent?.trim()).toBe("Water");
     const labels = [...recipe().querySelectorAll("[role=tabpanel] label")].map((l) => l.textContent);
-    expect(labels).toEqual(["Mash waterL", "Sparge waterL", "Top-up waterL", "Knockout volumeL", "Original gravity (target)°P", "Final gravity°P"]);
+    expect(labels).toEqual(["Mash waterL", "Sparge waterL", "Top-up waterL", "Knockout volume (target)L", "Original gravity (target)°P", "Final gravity°P"]);
     for (const hint of ["strike water", "while lautering", "after lautering to reach the original gravity", "end of the boil"]) {
       expect(recipe().textContent).toContain(hint);
     }

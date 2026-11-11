@@ -28,7 +28,7 @@ a release that changes sign-in or Drive behaviour.
 ## 9.2 Editing
 
 - `ACC-010` (EDT-001, EDT-003, GUI-030) **New recipe** asks for the file name; after `Weizen` the recipe
-  `Weizen.json` is open, empty and incomplete ("The recipe needs a name."), cannot be downloaded (Download in its
+  `Weizen.json` is open (the file name in the list, not in its header), empty and incomplete ("The recipe needs a name."), cannot be downloaded (Download in its
   menu says to fix it first), is "Not downloaded yet", and the editor has no file name field and no Download or
   Delete button (`GUI-031`).
 - `ACC-011` (EDT-003) The name dialog refuses a name used by another recipe ("There already is a recipe …") and an
@@ -124,7 +124,7 @@ a release that changes sign-in or Drive behaviour.
   35 min of rests, 43 min heating at 1 °C/min." and the profile; a heating rate of 2 shows "Total mash time 1 h 57
   min: 1 h 35 min of rests, 22 min heating at 2 °C/min."
 - `ACC-067` (QE-34, QE-35, EDT-041, EDT-042) The Malt tab has a table with Name, EBC, Absolute amount (g), Relative amount (%)
-  and a Total line, the Boiling tab one with Name, α %, Cooking time (min), Absolute amount (g), Relative amount (%) and
+  and a Total line, the Boiling tab one with Name, α %, Additions (cooking time · amount), Absolute amount (g), Relative amount (%) and
   a Total line, saying "No malt yet." / "No hop yet." for a recipe without `ingredients`; + Add malt / + Add
   hop is the table's last row before the Total line, and adds an empty row above it whose name field has the focus; ✕ removes a row; removing the last row of both tables removes
   `ingredients` from the recipe.
@@ -136,7 +136,8 @@ a release that changes sign-in or Drive behaviour.
   Malt tab, "Hop 1" the Boiling tab. A name and 4500 g make the recipe complete.
 - `ACC-070` (FMT-006, EDT-042) Two malts and a hop are written as `"ingredients"` after `"mashing"` (or after
   `"mashing_process"`), `malts` before `hops`, one entry per line in the brewer's order
-  (`{ "name": "Pilsner malt", "grams": 4500 }`), without shares; the file reads back the same.
+  (`{ "name": "Pilsner malt", "grams": 4500 }`, `{ "name": "Hallertauer Tradition", "alpha": 5.5, "additions": [ { "minutes":
+  60, "grams": 30 } ] }`), without shares; the file reads back the same.
 - `ACC-071` (EDT-046) Malts Pilsner malt, Munich malt, Caramunich: dragging the first handle below the third shows a
   drop line and gives Munich malt, Caramunich, Pilsner malt, with the shares moved along; ArrowUp on the third handle
   moves Pilsner malt up one, its handle keeping the focus; the file has the new order.
@@ -165,7 +166,7 @@ a release that changes sign-in or Drive behaviour.
   dots go from left (start) to right (end) in the hops' greens (their donut colours; a 4th hop's in the muted tone), with tooltips ("…, add at 0 min (start),
   cooks 60 min"); it says "No cooking time yet: hop 4."; without cooking times it asks for them.
 - `ACC-078` (EDT-051, EDT-053, FMT-006) The Water tab has the heading Water and the fields Mash water, Sparge water,
-  Top-up water and Knockout volume (L) with their hints (then the Gravity fields, `ACC-081`); 16, 14 and 2 are written as
+  Top-up water and Knockout volume (target) (L) with their hints (then the Gravity fields, `ACC-081`); 16, 14 and 2 are written as
   `"water": { "mash": 16, "sparge": 14, "top_up": 2 }`; −1 is a problem whose entry opens the Water tab; clearing
   all three removes `water`.
 - `ACC-079` (EDT-052, EDT-050) With 5000 g of malt: total water "–", then 14 L, then with 16 L mash and 2.5 L
@@ -190,11 +191,18 @@ a release that changes sign-in or Drive behaviour.
   bitter" is bold and the marker at the end. No bar without BU:GU.
 - `ACC-085` (EDT-060, QE-42, QE-44) On the Boiling tab (so named), with Hallertauer Tradition 30 g 5.5 % 60 min (19 IBU):
   below the Hops table a table Other additions (heading "Other additions — not in the shares or the
-  bitterness"; Name, Cooking time (min), Absolute amount (g); "No other addition yet."); + Add other addition adds a
+  bitterness"; Name, Additions (cooking time · amount), Absolute amount (g); "No other addition yet."); + Add other addition adds a
   row with the focus on its name and no α field; Irish Moss 10 g 15 min leaves 19 IBU, the hop's 100 %, one donut slice
   and the hops' "Total 30 g"; its own table's Total is 10 g, and there is no total of both; the schedule adds it at 45 min with a jar icon in the first violet (the hop with a hop cone in the first green, also its donut slice's colour, "Hallertauer Tradition (5.5 % α)"); the file has
-  `"others": [ { "name": "Irish Moss", "grams": 10, "minutes": 15 } ]` after `hops`; without grams it is
-  "Other addition 1: Other addition 1 needs an amount in grams.", whose entry opens the Boiling tab.
+  `"others": [ { "name": "Irish Moss", "additions": [ { "minutes": 15, "grams": 10 } ] } ]` after `hops`; without grams it is
+  "Other addition 1: Other addition 1, addition 1 needs an amount in grams.", whose entry opens the Boiling tab.
+- `ACC-086` (EDT-061, QE-49) Hallertauer Tradition 5.5 % with the additions 60 min 20 g and 10 min 10 g, and Saaz
+  10 g 0 min: the hop's absolute amount is 30 g and its share 75 %, the Total 40 g; the bitterness counts both
+  additions (15 IBU in 20 L at 12.6 °P); the Boil Schedule has three entries (0 min (start) Hallertauer Tradition
+  60 min 20 g, 50 min Hallertauer Tradition 10 min 10 g, 60 min (flame-out) Saaz 0 min 10 g), both of the hop's in its
+  green; the file has `"additions": [ { "minutes": 60, "grams": 20 }, { "minutes": 10, "grams": 10 } ]`; the ✕ of an
+  addition shows only while there are two, and removing one leaves 20 g; an addition without an amount is
+  "Hop 1, addition 2 needs an amount in grams."
 
 ## 9.3 Browser drafts
 

@@ -211,14 +211,15 @@ temperature of their own. The typical durations of `EDT-038` and the flags:
   comes before it, under its own heading (`QE-43`): overview, schedule, ingredients. Like the mashing plan, they are design information for the brewer; they do not change the goals, and the
   app does not use them.
 - `EDT-042` A table has a drag handle, then the columns (`QE-40`) — Malt: **Name**, **EBC** (its colour), **Absolute
-  amount (g)** (a whole number), **Relative amount (%)**; Hops: **Name**, **α %** (its alpha acid), **Cooking time
-  (min)** (its boil time, a whole number), **Absolute amount (g)**, **Relative amount (%)** — and a button ✕ ("Remove
-  malt" / "Remove hop") per row; EBC, α % and min may stay empty (an empty one is left out
+  amount (g)** (a whole number), **Relative amount (%)**; Hops: **Name**, **α %** (its alpha acid), **Additions
+  (cooking time · amount)** (`EDT-061`), **Absolute amount (g)** (the sum of its additions, computed), **Relative
+  amount (%)** — and a button ✕ ("Remove malt" / "Remove hop") per row; EBC, α % and min may stay empty (an empty one is left out
   of the file). After the last row and before the Total line, an add row like the goal list's (`EDT-012`),
   **+ Add malt** (or **+ Add hop**), adds an empty row at the end, whose name field gets the focus. The rows keep
   the brewer's order. ✕ removes the row. An empty table says "No malt yet." / "No hop yet."; a table without rows
   is left out of the file, and `ingredients` too when both are empty.
-- `EDT-043` The **Relative amount (%)** column is a row's share of its table's total weight (a hop's of all hops), rounded to one
+- `EDT-043` The **Relative amount (%)** column is a row's share of its table's total weight (a hop's, the sum of its
+  additions, of all hops), rounded to one
   decimal ("90 %", "33.3 %"), with a swatch in its colour of the donut (`EDT-047`); it is computed, never stored. A
   row whose amount is not a whole number ≥ 1 yet shows "–" and does not count. The last line, **Total**, sums the
   table's amounts ("5000 g", under Absolute amount) and shows "100 %" while the total is above 0.
@@ -249,7 +250,7 @@ temperature of their own. The typical durations of `EDT-038` and the flags:
   it ("How the beer colour is calculated", `QE-44`) shows and hides how it is calculated and the volume used:
   "Morey's formula, from each malt's EBC and the knockout volume (20 L, Water tab)."; below the figure the colour
   scale (`EDT-055`).
-- `EDT-049` The Boiling tab shows the **bitterness** in IBU by Tinseth's formula (per hop, 1.65 · 0.000125^(SG − 1) ·
+- `EDT-049` The Boiling tab shows the **bitterness** in IBU by Tinseth's formula (per hop addition, `EDT-061`, 1.65 · 0.000125^(SG − 1) ·
   (1 − e^(−0.04 · min)) / 4.15 · alpha/100 · g · 1000 / l, SG from the original gravity in °P), rounded to a whole
   number ("19 IBU"). It needs the alpha acid and boil time of every hop with an amount, the knockout volume and
   the original gravity (both from the Water tab); until then it shows "–" and says what to enter ("… and the
@@ -257,12 +258,12 @@ temperature of their own. The typical durations of `EDT-038` and the flags:
   hides how it is calculated and both values used ("… the original gravity (12.6 °P, Water tab)."; `QE-44`); below
   the figure the bitterness scale and BU:GU (`EDT-056`).
 - `EDT-050` The **batch** fields (app `RCP-014`) are entered on the Water tab only (`EDT-051`, `EDT-057`; `QE-37`,
-  `QE-38`): the **Knockout volume** (L, the wort at the end of the boil, the target for the fermenter; `QE-36`), the
+  `QE-38`): the **Knockout volume (target)** (L, the wort at the end of the boil, the target for the fermenter; `QE-36`), the
   target **Original gravity** and the **Final gravity** (°P). The Malt and Boiling tabs use them and name them in their
   hints (`EDT-048`, `EDT-049`); they have no batch fields. A field left empty is left out of the
   file, and `batch` too when both are.
 - `EDT-054` The **Boil Schedule** (`QE-41`, `QE-42`) works back from the cooking times of the hops and the other
-  additions (`EDT-060`): the **total boil time** is the longest cooking time of those with an amount ("Total boil time: 60 min"; `QE-44`), and each hop goes
+  additions (`EDT-060`), one entry per addition (`EDT-061`): the **total boil time** is the longest cooking time of those with an amount ("Total boil time: 60 min"; `QE-44`), and each hop goes
   in at that time minus its own cooking time, counted from the start of the boil (a 60-minute hop at "0 min
   (start)", a 10-minute hop at "50 min", a 0-minute hop at "60 min (flame-out)"); ties keep the table order. A
   timeline over the boil from its start ("start", left) to its end ("end", right), axis "min after the start of the
@@ -321,10 +322,17 @@ temperature of their own. The typical durations of `EDT-038` and the flags:
 - `EDT-060` **Other additions** (app `RCP-013` `others`, `QE-42`) — Irish moss, spices, yeast nutrient — are like
   hops without alpha acid. Under **Boil Ingredients** there are two tables (`QE-44`), each with its own small heading
   and **Total**: **Hops** (`EDT-042`), then **Other additions** ("— not in the shares or the bitterness"; columns
-  Name, Cooking time (min), Absolute amount (g); no α %, no share; "No other addition yet."; add row **+ Add other
+  Name, Additions (cooking time · amount), Absolute amount (g); no α %, no share; "No other addition yet."; add row **+ Add other
   addition**; sorted by drag and drop, `EDT-046`). They are not in the shares, the donut, the hops' Total or the
   bitterness, but in the Boil Schedule (a jar in a shade of violet instead of a hop cone; `QE-46`, `QE-47`).
   Their problems read "Other addition n" and open the Boiling tab.
+- `EDT-061` A hop or another addition can go into the boil more than once (app `Q-43`, `QE-49`): its name and alpha
+  acid are entered once, and the cell **Additions (cooking time · amount)** holds one line per addition, a cooking
+  time (min, may stay empty) and an amount (g, a whole number ≥ 1); **+ addition** below them adds a line, ✕ next to
+  a line removes it (only while there is more than one). A new row starts with one empty addition. The row's
+  **Absolute amount (g)** is the sum of its additions' amounts (computed), and its share, the donut and the Total use
+  it. The bitterness counts each addition with its own cooking time; the Boil Schedule has one entry per addition
+  (the hop's colour and icon on each). Problems name the addition ("Hop 1, addition 2 needs an amount in grams.").
 
 ## 3.8 Water (`QE-36`)
 
@@ -332,7 +340,7 @@ temperature of their own. The typical durations of `EDT-038` and the flags:
   and the gravity under the heading **Gravity** (`EDT-057`). Under Water:
   **Mash water** (strike water, mashed in with the malt), **Sparge water** (rinses the sugar out of the grain while
   lautering) and **Top-up water** (added after lautering to reach the original gravity), in litres, each a number
-  ≥ 0 with a one-line hint, and the **Knockout volume** (`EDT-050`, entered only here; the Malt and Boiling tabs use it). A
+  ≥ 0 with a one-line hint, and the **Knockout volume (target)** (`EDT-050`, `QE-50`, entered only here; the Malt and Boiling tabs use it). A
   field left empty is left out of the file, and `water` too when all three are. A volume below 0 is a problem
   ("Mash water: The mash water must be a number of at least 0 litres."); clicking it opens the Water tab.
 - `EDT-052` Below the fields, computed and never stored: **Total water**, the sum of the volumes entered ("32.5 L",

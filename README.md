@@ -7,7 +7,7 @@ recipe, in its recipe folder (`{"version": 3, "name": …, "mashing_process": {"
 "ingredients": {"malts": […], "hops": […]}, "batch": {…}, "water": {…}}`; the goals may be empty, then the app lists the recipe but
 can't brew it). A recipe has five tabs: **Malt**, the malts with their amounts, shares and colours, and the beer
 colour; **Mashing**, the brewer's mashing plan (the rests planned, each with temperature and duration); **Boiling**,
-the boil schedule, the hops (amounts, shares, alpha acid, cooking times, the bitterness) and other boil additions;
+the boil schedule, the hops (alpha acid, one or more additions each with cooking time and amount, shares, the bitterness) and other boil additions;
 **Water**, the mash, sparge and top-up water, the knockout volume, total water and mash thickness, and the original
 and final gravity with the alcohol; and **Mash Process**,
 the goals the app brews. The app keeps the ingredients, the batch, the water and the mashing plan in the file but doesn't use them. The editor writes the

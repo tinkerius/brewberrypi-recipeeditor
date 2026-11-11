@@ -146,6 +146,17 @@ function checkMashing(plan: unknown, problems: Problem[]) {
   }
 }
 
+/** An amount in whole grams ≥ 1 (app RCP-013): required. */
+function checkGrams(grams: unknown, path: string, label: string, problems: Problem[]) {
+  if (grams === undefined) {
+    problems.push({ path, message: `${label} needs an amount in grams.` });
+  } else if (typeof grams !== "number" || !Number.isInteger(grams)) {
+    problems.push({ path, message: `${label}: the amount must be a whole number of grams.` });
+  } else if (grams < 1) {
+    problems.push({ path, message: `${label}: the amount must be at least 1 g.` });
+  }
+}
+
 function isIngredientKind(key: string): key is IngredientKind {
   return (INGREDIENT_KINDS as readonly string[]).includes(key);
 }
@@ -176,7 +187,7 @@ function checkIngredients(ingredients: unknown, problems: Problem[]) {
       }
       const extra = INGREDIENT_EXTRA_FIELDS[kind];
       for (const key of Object.keys(entry)) {
-        if (key !== "name" && key !== "grams" && !extra.includes(key)) {
+        if (key !== "name" && !extra.includes(key)) {
           problems.push({ path: `${item}.${key}`, message: `${label} has no field "${key}".` });
         }
       }
@@ -190,23 +201,41 @@ function checkIngredients(ingredients: unknown, problems: Problem[]) {
           problems.push({ path: `${item}.alpha`, message: `${label}: the alpha acid must be a number from 0 to 100 %.` });
         }
       }
-      if (entry.minutes !== undefined && extra.includes("minutes")) {
-        const minutes = entry.minutes;
-        if (typeof minutes !== "number" || !Number.isInteger(minutes) || minutes < 0) {
-          problems.push({ path: `${item}.minutes`, message: `${label}: the boil time must be a whole number of minutes, at least 0.` });
-        }
-      }
       if (typeof entry.name !== "string" || entry.name.length === 0) {
         problems.push({ path: `${item}.name`, message: `${label} needs a name.` });
       }
-      const grams = entry.grams;
-      if (grams === undefined) {
-        problems.push({ path: `${item}.grams`, message: `${label} needs an amount in grams.` });
-      } else if (typeof grams !== "number" || !Number.isInteger(grams)) {
-        problems.push({ path: `${item}.grams`, message: `${label}: the amount must be a whole number of grams.` });
-      } else if (grams < 1) {
-        problems.push({ path: `${item}.grams`, message: `${label}: the amount must be at least 1 g.` });
+      if (kind === "malts") {
+        checkGrams(entry.grams, `${item}.grams`, label, problems);
+        return;
       }
+      // A hop or another addition: at least one addition, each with grams and maybe minutes (app RCP-013, Q-43).
+      const additions = entry.additions;
+      if (additions === undefined || (Array.isArray(additions) && additions.length === 0)) {
+        problems.push({ path: `${item}.additions`, message: `${label} needs an addition.` });
+        return;
+      }
+      if (!Array.isArray(additions)) {
+        problems.push({ path: `${item}.additions`, message: `${label}: the additions must be a list.` });
+        return;
+      }
+      additions.forEach((addition, j) => {
+        const at = `${item}.additions[${j}]`;
+        const name = `${label}, addition ${j + 1}`;
+        if (!isObject(addition)) {
+          problems.push({ path: at, message: `${name} must be an object with minutes and grams.` });
+          return;
+        }
+        for (const key of Object.keys(addition)) {
+          if (key !== "minutes" && key !== "grams") {
+            problems.push({ path: `${at}.${key}`, message: `${name} has no field "${key}".` });
+          }
+        }
+        const minutes = addition.minutes;
+        if (minutes !== undefined && (typeof minutes !== "number" || !Number.isInteger(minutes) || minutes < 0)) {
+          problems.push({ path: `${at}.minutes`, message: `${name}: the boil time must be a whole number of minutes, at least 0.` });
+        }
+        checkGrams(addition.grams, `${at}.grams`, name, problems);
+      });
     });
   }
 }

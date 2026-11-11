@@ -192,9 +192,6 @@ export function RecipeEditor(props: { doc: Doc; onChange: (recipe: Recipe) => vo
             invalid={has("name")}
             onChange={(name) => setRecipe({ ...doc.recipe, name })}
           />
-          <p class={`${HINT_STYLE} mt-0.5 truncate`} title="Rename the file in the recipe's menu in the list">
-            {doc.id}.json
-          </p>
         </div>
         {props.status}
       </div>

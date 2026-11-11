@@ -50,8 +50,8 @@ in the brand colours. Unlike the website, the editor also has a dark mode, follo
 
 ## 7.4 Recipe
 
-- `GUI-030` Title: the recipe name, editable in place (`EDT-010`; "Untitled recipe" while it has none); below it
-  `<id>.json` (not editable here, `EDT-003`); the state (`BRW-004`,
+- `GUI-030` Title: the recipe name, editable in place (`EDT-010`; "Untitled recipe" while it has none); the file
+  name `<id>.json` is not repeated below it (it is in the recipe list, `GUI-021`; `QE-49`); the state (`BRW-004`,
   `DRV-010`) at the right. Then the tabs (`GUI-032`), and below them the problems (`EDT-020`).
 - `GUI-032` The recipe's sections are **tabs** below its title (`QE-28`). So far there are five, in this order (`QE-43`):
   **Malt** (selected when a recipe is opened): the malts (`EDT-041`..`EDT-050`, `QE-34`, `QE-35`); **Mashing**: the

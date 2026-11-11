@@ -21,13 +21,17 @@ import {
   totalGrams,
   validAlpha,
   validBoilMinutes,
+  additionsOf,
+  entryGrams,
   validGrams,
+  withAdditions,
   validEbc,
   validLiters,
   validPlato,
   withIngredients,
   type Figure,
   type Ingredient,
+  type Addition,
   type IngredientKind,
   type Recipe,
 } from "../model";
@@ -64,8 +68,17 @@ export function rowColour(kind: IngredientKind, i: number): string {
   return i < SHADES ? `var(--${ramp}-${i + 1})` : `var(--${ramp}-more)`;
 }
 
-/** A number field of a row (EDT-042): the grams, a malt's EBC, a hop's alpha acid and boil time. */
-type Column = { field: "grams" | "ebc" | "alpha" | "minutes"; head: string; label: string; integer: boolean; width: string };
+/**
+ * A column of a row (EDT-042, EDT-061): a number field (a malt's grams and EBC, a hop's alpha acid), the additions
+ * of a hop or another addition (cooking time and amount each), or their computed total amount.
+ */
+type Column = {
+  field: "grams" | "ebc" | "alpha" | "additions" | "total";
+  head: string;
+  label: string;
+  integer: boolean;
+  width: string;
+};
 /** In this order after the name (EDT-042, QE-40): the absolute amount last, just before the relative one. */
 const COLUMNS: Record<IngredientKind, Column[]> = {
   malts: [
@@ -74,12 +87,12 @@ const COLUMNS: Record<IngredientKind, Column[]> = {
   ],
   hops: [
     { field: "alpha", head: "α %", label: "Alpha acid (%)", integer: false, width: "w-12 sm:w-20" },
-    { field: "minutes", head: "Cooking time (min)", label: "Cooking time (min)", integer: true, width: "w-14 sm:w-24" },
-    { field: "grams", head: "Absolute amount (g)", label: "Absolute amount (g)", integer: true, width: "w-14 sm:w-24" },
+    { field: "additions", head: "Additions (cooking time · amount)", label: "Additions", integer: true, width: "w-52 sm:w-64" },
+    { field: "total", head: "Absolute amount (g)", label: "Absolute amount (g)", integer: true, width: "w-14 sm:w-24" },
   ],
   others: [
-    { field: "minutes", head: "Cooking time (min)", label: "Cooking time (min)", integer: true, width: "w-14 sm:w-24" },
-    { field: "grams", head: "Absolute amount (g)", label: "Absolute amount (g)", integer: true, width: "w-14 sm:w-24" },
+    { field: "additions", head: "Additions (cooking time · amount)", label: "Additions", integer: true, width: "w-52 sm:w-64" },
+    { field: "total", head: "Absolute amount (g)", label: "Absolute amount (g)", integer: true, width: "w-14 sm:w-24" },
   ],
 };
 
@@ -132,7 +145,7 @@ function ShareDonut(props: { kind: IngredientKind; list: Ingredient[] }) {
               stroke-dashoffset={-offset}
               class="transition-opacity hover:opacity-80"
             >
-              <title>{`${name(s.entry, s.i)}: ${s.entry.grams} g, ${formatShare(s.share)}`}</title>
+              <title>{`${name(s.entry, s.i)}: ${entryGrams(s.entry)} g, ${formatShare(s.share)}`}</title>
             </circle>
           );
           offset += length;
@@ -317,6 +330,85 @@ function FigureLine(props: { kind: IngredientKind; recipe: Recipe; onWater?: () 
 }
 
 /**
+ * A hop's or another addition's additions in one cell (EDT-061, QE-49): per addition its cooking time and amount,
+ * removable while there is more than one, and "+ addition" to add one at the end.
+ */
+function AdditionsCell(props: {
+  kind: IngredientKind;
+  index: number;
+  entry: Ingredient;
+  problems: Problem[];
+  onChange: (additions: Addition[]) => void;
+}) {
+  const additions = additionsOf(props.entry);
+  const { one } = INGREDIENT_LABELS[props.kind];
+  const at = (j: number, field: string) => `ingredients.${props.kind}[${props.index}].additions[${j}].${field}`;
+  const invalid = (j: number, field: string) => props.problems.some((p) => p.path === at(j, field));
+  const set = (j: number, field: "minutes" | "grams", value: unknown) =>
+    props.onChange(
+      additions.map((a, k) => {
+        if (k !== j) {
+          return a;
+        }
+        const { [field]: _old, ...rest } = a;
+        // In the file's order: minutes, then grams (FMT-006).
+        const next = { ...rest, ...(value === undefined ? {} : { [field]: value }) };
+        const { minutes, grams, ...more } = next as Addition;
+        return { ...(minutes !== undefined ? { minutes } : {}), ...(grams !== undefined ? { grams } : {}), ...more };
+      }),
+    );
+  return (
+    <div class="space-y-1">
+      {additions.map((a, j) => (
+        <div key={j} class="flex items-center gap-1.5 [&_input]:w-14! [&_input]:px-1.5! sm:[&_input]:w-16!" data-addition={j}>
+          <span class="contents" data-addition-field="minutes">
+            <NumberField
+              label={`Cooking time (min), ${one} ${props.index + 1}, addition ${j + 1}`}
+              compact
+              integer
+              unit="min"
+              value={a.minutes}
+              invalid={invalid(j, "minutes")}
+              onChange={(v) => set(j, "minutes", v)}
+            />
+          </span>
+          <span class="contents" data-addition-field="grams">
+            <NumberField
+              label={`Amount (g), ${one} ${props.index + 1}, addition ${j + 1}`}
+              compact
+              integer
+              unit="g"
+              value={a.grams}
+              invalid={invalid(j, "grams")}
+              onChange={(v) => set(j, "grams", v)}
+            />
+          </span>
+          {additions.length > 1 && (
+            <button
+              type="button"
+              class="inline-flex size-6 items-center justify-center rounded text-xs text-stone-500 hover:bg-stone-100 hover:text-ink dark:text-stone-400 dark:hover:bg-white/10 dark:hover:text-ink-light"
+              title="Remove addition"
+              aria-label={`Remove addition ${j + 1} of ${one.toLowerCase()} ${props.index + 1}`}
+              onClick={() => props.onChange(additions.filter((_, k) => k !== j))}
+            >
+              ✕
+            </button>
+          )}
+        </div>
+      ))}
+      <button
+        type="button"
+        class="text-xs font-semibold text-berry hover:underline dark:text-berry-light"
+        data-add-addition
+        onClick={() => props.onChange([...additions, {}])}
+      >
+        + addition
+      </button>
+    </div>
+  );
+}
+
+/**
  * One kind of rows in a table (EDT-042, EDT-060), in its own `<tbody>`: its rows, sorted by drag and drop within the
  * group (EDT-046), and its add row. `columns` are the table's; a field the kind doesn't have stays empty. Shares only
  * for the table's first kind (`shares`).
@@ -332,7 +424,7 @@ function IngredientGroup(props: {
   const { kind, columns } = props;
   const { one } = INGREDIENT_LABELS[kind];
   const span = columns.length + (props.shares ? 4 : 3);
-  const fields = ["grams", ...INGREDIENT_EXTRA_FIELDS[kind]];
+  const fields = [...INGREDIENT_EXTRA_FIELDS[kind], "total"];
   const list = ingredientsOf(props.recipe, kind);
   const set = (next: Ingredient[]) => props.onChange(withIngredients(props.recipe, kind, next));
   const setField = (i: number, field: string, value: unknown) =>
@@ -385,6 +477,21 @@ function IngredientGroup(props: {
             {columns.map((c) =>
               !fields.includes(c.field) ? (
                 <td key={c.field} class={CELL} />
+              ) : c.field === "additions" ? (
+                <td key={c.field} class={`${CELL} min-w-52`} data-additions>
+                  <AdditionsCell
+                    kind={kind}
+                    index={i}
+                    entry={entry}
+                    problems={props.problems}
+                    onChange={(additions) => set(list.map((e, j) => (j === i ? withAdditions(e, additions) : e)))}
+                  />
+                </td>
+              ) : c.field === "total" ? (
+                // The hop's total: the sum of its additions' amounts (EDT-061).
+                <td key={c.field} class={`${CELL} ${NUMBER} text-ink dark:text-ink-light`} data-entry-total>
+                  {entryGrams(entry) > 0 ? `${entryGrams(entry)} g` : "–"}
+                </td>
               ) : (
                 <td
                   key={c.field}
@@ -454,7 +561,8 @@ function IngredientGroup(props: {
           <AddRowButton
             label={`Add ${one.toLowerCase()}`}
             onClick={() => {
-              set([...list, { name: "" }]);
+              // A hop or another addition starts with one addition to fill in (EDT-061).
+              set([...list, kind === "malts" ? { name: "" } : { name: "", additions: [{}] }]);
               setFocusRow(list.length);
             }}
           />
@@ -506,7 +614,7 @@ function IngredientTable(props: { kind: IngredientKind; recipe: Recipe; problems
             <td class={CELL} />
             <td class={CELL}>Total</td>
             {columns.map((c) =>
-              c.field === "grams" ? (
+              c.field === "grams" || c.field === "total" ? (
                 <td key={c.field} class={`${CELL} ${NUMBER}`} data-total-grams>
                   {total} g
                 </td>
@@ -536,19 +644,21 @@ export function additionText(addAt: number, boil: number, cooking: number): stri
  */
 function HopSchedule(props: { hops: Ingredient[]; others: Ingredient[] }) {
   const { box, width } = useWidth();
-  type Entry = { h: Ingredient; i: number; kind: "hops" | "others" };
+  // One entry per addition (EDT-061): the hop (or other addition) `h`, row `i`, its addition `a`, number `j`.
+  type Entry = { h: Ingredient; i: number; a: Addition; j: number; kind: "hops" | "others" };
   const one = (kind: Entry["kind"]) => INGREDIENT_LABELS[kind].one;
   const name = ({ h, i, kind }: Entry) => (typeof h.name === "string" && h.name ? h.name : `${one(kind)} ${i + 1}`);
   // A hop as a hop cone in its green (its donut colour), another addition as a jar in its violet (QE-48).
   const colour = ({ i, kind }: Entry) => rowColour(kind, i);
-  const key = ({ i, kind }: Entry) => (kind === "hops" ? String(i) : `other-${i}`);
-  const withAmount: Entry[] = [
-    ...props.hops.map((h, i) => ({ h, i, kind: "hops" as const })),
-    ...props.others.map((h, i) => ({ h, i, kind: "others" as const })),
-  ].filter(({ h }) => validGrams(h.grams));
-  const cooked = withAmount.filter(({ h }) => validBoilMinutes(h.minutes));
+  const key = ({ i, j, kind }: Entry) => `${kind === "hops" ? "hop" : "other"}-${i}-${j}`;
+  const entries = (kind: Entry["kind"], list: Ingredient[]) =>
+    list.flatMap((h, i) => additionsOf(h).map((a, j) => ({ h, i, a, j, kind })));
+  const withAmount: Entry[] = [...entries("hops", props.hops), ...entries("others", props.others)].filter(({ a }) =>
+    validGrams(a.grams),
+  );
+  const cooked = withAmount.filter(({ a }) => validBoilMinutes(a.minutes));
   const untimed = (["hops", "others"] as const).flatMap((kind) => {
-    const rows = withAmount.filter((e) => e.kind === kind && !validBoilMinutes(e.h.minutes)).map(({ i }) => i + 1);
+    const rows = [...new Set(withAmount.filter((e) => e.kind === kind && !validBoilMinutes(e.a.minutes)).map(({ i }) => i + 1))];
     const label = one(kind).toLowerCase();
     return rows.length === 0 ? [] : [rows.length === 1 ? `${label} ${rows[0]}` : `${label}s ${rows.join(", ")}`];
   });
@@ -567,10 +677,10 @@ function HopSchedule(props: { hops: Ingredient[]; others: Ingredient[] }) {
       </div>
     );
   }
-  const boil = Math.max(...cooked.map(({ h }) => h.minutes as number));
+  const boil = Math.max(...cooked.map(({ a }) => a.minutes as number));
   // Ties: hops before other additions, then table order.
   const timed = cooked
-    .map((e, order) => ({ ...e, order, cooking: e.h.minutes as number, addAt: boil - (e.h.minutes as number) }))
+    .map((e, order) => ({ ...e, order, cooking: e.a.minutes as number, addAt: boil - (e.a.minutes as number) }))
     .sort((a, b) => a.addAt - b.addAt || a.order - b.order);
   const ROW = 26;
   const LABEL = 96;
@@ -598,7 +708,7 @@ function HopSchedule(props: { hops: Ingredient[]; others: Ingredient[] }) {
           viewBox={`0 0 ${width} ${height}`}
           role="img"
           aria-label={`Hop schedule over a ${boil}-minute boil: ${timed
-            .map((e) => `${name(e)} ${e.h.grams} g added at ${additionText(e.addAt, boil, e.cooking)}`)
+            .map((e) => `${name(e)} ${e.a.grams} g added at ${additionText(e.addAt, boil, e.cooking)}`)
             .join(", ")}`}
           class="block max-w-full text-ink dark:text-ink-light"
         >
@@ -619,7 +729,7 @@ function HopSchedule(props: { hops: Ingredient[]; others: Ingredient[] }) {
             const y = top + row * ROW + ROW / 2;
             return (
               <g key={key(e)} data-schedule-hop={key(e)}>
-                <title>{`${name(e)}: ${h.grams} g, add at ${additionText(addAt, boil, cooking)}, cooks ${cooking} min`}</title>
+                <title>{`${name(e)}: ${e.a.grams} g, add at ${additionText(addAt, boil, cooking)}, cooks ${cooking} min`}</title>
                 <text x={8} y={y} dy="0.32em" class="fill-stone-600 text-[11px] tabular-nums dark:fill-stone-300">
                   {additionText(addAt, boil, cooking)}
                 </text>
@@ -663,7 +773,7 @@ function HopSchedule(props: { hops: Ingredient[]; others: Ingredient[] }) {
                   )}
                 </td>
                 <td class={`${CELL} ${NUMBER} text-stone-600 dark:text-stone-300`}>{e.cooking} min</td>
-                <td class={`${CELL} ${NUMBER} text-ink dark:text-ink-light`}>{e.h.grams as number} g</td>
+                <td class={`${CELL} ${NUMBER} text-ink dark:text-ink-light`}>{e.a.grams as number} g</td>
               </tr>
             ))}
           </tbody>
@@ -702,7 +812,7 @@ export function IngredientsTab(props: {
         </h3>
         {/* The donut at the left, the figure at the right (EDT-047); stacked on a phone. */}
         <div class="flex flex-col gap-4 sm:flex-row sm:items-start" data-overview>
-          {list.some((e) => validGrams(e.grams)) && (
+          {list.some((e) => entryGrams(e) > 0) && (
             <div class="shrink-0">
               <ShareDonut kind={kind} list={list} />
             </div>

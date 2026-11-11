@@ -39,7 +39,7 @@ const VALUE = "font-semibold tabular-nums text-ink dark:text-ink-light";
 /** The batch fields entered on this tab (EDT-050, EDT-057): label, unit and hint. */
 const BATCH_FIELDS: Record<BatchField, { label: string; unit: string; hint: string }> = {
   liters: {
-    label: "Knockout volume",
+    label: "Knockout volume (target)",
     unit: "L",
     hint: "The wort at the end of the boil, the target for the fermenter (used for the beer colour and bitterness).",
   },

@@ -233,8 +233,10 @@ temperature of their own. The typical durations of `EDT-038` and the flags:
   shares move with their rows; the file keeps the new order.
 - `EDT-047` Above the table, at the left of the figure, a **donut** shows the shares of the rows with an amount, one slice per row in table
   order, with the total weight in its middle, a tooltip per slice ("Pilsner malt: 4500 g, 90 %") and a legend
-  (swatch, name, share). The slices take the categorical chart colours in a fixed order by row (validated for
-  colour-vision deficiency in light and dark mode); from the 9th row on they share one "other" grey. No donut
+  (swatch, name, share). The malts' slices take the categorical chart colours in a fixed order by row (validated for
+  colour-vision deficiency in light and dark mode), from the 9th row on one "other" grey; the hops' slices take
+  shades of green, dark to light by row, and other additions (in the Boil Schedule) shades of violet — five shades
+  per kind, validated as ordinal ramps in light and dark mode, then one muted shade (`QE-47`). No donut
   while no row has an amount.
 - `EDT-048` The Malt tab shows the **beer colour** in EBC by Morey's formula (MCU = Σ lb · °L / gal, SRM = 1.4922 ·
   MCU^0.6859, EBC = SRM · 1.97, each malt's EBC as °L = (EBC · 0.508 + 0.76) / 1.3546), rounded to a whole number
@@ -262,11 +264,11 @@ temperature of their own. The typical durations of `EDT-038` and the flags:
   (start)", a 10-minute hop at "50 min", a 0-minute hop at "60 min (flame-out)"); ties keep the table order. A
   timeline over the boil from its start ("start", left) to its end ("end", right), axis "min after the start of the
   boil", has one row per hop or other addition with an icon at its addition — a hop cone in the hop's donut colour
-  (`EDT-047`), a jar in grey for another addition (`QE-46`) — a line to the end for how long
+  (`EDT-047`), a jar in the addition's shade of violet (`QE-46`, `QE-47`) — a line to the end for how long
   it cooks, the addition time at the left and a tooltip ("Hallertauer Tradition: 30 g, add at 0 min (start), cooks
   60 min"). Below it a table in the order of addition with the headers **Add at**, **Ingredient**, **Cooking time** and
   **Amount** (`QE-40`), the same icon before the time, and a hop's alpha acid after its name ("Hallertauer (12 %
-  alpha)"; `QE-46`). The Boil Ingredients tables' headings Hops and Other additions carry the same icons. Rows with an
+  α)"; `QE-46`, `QE-47`). The Boil Ingredients tables' headings Hops and Other additions carry the same icons. Rows with an
   amount but no cooking time are named in a hint ("No cooking time yet: hop 4."); without any cooking time it says
   "Enter the amounts and cooking times to see when each goes into the boil."
 - `EDT-055` Below the beer colour, a **colour scale** shows where it lies among common beers: the SRM colour chart
@@ -318,7 +320,7 @@ temperature of their own. The typical durations of `EDT-038` and the flags:
   and **Total**: **Hops** (`EDT-042`), then **Other additions** ("— not in the shares or the bitterness"; columns
   Name, Cooking time (min), Absolute amount (g); no α %, no share; "No other addition yet."; add row **+ Add other
   addition**; sorted by drag and drop, `EDT-046`). They are not in the shares, the donut, the hops' Total or the
-  bitterness, but in the Boil Schedule (a grey jar instead of a hop cone; `QE-46`).
+  bitterness, but in the Boil Schedule (a jar in a shade of violet instead of a hop cone; `QE-46`, `QE-47`).
   Their problems read "Other addition n" and open the Boiling tab.
 
 ## 3.8 Water (`QE-36`)

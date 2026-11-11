@@ -159,10 +159,10 @@ a release that changes sign-in or Drive behaviour.
   41 °P are problems whose entries open the Water tab; clearing both removes `batch`.
 - `ACC-076` (EDT-041, QE-36, QE-42) The Malt tab has the headings Malt Overview (above the donut and figure) and Malt
   (above the table); the Boiling tab Hops Overview, Boil Schedule and Boil Ingredients, in this order (`QE-43`).
-- `ACC-077` (EDT-054) Hops Saaz 10 g 0 min, Hallertauer Tradition 30 g 60 min, Tettnanger 20 g 10 min and Cascade
+- `ACC-077` (EDT-054, QE-47) Hops Saaz 10 g 0 min, Hallertauer Tradition 30 g 60 min, Tettnanger 20 g 10 min and Cascade
   15 g without cooking time: "Total boil time: 60 min"; the table (Add at, Ingredient, Cooking time, Amount) lists 0 min
   (start) Hallertauer Tradition 60 min 30 g, 50 min Tettnanger 10 min 20 g, 60 min (flame-out) Saaz 0 min 10 g; the
-  dots go from left (start) to right (end) in the hops' donut colours, with tooltips ("…, add at 0 min (start),
+  dots go from left (start) to right (end) in the hops' shades of green (their donut colours), with tooltips ("…, add at 0 min (start),
   cooks 60 min"); it says "No cooking time yet: hop 4."; without cooking times it asks for them.
 - `ACC-078` (EDT-051, EDT-053, FMT-006) The Water tab has the heading Water and the fields Mash water, Sparge water,
   Top-up water and Knockout volume (L) with their hints (then the Gravity fields, `ACC-081`); 16, 14 and 2 are written as
@@ -192,7 +192,7 @@ a release that changes sign-in or Drive behaviour.
   below the Hops table a table Other additions (heading "Other additions — not in the shares or the
   bitterness"; Name, Cooking time (min), Absolute amount (g); "No other addition yet."); + Add other addition adds a
   row with the focus on its name and no α field; Irish Moss 10 g 15 min leaves 19 IBU, the hop's 100 %, one donut slice
-  and the hops' "Total 30 g"; its own table's Total is 10 g, and there is no total of both; the schedule adds it at 45 min with a grey jar icon (the hop with a hop cone in its colour, "Hallertauer Tradition (5.5 % alpha)"); the file has
+  and the hops' "Total 30 g"; its own table's Total is 10 g, and there is no total of both; the schedule adds it at 45 min with a jar icon in the first violet (the hop with a hop cone in the first green, also its donut slice's colour, "Hallertauer Tradition (5.5 % α)"); the file has
   `"others": [ { "name": "Irish Moss", "grams": 10, "minutes": 15 } ]` after `hops`; without grams it is
   "Other addition 1: Other addition 1 needs an amount in grams.", whose entry opens the Boiling tab.
 

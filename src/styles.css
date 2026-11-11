@@ -110,3 +110,40 @@
     --series-other: #78716c;
   }
 }
+
+/*
+ * The hops in shades of green and the other boil additions in shades of violet (EDT-047, EDT-054, QE-47): one hue
+ * per kind, dark to light in table order, validated as ordinal ramps (monotone, visible steps, the light end clearing
+ * the surface) in light and dark mode. From the 6th row on, a muted shade of the kind.
+ */
+:root {
+  --hop-1: #143a1d;
+  --hop-2: #1e5631;
+  --hop-3: #2e7d32;
+  --hop-4: #43a047;
+  --hop-5: #6cb865;
+  --hop-more: #93a98d;
+  --addition-1: #3a2170;
+  --addition-2: #4a2c8f;
+  --addition-3: #6a4cc2;
+  --addition-4: #8064d0;
+  --addition-5: #9a84dc;
+  --addition-more: #a39bb5;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --hop-1: #2e7d32;
+    --hop-2: #43a047;
+    --hop-3: #5fb35f;
+    --hop-4: #86c97e;
+    --hop-5: #b0dca6;
+    --hop-more: #6f8069;
+    --addition-1: #6a4cc2;
+    --addition-2: #8466d8;
+    --addition-3: #9f86e3;
+    --addition-4: #baa8ec;
+    --addition-5: #d4c9f4;
+    --addition-more: #7a7390;
+  }
+}

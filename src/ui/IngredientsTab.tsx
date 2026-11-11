@@ -49,6 +49,21 @@ const NUMBER = "whitespace-nowrap text-right tabular-nums";
 const SERIES = 8;
 export const seriesColour = (i: number) => (i < SERIES ? `var(--series-${i + 1})` : "var(--series-other)");
 
+/** The shades of a kind's ramp (QE-47): five, then one muted shade for the 6th row on. */
+const SHADES = 5;
+
+/**
+ * A row's colour (EDT-047, QE-47): malts in the categorical colours, hops in shades of green, other additions in
+ * shades of violet, dark to light in table order.
+ */
+export function rowColour(kind: IngredientKind, i: number): string {
+  if (kind === "malts") {
+    return seriesColour(i);
+  }
+  const ramp = kind === "hops" ? "hop" : "addition";
+  return i < SHADES ? `var(--${ramp}-${i + 1})` : `var(--${ramp}-more)`;
+}
+
 /** A number field of a row (EDT-042): the grams, a malt's EBC, a hop's alpha acid and boil time. */
 type Column = { field: "grams" | "ebc" | "alpha" | "minutes"; head: string; label: string; integer: boolean; width: string };
 /** In this order after the name (EDT-042, QE-40): the absolute amount last, just before the relative one. */
@@ -111,7 +126,7 @@ function ShareDonut(props: { kind: IngredientKind; list: Ingredient[] }) {
               cy={size / 2}
               r={r}
               fill="none"
-              stroke={seriesColour(s.i)}
+              stroke={rowColour(props.kind, s.i)}
               stroke-width={width}
               stroke-dasharray={dash}
               stroke-dashoffset={-offset}
@@ -138,7 +153,7 @@ function ShareDonut(props: { kind: IngredientKind; list: Ingredient[] }) {
         <ul class="space-y-1 text-sm" data-share-legend>
           {slices.map((s) => (
             <li key={s.i} class="flex items-center gap-2">
-              <span aria-hidden="true" class="size-3 shrink-0 rounded-sm" style={{ background: seriesColour(s.i) }} />
+              <span aria-hidden="true" class="size-3 shrink-0 rounded-sm" style={{ background: rowColour(props.kind, s.i) }} />
               <span class="text-ink dark:text-ink-light">{name(s.entry, s.i)}</span>
               <span class="tabular-nums text-stone-500 dark:text-stone-400">{formatShare(s.share)}</span>
             </li>
@@ -407,7 +422,7 @@ function IngredientGroup(props: {
                 <span class="inline-flex items-center justify-end gap-1.5">
                   {share !== undefined && (
                     // On a phone the legend carries the colours, so the columns fit.
-                    <span aria-hidden="true" class="hidden size-2.5 rounded-sm sm:inline-block" style={{ background: seriesColour(i) }} />
+                    <span aria-hidden="true" class="hidden size-2.5 rounded-sm sm:inline-block" style={{ background: rowColour(kind, i) }} />
                   )}
                   {share === undefined ? "–" : formatShare(share)}
                 </span>
@@ -524,8 +539,8 @@ function HopSchedule(props: { hops: Ingredient[]; others: Ingredient[] }) {
   type Entry = { h: Ingredient; i: number; kind: "hops" | "others" };
   const one = (kind: Entry["kind"]) => INGREDIENT_LABELS[kind].one;
   const name = ({ h, i, kind }: Entry) => (typeof h.name === "string" && h.name ? h.name : `${one(kind)} ${i + 1}`);
-  // A hop in its donut colour (EDT-047) as a hop cone; another addition in the "other" grey as a jar (EDT-060, QE-46).
-  const colour = ({ i, kind }: Entry) => (kind === "hops" ? seriesColour(i) : "var(--series-other)");
+  // A hop as a hop cone in its shade of green (its donut colour), another addition as a jar in its shade of violet.
+  const colour = ({ i, kind }: Entry) => rowColour(kind, i);
   const key = ({ i, kind }: Entry) => (kind === "hops" ? String(i) : `other-${i}`);
   const withAmount: Entry[] = [
     ...props.hops.map((h, i) => ({ h, i, kind: "hops" as const })),
@@ -638,12 +653,12 @@ function HopSchedule(props: { hops: Ingredient[]; others: Ingredient[] }) {
                 </td>
                 <td class={`${CELL} text-ink dark:text-ink-light`}>
                   {name(e)}
-                  {/* A hop's alpha acid after its name (QE-46): "Hallertauer (12 % alpha)". */}
+                  {/* A hop's alpha acid after its name (QE-46, QE-47): "Hallertauer (12 % α)". */}
                   {e.kind === "hops" && validAlpha(e.h.alpha) && (
                     // On a phone on its own line, never broken in the middle.
                     <span class="block whitespace-nowrap text-stone-500 sm:inline dark:text-stone-400" data-schedule-alpha>
                       {" "}
-                      ({e.h.alpha} % alpha)
+                      ({e.h.alpha} % α)
                     </span>
                   )}
                 </td>
@@ -718,7 +733,7 @@ export function IngredientsTab(props: {
             <div key={k} class="mt-3 first:mt-0" data-boil-table={k}>
               <h4 class="mb-1.5 flex items-center gap-1.5 text-sm font-semibold text-ink dark:text-ink-light">
                 {/* The icon the Boil Schedule uses for this kind (QE-46). */}
-                <AdditionIcon kind={k} colour={k === "hops" ? "var(--color-leaf)" : "var(--series-other)"} />
+                <AdditionIcon kind={k} colour={rowColour(k, 2)} />
                 {INGREDIENT_LABELS[k].title}
                 {k === "others" && (
                   <span class="font-normal text-stone-500 dark:text-stone-400"> — not in the shares or the bitterness</span>

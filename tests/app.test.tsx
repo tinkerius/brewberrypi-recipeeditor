@@ -1753,15 +1753,21 @@ describe("App, the Malt and Hops tabs (QE-34, QE-35)", () => {
       batch: { liters: 24 },
     });
     const acid = () => section("malts").querySelector<HTMLTableRowElement>("[data-acid-malt]");
-    expect(acid()!.querySelector("[data-acid-malt-name]")!.textContent).toBe("Acid malt");
-    expect(acid()!.textContent).toContain("read-only");
+    // A row like the others (QE-68): the same fields, which can't be changed, and no "read-only" label.
+    const fields = [...acid()!.querySelectorAll<HTMLInputElement>("input")];
+    expect(fields.map((f) => [f.value, f.readOnly])).toEqual([
+      ["Acid malt", true],
+      ["5", true],
+      ["46", true],
+    ]);
+    expect(acid()!.textContent).not.toContain("read-only");
     expect(acid()!.querySelector("[data-acid-malt-hint]")!.textContent).toBe(
       "From the Water treatment (1 % of the total malt); change it on the Water tab.",
     );
-    // 1 % of the total malt, the acid malt included: 46 g next to 4600 g; about 5 EBC.
-    expect(acid()!.querySelector("[data-acid-malt-field=grams]")!.textContent).toBe("46 g");
-    expect(acid()!.querySelector("[data-acid-malt-field=ebc]")!.textContent).toBe("5");
-    expect(acid()!.querySelectorAll("input")).toHaveLength(0); // read-only
+    // 1 % of the total malt, the acid malt included: 46 g next to 4600 g; about 5 EBC (with its swatch).
+    expect(acid()!.querySelector("[data-acid-malt-field=ebc] [data-malt-swatch]")).not.toBeNull();
+    expect(acid()!.querySelector("[data-drag-handle]")).toBeNull();
+    expect(acid()!.querySelector("button[aria-label^=Remove]")).toBeNull();
     expect(rows("malts")).toHaveLength(1); // not one of the malt rows
     expect(shares("malts")).toEqual(["99 %"]);
     expect(acid()!.querySelector("[data-ingredient-share]")!.textContent).toBe("1 %");

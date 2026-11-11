@@ -285,8 +285,9 @@ a release that changes sign-in or Drive behaviour.
   4600 g; the total malt 4646 g), 1 g/10 L gypsum 1.8 g and 0.5 ml/10 L lactic acid 0.9 ml in the Total column ("1.8 g",
   "46 g", "0.9 ml"; nothing for boiling); the units read "°dH residual alkalinity", "°dH carbonate hardness",
   "g/10 L mash water", "% of total malt", "ml/10 L mash water"; without mash water there are no totals of the doses.
-- `ACC-100` (EDT-070, QE-67) With Pilsner malt 4600 g 7 EBC and 1 % acid malt in the Water treatment, the Malt table
-  shows after it a read-only row "Acid malt" (no fields), 5 EBC, "46 g", 1 %, with "From the Water treatment (1 % of
+- `ACC-100` (EDT-070, QE-67, QE-68) With Pilsner malt 4600 g 7 EBC and 1 % acid malt in the Water treatment, the Malt table
+  shows after it a row like the others whose fields can't be changed ("Acid malt", 5 EBC with its swatch, 46 g; no
+  "read-only" label, no handle, no ✕), 1 %, with "From the Water treatment (1 % of
   the total malt); change it on the Water tab."; Pilsner malt is 99 %, the Total "4646 g", the donut's legend 99 % and
   1 %; the file's malts are only the Pilsner malt; the link opens the Water tab, and unticking the acid malt there
   removes the row (Total 4600 g).

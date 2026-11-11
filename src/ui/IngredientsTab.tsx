@@ -19,6 +19,7 @@ import {
   bitternessOf,
   formatShare,
   ingredientsOf,
+  ACID_MALT,
   maltsWithAcidMalt,
   waterOf,
   shareOf,
@@ -625,19 +626,14 @@ function IngredientGroup(props: {
         );
       })}
       {acid && (
-        // The water treatment's acid malt (EDT-070, QE-67): read-only, worked out from its share, never in the file.
-        <tr class="border-t border-line bg-stone-50/70 dark:border-white/10 dark:bg-white/[0.03]" data-acid-malt>
+        // The water treatment's acid malt (EDT-070, QE-67, QE-68): a row like the others whose fields can't be changed,
+        // worked out from its share, never in the file.
+        <tr class="border-t border-line dark:border-white/10" data-acid-malt>
           <td class={CELL} />
-          <td class={`${CELL} text-ink dark:text-ink-light`}>
-            <span class="flex items-center gap-2">
-              <span class="font-medium" data-acid-malt-name>
-                {acid.name as string}
-              </span>
-              <span class="text-xs text-stone-500 dark:text-stone-400" title="Read-only: from the Water treatment">
-                read-only
-              </span>
-            </span>
-            <span class={`${HINT_STYLE} block`} data-acid-malt-hint>
+          <td class={`${CELL} min-w-32 sm:min-w-0 [&_input]:px-2! sm:[&_input]:px-3!`} data-ingredient-name>
+            {/* Like the other rows, but its fields can't be changed: they come from the Water treatment. */}
+            <TextField label={`Name, ${ACID_MALT.name}`} compact readOnly value={acid.name} invalid={false} onChange={() => undefined} />
+            <span class={`${HINT_STYLE} mt-1 block`} data-acid-malt-hint>
               From the Water treatment ({String(acidShare)} % of the total malt); change it on the{" "}
               {props.onWater ? (
                 <button type="button" class={LINK_STYLE} onClick={props.onWater}>
@@ -650,19 +646,23 @@ function IngredientGroup(props: {
             </span>
           </td>
           {columns.map((c) => (
-            <td key={c.field} class={`${CELL} ${NUMBER} text-ink dark:text-ink-light`} data-acid-malt-field={c.field}>
-              {c.field === "ebc" ? (
-                <span class="inline-flex items-center justify-end gap-1.5">
+            <td
+              key={c.field}
+              class={`${CELL} ${c.field === "ebc" ? "min-w-22" : "min-w-14"} sm:min-w-0 [&_input]:w-full! [&_input]:px-1.5! sm:[&_input]:px-3! [&_span]:justify-end`}
+              data-acid-malt-field={c.field}
+            >
+              <div class="flex items-center gap-1.5">
+                {c.field === "ebc" && (
                   <span
                     aria-hidden="true"
+                    data-malt-swatch
+                    title={`About the colour of ${String(acid.ebc)} EBC`}
                     class="size-4 shrink-0 rounded-sm ring-1 ring-black/10 dark:ring-white/20"
                     style={{ background: beerColourHex(acid.ebc as number) }}
                   />
-                  {String(acid.ebc)}
-                </span>
-              ) : (
-                `${String(acid.grams)} g`
-              )}
+                )}
+                <NumberField label={`${c.label}, ${ACID_MALT.name}`} compact readOnly value={acid[c.field]} invalid={false} onChange={() => undefined} />
+              </div>
             </td>
           ))}
           {props.shares && (

@@ -500,9 +500,10 @@ temperature of their own. The typical durations of `EDT-038` and the flags:
 
 - `EDT-070` The acid malt's share (`EDT-069`) is of the **total malt, the acid malt included**: its weight is
   % ÷ (100 − %) × the Malt tab's malts (1 % with 4.6 kg: 46.5 g). While acid malt is ticked with a share, the Malt
-  table shows it as a **read-only** row after the malts: "Acid malt", "read-only", its colour (about 5 EBC), its weight
-  in whole grams ("46 g") and its share, and the hint "From the Water treatment (1 % of the total malt); change it on
-  the Water tab." ("Water tab" a link that opens it); no handle, no fields, no ✕. It is counted with the malts — the
+  table shows it as a row after the malts, **like the others** (`QE-68`) but with fields that can't be changed (muted):
+  the name "Acid malt", its EBC (about 5, with its colour swatch), its weight in whole grams ("46") and its share, and
+  under its name the hint "From the Water treatment (1 % of the total malt); change it on the Water tab." ("Water
+  tab" a link that opens it); no handle and no ✕. It is counted with the malts — the
   Total ("4646 g"), the shares, the donut, the beer colour (`EDT-048`), the mash thickness (`EDT-052`), the water
   estimate and the mash water's typical value (`EDT-067`), and the acid malt's own effect — but it is **never written
   to the malt list**: the file keeps only `water.treatment.acid_malt`. Unticked in the Water treatment, the row goes.

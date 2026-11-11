@@ -60,11 +60,11 @@ const ROWS: Record<
     about: "From your water supplier's analysis: the starting value.",
   },
   boil: {
-    name: "Boil the brewing water",
+    name: "Boil the mash water",
     short: "Boil",
     field: { key: "carbonate_hardness", label: "Carbonate hardness (tap water)", unit: "°dH carbonate hardness" },
     about:
-      "Enter the tap water's carbonate hardness (from the analysis). Boiling precipitates it down to about 3 °dH, with as " +
+      "Enter the tap water's carbonate hardness (from the analysis; needed). Boiling the mash water precipitates it down to about 3 °dH, with as " +
       "much calcium hardness: the residual alkalinity falls by (1 − 1/3.5) per °dH removed.",
   },
   gypsum: {
@@ -178,7 +178,8 @@ export function WaterTreatment(props: { recipe: Recipe; problems: Problem[]; war
     const step = id === "alkalinity" ? undefined : id;
     const effect = step ? stepEffect[step] : undefined;
     const ticked = on ?? true;
-    const missing = step && ticked ? missingText(effect) : undefined;
+    // What to enter while an effect can't be worked out; boiling's missing hardness is an error already (Q-47).
+    const missing = step && step !== "boil" && ticked ? missingText(effect) : undefined;
     const notes = step
       ? notesWhere(issues, (p) => p === path(step) || (step === "boil" && p === path("carbonate_hardness")))
       : notesAt(issues, path("alkalinity"));

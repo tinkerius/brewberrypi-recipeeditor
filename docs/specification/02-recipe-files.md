@@ -45,7 +45,7 @@ commit (`NFR-030`).
   `RCP-014`): not an object, a volume not above 0, an original or final gravity outside 0–40 °P, any other field; in the water (app `RCP-015`): not an
   object, a volume that is not a number ≥ 0, in its `treatment` (`Q-46`, `EDT-069`): not an object, a residual
   alkalinity that is not a number, a carbonate hardness, gypsum or lactic acid below 0 or not a number, acid malt
-  outside 0–100 %, boiling that is not yes or no, any other field; any other field; a `description` that is not a string; in the
+  outside 0–100 %, boiling that is not yes or no, boiling without the carbonate hardness (app `Q-47`), any other field; any other field; a `description` that is not a string; in the
   fermentation (app `RCP-017`): not an object, a yeast that is not an object, without a name (or an empty one), with
   grams not above 0 or any other field, a CO₂ target not above 0, any other field; any other key. An entry is named by its table and number ("Malt 2"), an addition by its entry and number ("Hop 2, addition 1"). A rest is named by its short name
   ("Mashing, Maltose rest"). A temperature outside a rest's typical range is not a problem (`EDT-033`).

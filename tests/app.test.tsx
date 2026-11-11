@@ -2041,7 +2041,7 @@ describe("App, the Water tab (QE-36)", () => {
     expect(section().querySelector("[data-treatment=result]")!.tagName).toBe("TFOOT");
     expect(section().querySelector("h3")!.textContent).toBe("Water treatment");
     expect([...section().querySelectorAll("label[for] .sm\\:inline")].map((l) => l.textContent)).toEqual([
-      "Boil the brewing water",
+      "Boil the mash water",
       "Brewing gypsum",
       "Acid malt",
       "Lactic acid 80 %",
@@ -2063,8 +2063,13 @@ describe("App, the Water tab (QE-36)", () => {
     await tickStep("boil");
     expect(amount("boil")!.value).toBe("");
     expect(effect("boil")).toBe("–");
-    expect(missing("boil")).toBe("Enter the carbonate hardness.");
-    expect(await about("boil")).toContain("Boiling precipitates it down to about 3 °dH");
+    // The carbonate hardness is mandatory when boiling (app Q-47): an error at its field.
+    expect(section().querySelector("[data-treatment=boil] [data-field-error]")!.textContent).toBe(
+      "⊘ Boiling the mash water needs the tap water's carbonate hardness.",
+    );
+    expect(amount("boil")!.className).toContain("ring-red-500!");
+    expect(missing("boil")).toBeUndefined();
+    expect(await about("boil")).toContain("Boiling the mash water precipitates it down to about 3 °dH");
     await type(amount("boil")!, "14");
     expect([effect("boil"), missing("boil")]).toEqual(["−7.9 °dH", undefined]);
     // Gypsum: ticked, its amount is empty and an error until entered (no preset).

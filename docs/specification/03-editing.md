@@ -459,12 +459,14 @@ temperature of their own. The typical durations of `EDT-038` and the flags:
   after it, and what to enter while an effect can't be worked out), **Effect** and the ⓘ. Its rows (inputs left
   empty are left out of the file, `treatment` when it holds nothing, and `water` when that is empty):
   **Residual alkalinity (tap water)** (°dH, any number; "From the water analysis."), then the **steps**, each ticked
-  to use it like a mashing rest (`QE-63`; a checkbox before its name, "Tick the steps you use."): **Boil the brewing
-  water** (ticked: `boil: true` and, in its row, the tap water's **carbonate hardness** in °dH ≥ 0, "°dH KH"),
+  to use it like a mashing rest (`QE-63`; a checkbox before its name, "Tick the steps you use."): **Boil the mash
+  water** (`QE-69`; ticked: `boil: true` and, in its row, the tap water's **carbonate hardness** in °dH ≥ 0, "°dH
+  carbonate hardness", then mandatory, app `Q-47`),
   **Brewing gypsum** (g/10 L ≥ 0, typical up to 3), **Acid malt (of the grist)** (%, 0–100, typical up to 5) and
   **Lactic acid 80 %** (ml/10 L ≥ 0). A ticked step's field starts empty (no preset); while empty it is an error
   ("The brewing gypsum needs an amount.", "The acid malt needs its share of the grist.", "The lactic acid needs an
-  amount."; boiling without the carbonate hardness only asks for it), and clearing it keeps the step ticked.
+  amount."; boiling without the carbonate hardness: "Boiling the mash water needs the tap water's carbonate
+  hardness."), and clearing it keeps the step ticked.
   Unticked, a step has no field and no effect, and leaves the file (boiling with the carbonate hardness). The column
   **Effect** (`QE-62`) holds the tap water's residual alkalinity as the starting value ("10.3 °dH") and each step's
   effect on it, signed ("−0.9 °dH"; "–" while unused or not worked out, "Enter the carbonate hardness." then under

@@ -305,6 +305,10 @@ function checkTreatment(treatment: unknown, problems: Problem[]) {
     acid_malt: "The acid malt needs its share of the total malt.",
     lactic_acid: "The lactic acid needs an amount.",
   };
+  // Boiling works only by way of the tap water's carbonate hardness: it is required then (app Q-47).
+  if (treatment.boil === true && !("carbonate_hardness" in treatment)) {
+    problems.push({ path: `${at}.carbonate_hardness`, message: "Boiling the mash water needs the tap water's carbonate hardness." });
+  }
   for (const [key, value] of Object.entries(treatment)) {
     const check = messages[key];
     if (value === null && key in needs) {

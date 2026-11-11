@@ -263,13 +263,14 @@ a release that changes sign-in or Drive behaviour.
   (4 L/kg) is no warning; with hop additions of 90 and 10 min and 20 L: "20 L + 3 L (90 min, ~10 %/h) + 4.5 L
   (~1 L/kg) + 1 L = 28.5 L". The hop table's heads read "α %" over "2–20" and "Additions (cooking time · amount)"
   over "cooking time up to 90 min".
-- `ACC-097` (EDT-069, QE-61..QE-64, FMT-006) With Pilsner malt 4600 g 7 EBC, 18 L mash water and 24 L knockout
+- `ACC-097` (EDT-069, QE-61..QE-64, QE-69, FMT-006) With Pilsner malt 4600 g 7 EBC, 18 L mash water and 24 L knockout
   volume, the Water tab's Water treatment is a table like the Rests table with the heads Step, Value, Typical and
   Effect (and, for screen readers, Used and About) and the result in its foot; it has Residual alkalinity (tap water)
-  and the steps Boil the brewing water, Brewing gypsum, Acid malt (of the grist) and Lactic acid 80 %, each with a
+  and the steps Boil the mash water, Brewing gypsum, Acid malt and Lactic acid 80 %, each with a
   checkbox and, unticked, no field and the effect "–". The result is "–", with 10.3 °dH "10.3 °dH" (also the first
   effect), the target "at most 2 °dH (9 EBC, like Pils)" and its warning. Ticked, a step's field is empty: boiling's
-  effect is "–" with "Enter the carbonate hardness.", its ⓘ explains boiling, with 14 °dH "−7.9 °dH"; gypsum is
+  effect is "–" and its carbonate hardness an error ("⊘ Boiling the mash water needs the tap water's carbonate
+  hardness.", `QE-69`), its ⓘ explains boiling, with 14 °dH "−7.9 °dH"; gypsum is
   "⊘ The brewing gypsum needs an amount." until 1 g/10 L gives "−0.9 °dH" (its ⓘ: "Its calcium lowers the residual
   alkalinity: …"); 1 % acid malt "−2.4 °dH", 0.5 ml/10 L lactic acid "−1.5 °dH"; the result "−2.4 °dH" without a
   warning, its ⓘ shows the target table; the file has `"water": { "mash": 18, "treatment": { "alkalinity": 10.3,

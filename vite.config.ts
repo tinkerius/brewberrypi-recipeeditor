@@ -31,8 +31,9 @@ function contentSecurityPolicy(): Plugin {
   };
 }
 
-/** Set automatically inside a GitHub Codespace. */
-const inCodespace = process.env.CODESPACES === "true";
+/** Set automatically inside a GitHub Codespace. Read through globalThis: the project has no Node type definitions. */
+const env = (globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env ?? {};
+const inCodespace = env.CODESPACES === "true";
 
 export default defineConfig({
   plugins: [preact(), tailwindcss(), contentSecurityPolicy()],

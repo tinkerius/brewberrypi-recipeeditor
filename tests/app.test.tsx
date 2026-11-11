@@ -2029,8 +2029,8 @@ describe("App, the Water tab (QE-36)", () => {
       "Used",
       "Step",
       "Value",
-      "Total",
       "Typical",
+      "Total",
       "Effect",
       "About",
     ]);

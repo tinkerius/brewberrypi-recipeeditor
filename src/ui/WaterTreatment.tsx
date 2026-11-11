@@ -201,12 +201,6 @@ export function WaterTreatment(props: { recipe: Recipe; problems: Problem[]; war
           <td class={CELL}>{name(info, step ? checkbox : undefined)}</td>
           {/* The tap water's residual alkalinity is entered in the Effect column: it is the starting value (QE-71). */}
           <td class={`${CELL} w-28 sm:w-44`}>{step && ticked && input(info.field, step !== "boil")}</td>
-          {/* What it comes to for this brew, read-only (QE-66). */}
-          <td class={`${CELL} text-right`}>
-            <div class={`${VALUE} justify-end text-sm whitespace-nowrap tabular-nums text-stone-700 dark:text-stone-300`} data-total-cell>
-              {step && ticked ? totalText(step) : ""}
-            </div>
-          </td>
           <td class={CELL}>
             <div class={VALUE}>
               {info.typical && (
@@ -220,6 +214,12 @@ export function WaterTreatment(props: { recipe: Recipe; problems: Problem[]; war
                   {missing}
                 </span>
               )}
+            </div>
+          </td>
+          {/* What it comes to for this brew, read-only (QE-66). */}
+          <td class={`${CELL} text-right`}>
+            <div class={`${VALUE} justify-end text-sm whitespace-nowrap tabular-nums text-stone-700 dark:text-stone-300`} data-total-cell>
+              {step && ticked ? totalText(step) : ""}
             </div>
           </td>
           <td class={`${CELL} text-right`}>
@@ -277,8 +277,8 @@ export function WaterTreatment(props: { recipe: Recipe; problems: Problem[]; war
               </th>
               <th class={HEAD}>Step</th>
               <th class={HEAD}>Value</th>
-              <th class={`${HEAD} text-right`}>Total</th>
               <th class={HEAD}>Typical</th>
+              <th class={`${HEAD} text-right`}>Total</th>
               <th class={`${HEAD} text-right`}>Effect</th>
               <th class={HEAD}>
                 <span class="sr-only">About</span>
@@ -293,7 +293,7 @@ export function WaterTreatment(props: { recipe: Recipe; problems: Problem[]; war
           <tfoot class="border-t-2 border-line dark:border-white/20" data-treatment="result">
             <tr>
               <td class={CELL} />
-              <td class={CELL} colSpan={3}>
+              <td class={CELL} colSpan={2}>
                 <span class={`block pt-1.5 ${NAME}`}>
                   <span class="sm:hidden">After treatment</span>
                   <span class="hidden sm:inline">Residual alkalinity after treatment</span>
@@ -313,6 +313,7 @@ export function WaterTreatment(props: { recipe: Recipe; problems: Problem[]; war
                   <FieldNotes notes={resultNotes} />
                 </div>
               </td>
+              <td class={CELL} />
               <td class={`${CELL} text-right`}>
                 <div class={`${VALUE} justify-end text-sm font-bold whitespace-nowrap tabular-nums text-ink dark:text-ink-light`} data-effect-cell>
                   <span data-treatment-result>{effects.result === undefined ? "–" : degrees(effects.result)}</span>

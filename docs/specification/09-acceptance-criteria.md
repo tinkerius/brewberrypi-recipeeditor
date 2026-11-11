@@ -264,8 +264,8 @@ a release that changes sign-in or Drive behaviour.
   (~1 L/kg) + 1 L = 28.5 L". The hop table's heads read "α %" over "2–20" and "Additions (cooking time · amount)"
   over "cooking time up to 90 min".
 - `ACC-097` (EDT-069, QE-61..QE-64, QE-69, QE-71, FMT-006) With Pilsner malt 4600 g 7 EBC, 18 L mash water and 24 L knockout
-  volume, the Water tab's Water treatment is a table like the Rests table with the heads Step, Value, Typical and
-  Effect (and, for screen readers, Used and About) and the result in its foot; it has Residual alkalinity (tap water)
+  volume, the Water tab's Water treatment is a table like the Rests table with the heads Step, Value, Typical, Total and
+  Effect (`QE-72`) (and, for screen readers, Used and About) and the result in its foot; it has Residual alkalinity (tap water)
   and the steps Boil the mash water, Brewing gypsum, Acid malt and Lactic acid 80 %, each with a
   checkbox and, unticked, no field and the effect "–". The tap water's residual alkalinity is entered in the
   Effect column (`QE-71`). The result is "–", with 10.3 °dH "10.3 °dH", the target "at most 2 °dH (9 EBC, like Pils)" and its warning. Ticked, a step's field is empty: boiling's

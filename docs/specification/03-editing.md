@@ -452,7 +452,10 @@ temperature of their own. The typical durations of `EDT-038` and the flags:
   box from tablet width on, scrolling sideways inside itself), head row, cells, bold names (short ones on a phone:
   "Tap water RA", "Boil", "Gypsum", "Acid malt", "Lactic acid", "After treatment"), the planned rows' highlight for
   ticked steps and an ⓘ per row that opens its explanation below it, one at a time. Its columns: the checkbox,
-  **Step**, **Value** (the field and its unit), **Typical** (the typical value, the field's errors and warnings right
+  **Step**, **Value** (the field and its unit, spelled out, `QE-66`: "°dH residual alkalinity", "°dH carbonate
+  hardness", "g/10 L mash water", "% of total malt", "ml/10 L mash water"), **Total** (read-only, `QE-66`: what the
+  step comes to for this brew — gypsum and lactic acid for the mash water, e.g. "1.8 g" and "0.9 ml" for 18 L; the
+  acid malt in whole grams, "46 g"; "–" while it can't be worked out, nothing for boiling), **Typical** (the typical value, the field's errors and warnings right
   after it, and what to enter while an effect can't be worked out), **Effect** and the ⓘ. Its rows (inputs left
   empty are left out of the file, `treatment` when it holds nothing, and `water` when that is empty):
   **Residual alkalinity (tap water)** (°dH, any number; "From the water analysis."), then the **steps**, each ticked
@@ -468,7 +471,7 @@ temperature of their own. The typical durations of `EDT-038` and the flags:
   Typical); each row's ⓘ says what the step does and shows how its value is worked out (`QE-65`): its formula and, once
   it can be worked out, the same formula with the recipe's numbers and the result, rounded as shown (tap water
   "starting value 10.3 °dH"; boiling "ΔRA = −(14 − 3) × 0.714 = −7.9 °dH"; gypsum "ΔRA = −1 × 0.93 = −0.9 °dH";
-  acid malt "ΔRA = −9.34 × 4.6 × 1 ÷ 18 = −2.4 °dH", i.e. −9.34 × grist [kg] × acid malt [%] ÷ mash water [L];
+  acid malt "ΔRA = −9.34 × 4.65 × 1 ÷ 18 = −2.4 °dH", i.e. −9.34 × total malt [kg] × acid malt [%] ÷ mash water [L];
   lactic acid "ΔRA = −0.5 × 2.99 = −1.5 °dH"; the result "RA = 10.3 − 7.9 − 0.9 − 2.4 − 1.5 = −2.4 °dH"). The
   effects are worked out from the chemistry (RA = carbonate hardness − calcium hardness/3.5 − magnesium
   hardness/7) and never stored:
@@ -492,3 +495,14 @@ temperature of their own. The typical durations of `EDT-038` and the flags:
 
   Problems read "Residual alkalinity", "Carbonate hardness", "Boiling", "Brewing gypsum", "Acid malt" or "Lactic
   acid" and open the Water tab.
+
+## 3.12 Acid malt on the Malt tab (`QE-67`)
+
+- `EDT-070` The acid malt's share (`EDT-069`) is of the **total malt, the acid malt included**: its weight is
+  % ÷ (100 − %) × the Malt tab's malts (1 % with 4.6 kg: 46.5 g). While acid malt is ticked with a share, the Malt
+  table shows it as a **read-only** row after the malts: "Acid malt", "read-only", its colour (about 5 EBC), its weight
+  in whole grams ("46 g") and its share, and the hint "From the Water treatment (1 % of the total malt); change it on
+  the Water tab." ("Water tab" a link that opens it); no handle, no fields, no ✕. It is counted with the malts — the
+  Total ("4646 g"), the shares, the donut, the beer colour (`EDT-048`), the mash thickness (`EDT-052`), the water
+  estimate and the mash water's typical value (`EDT-067`), and the acid malt's own effect — but it is **never written
+  to the malt list**: the file keeps only `water.treatment.acid_malt`. Unticked in the Water treatment, the row goes.

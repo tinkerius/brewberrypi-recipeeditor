@@ -1743,6 +1743,41 @@ describe("App, the Malt and Hops tabs (QE-34, QE-35)", () => {
     expect(await download()).not.toContain("fermentation");
   });
 
+  it("ACC-100 the water treatment's acid malt shows read-only on the Malt tab, counted, and says where it comes from", async () => {
+    await open({
+      version: 3,
+      name: "Brew",
+      mashing_process: { goals: [] },
+      ingredients: { malts: [{ name: "Pilsner malt", grams: 4600, ebc: 7 }] },
+      water: { mash: 18, treatment: { acid_malt: 1 } },
+      batch: { liters: 24 },
+    });
+    const acid = () => section("malts").querySelector<HTMLTableRowElement>("[data-acid-malt]");
+    expect(acid()!.querySelector("[data-acid-malt-name]")!.textContent).toBe("Acid malt");
+    expect(acid()!.textContent).toContain("read-only");
+    expect(acid()!.querySelector("[data-acid-malt-hint]")!.textContent).toBe(
+      "From the Water treatment (1 % of the total malt); change it on the Water tab.",
+    );
+    // 1 % of the total malt, the acid malt included: 46 g next to 4600 g; about 5 EBC.
+    expect(acid()!.querySelector("[data-acid-malt-field=grams]")!.textContent).toBe("46 g");
+    expect(acid()!.querySelector("[data-acid-malt-field=ebc]")!.textContent).toBe("5");
+    expect(acid()!.querySelectorAll("input")).toHaveLength(0); // read-only
+    expect(rows("malts")).toHaveLength(1); // not one of the malt rows
+    expect(shares("malts")).toEqual(["99 %"]);
+    expect(acid()!.querySelector("[data-ingredient-share]")!.textContent).toBe("1 %");
+    expect(total("malts")).toEqual(["Total", "4646 g", "100 %"]);
+    expect(legendShares()).toEqual(["99 %", "1 %"]);
+    // Never written to the malt list.
+    expect(await download()).toContain('"malts": [\n      { "name": "Pilsner malt", "grams": 4600, "ebc": 7 }\n    ]');
+    // Its link opens the Water tab; unticked there, it leaves the Malt tab.
+    await act(async () => [...acid()!.querySelectorAll("button")].find((b) => b.textContent === "Water tab")!.click());
+    expect(recipe().querySelector("#tab-water")!.getAttribute("aria-selected")).toBe("true");
+    await act(async () => recipe().querySelector<HTMLInputElement>("#treatment-step-acid_malt")!.click());
+    await showTab("malts");
+    expect(acid()).toBeNull();
+    expect(total("malts")).toEqual(["Total", "4600 g", "100 %"]);
+  });
+
   it("ACC-083 shows each malt's colour from its EBC next to the field", async () => {
     await open();
     await add("malts", "Pilsner malt", "4500", { ebc: "3.5" });
@@ -1992,6 +2027,7 @@ describe("App, the Water tab (QE-36)", () => {
       "Used",
       "Step",
       "Value",
+      "Total",
       "Typical",
       "Effect",
       "About",
@@ -2001,7 +2037,7 @@ describe("App, the Water tab (QE-36)", () => {
     expect([...section().querySelectorAll("label[for] .sm\\:inline")].map((l) => l.textContent)).toEqual([
       "Boil the brewing water",
       "Brewing gypsum",
-      "Acid malt (of the grist)",
+      "Acid malt",
       "Lactic acid 80 %",
     ]);
     // Unticked steps have no field and no effect.
@@ -2032,16 +2068,26 @@ describe("App, the Water tab (QE-36)", () => {
     await type(amount("gypsum")!, "1");
     expect(effect("gypsum")).toBe("−0.9 °dH");
     const gypsumAbout = await about("gypsum");
-    expect(gypsumAbout).toContain("Its calcium lowers the residual alkalinity: 1 g per 10 L adds 23 mg/L of calcium, about −0.93 °dH.");
+    expect(gypsumAbout).toContain("Its calcium lowers the residual alkalinity: 1 g per 10 L of mash water adds 23 mg/L of calcium, about −0.93 °dH.");
     // With its formula, filled in with the recipe's numbers (QE-65).
     expect(gypsumAbout).toContain("ΔRA = −1 × 0.93 = −0.9 °dH");
     await tickStep("acid_malt");
     await type(amount("acid_malt")!, "1");
     expect(effect("acid_malt")).toBe("−2.4 °dH");
-    expect(await about("acid_malt")).toContain("ΔRA = −9.34 × 4.6 × 1 ÷ 18 = −2.4 °dH");
+    expect(await about("acid_malt")).toContain("ΔRA = −9.34 × 4.65 × 1 ÷ 18 = −2.4 °dH");
     await tickStep("lactic_acid");
     await type(amount("lactic_acid")!, "0.5");
     expect(effect("lactic_acid")).toBe("−1.5 °dH");
+    // The totals for this brew (QE-66): per 18 L of mash water, and of the total malt.
+    const total = (row: string) => section().querySelector(`[data-treatment=${row}] [data-total-cell]`)!.textContent;
+    expect(["boil", "gypsum", "acid_malt", "lactic_acid"].map(total)).toEqual(["", "1.8 g", "46 g", "0.9 ml"]);
+    expect([...section().querySelectorAll("[data-unit]")].map((u) => u.textContent)).toEqual([
+      "°dH residual alkalinity",
+      "°dH carbonate hardness",
+      "g/10 L mash water",
+      "% of total malt",
+      "ml/10 L mash water",
+    ]);
     expect(effect("result")).toBe("−2.4 °dH");
     expect(section().querySelector("[data-treatment=result] [data-field-warning]")).toBeNull();
     expect(await about("result")).toContain("Typical at most, by the beer colour of the Malt tab:");
@@ -2055,7 +2101,7 @@ describe("App, the Water tab (QE-36)", () => {
     // Typical limits: gypsum up to 3 g/10 L.
     await type(amount("gypsum")!, "4");
     expect(section().querySelector("[data-treatment=gypsum] [data-field-warning]")!.textContent).toBe(
-      "⚠ 4 g of brewing gypsum per 10 L is above the typical 3 g at most.",
+      "⚠ 4 g of brewing gypsum per 10 L of mash water is above the typical 3 g at most.",
     );
     // Unticked, a step leaves the file (boiling with the carbonate hardness).
     for (const step of ["boil", "gypsum", "acid_malt", "lactic_acid"]) {

@@ -19,6 +19,8 @@ import {
   bitternessOf,
   formatShare,
   ingredientsOf,
+  maltsWithAcidMalt,
+  waterOf,
   shareOf,
   totalGrams,
   validAlpha,
@@ -457,6 +459,8 @@ function IngredientGroup(props: {
   problems: Problem[];
   warnings: Warning[];
   onChange: (recipe: Recipe) => void;
+  /** Opens the Water tab, where the acid malt comes from (EDT-070). */
+  onWater?: () => void;
 }) {
   const { kind, columns } = props;
   const issues: Issues = { problems: props.problems, warnings: props.warnings };
@@ -464,6 +468,11 @@ function IngredientGroup(props: {
   const span = columns.length + (props.shares ? 4 : 3);
   const fields = [...INGREDIENT_EXTRA_FIELDS[kind], "total"];
   const list = ingredientsOf(props.recipe, kind);
+  // The malts the shares count: with the water treatment's acid malt, shown read-only after them (EDT-070).
+  const counted = kind === "malts" ? maltsWithAcidMalt(props.recipe) : list;
+  const acid = counted.length > list.length ? counted[counted.length - 1] : undefined;
+  const treatment = waterOf(props.recipe).treatment;
+  const acidShare = typeof treatment === "object" && treatment !== null ? (treatment as Record<string, unknown>).acid_malt : undefined;
   const set = (next: Ingredient[]) => props.onChange(withIngredients(props.recipe, kind, next));
   const setField = (i: number, field: string, value: unknown) =>
     set(list.map((e, j) => (j === i ? withField(e, field, value) : e)));
@@ -488,7 +497,7 @@ function IngredientGroup(props: {
   return (
     <tbody ref={body} data-ingredient-group={kind}>
       {list.map((entry, i) => {
-        const share = props.shares ? shareOf(entry, list) : undefined;
+        const share = props.shares ? shareOf(entry, counted) : undefined;
         const notes = rowNotes(i);
         return (
           <Fragment key={i}>
@@ -615,7 +624,59 @@ function IngredientGroup(props: {
           </Fragment>
         );
       })}
-      {list.length === 0 && (
+      {acid && (
+        // The water treatment's acid malt (EDT-070, QE-67): read-only, worked out from its share, never in the file.
+        <tr class="border-t border-line bg-stone-50/70 dark:border-white/10 dark:bg-white/[0.03]" data-acid-malt>
+          <td class={CELL} />
+          <td class={`${CELL} text-ink dark:text-ink-light`}>
+            <span class="flex items-center gap-2">
+              <span class="font-medium" data-acid-malt-name>
+                {acid.name as string}
+              </span>
+              <span class="text-xs text-stone-500 dark:text-stone-400" title="Read-only: from the Water treatment">
+                read-only
+              </span>
+            </span>
+            <span class={`${HINT_STYLE} block`} data-acid-malt-hint>
+              From the Water treatment ({String(acidShare)} % of the total malt); change it on the{" "}
+              {props.onWater ? (
+                <button type="button" class={LINK_STYLE} onClick={props.onWater}>
+                  Water tab
+                </button>
+              ) : (
+                "Water tab"
+              )}
+              .
+            </span>
+          </td>
+          {columns.map((c) => (
+            <td key={c.field} class={`${CELL} ${NUMBER} text-ink dark:text-ink-light`} data-acid-malt-field={c.field}>
+              {c.field === "ebc" ? (
+                <span class="inline-flex items-center justify-end gap-1.5">
+                  <span
+                    aria-hidden="true"
+                    class="size-4 shrink-0 rounded-sm ring-1 ring-black/10 dark:ring-white/20"
+                    style={{ background: beerColourHex(acid.ebc as number) }}
+                  />
+                  {String(acid.ebc)}
+                </span>
+              ) : (
+                `${String(acid.grams)} g`
+              )}
+            </td>
+          ))}
+          {props.shares && (
+            <td class={`${CELL} ${NUMBER} text-stone-600 dark:text-stone-300`} data-ingredient-share>
+              <span class="inline-flex items-center justify-end gap-1.5">
+                <span aria-hidden="true" class="hidden size-2.5 rounded-sm sm:inline-block" style={{ background: rowColour(kind, list.length) }} />
+                {formatShare(shareOf(acid, counted) ?? 0)}
+              </span>
+            </td>
+          )}
+          <td class={CELL} />
+        </tr>
+      )}
+      {counted.length === 0 && (
         <tr class="border-t border-line dark:border-white/10">
           <td colSpan={span} class={`${CELL} ${HINT_STYLE}`}>
             No {one.toLowerCase()} yet.
@@ -648,11 +709,13 @@ function IngredientTable(props: {
   problems: Problem[];
   warnings: Warning[];
   onChange: (recipe: Recipe) => void;
+  onWater?: () => void;
 }) {
   const { kind } = props;
   const columns = COLUMNS[kind];
   const shares = HAS_SHARES[kind];
-  const total = totalGrams(ingredientsOf(props.recipe, kind));
+  // The malts' total includes the water treatment's acid malt (EDT-070).
+  const total = totalGrams(kind === "malts" ? maltsWithAcidMalt(props.recipe) : ingredientsOf(props.recipe, kind));
   return (
     <div class="relative overflow-x-auto rounded-lg ring-1 ring-line dark:ring-white/10" data-ingredients={kind}>
       <table aria-label={INGREDIENT_LABELS[kind].title} class="w-full border-collapse text-sm">
@@ -692,6 +755,7 @@ function IngredientTable(props: {
           problems={props.problems}
           warnings={props.warnings}
           onChange={props.onChange}
+          onWater={props.onWater}
         />
         <tfoot class="border-t-2 border-line font-semibold text-ink dark:border-white/20 dark:text-ink-light">
           <tr data-ingredient-total>
@@ -936,7 +1000,8 @@ export function IngredientsTab(props: {
   onTab?: (tab: BatchTab) => void;
 }) {
   const { kind } = props;
-  const list = ingredientsOf(props.recipe, kind);
+  // The donut counts the water treatment's acid malt with the malts (EDT-070).
+  const list = kind === "malts" ? maltsWithAcidMalt(props.recipe) : ingredientsOf(props.recipe, kind);
   return (
     <>
       <section aria-labelledby={`${kind}-overview-title`}>
@@ -969,7 +1034,14 @@ export function IngredientsTab(props: {
           {kind === "malts" ? "Malt" : "Boil Ingredients"}
         </h3>
         {kind === "malts" ? (
-          <IngredientTable kind="malts" recipe={props.recipe} problems={props.problems} warnings={props.warnings} onChange={props.onChange} />
+          <IngredientTable
+            kind="malts"
+            recipe={props.recipe}
+            problems={props.problems}
+            warnings={props.warnings}
+            onChange={props.onChange}
+            onWater={() => props.onTab?.("water")}
+          />
         ) : (
           // Two tables (EDT-060, QE-44): the hops, then the other additions, each with its own heading and Total.
           (["hops", "others"] as const).map((k) => (

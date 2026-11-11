@@ -109,7 +109,7 @@ export function warningsOf(recipe: Recipe): Warning[] {
     warnings.push({ path: "water.treatment.result", message, short: `⚠ ${message}` });
   }
   if (finite(treatment.gypsum) && treatment.gypsum > TREATMENT_TYPICAL.gypsum) {
-    const message = `${treatment.gypsum} g of brewing gypsum per 10 L is above the typical ${TREATMENT_TYPICAL.gypsum} g at most.`;
+    const message = `${treatment.gypsum} g of brewing gypsum per 10 L of mash water is above the typical ${TREATMENT_TYPICAL.gypsum} g at most.`;
     warnings.push({ path: "water.treatment.gypsum", message, short: `⚠ ${message}` });
   }
   if (finite(treatment.acid_malt) && treatment.acid_malt <= 100 && treatment.acid_malt > TREATMENT_TYPICAL.acidMalt) {

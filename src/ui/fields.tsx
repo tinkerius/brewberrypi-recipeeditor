@@ -27,6 +27,8 @@ export function NumberField(props: {
   compact?: boolean;
   /** The label only for screen readers, the field as wide as usual (its visible label is elsewhere, EDT-069). */
   hiddenLabel?: boolean;
+  /** A long unit, in small type that may wrap beside the field ("ml/10 L mash water", EDT-069). */
+  longUnit?: boolean;
   /** Marks the field as worth a second look (a warning, not a problem; EDT-033). */
   warn?: boolean;
   /** The id of a hint that describes the field (e.g. its typical values). */
@@ -62,7 +64,11 @@ export function NumberField(props: {
             props.onChange(parsed === undefined ? undefined : Number.isNaN(parsed) ? next : parsed);
           }}
         />
-        {props.unit && <span class="whitespace-nowrap">{props.unit}</span>}
+        {props.unit && (
+          <span class={props.longUnit ? "text-[11px] leading-tight sm:text-xs" : "whitespace-nowrap"} data-unit>
+            {props.unit}
+          </span>
+        )}
       </span>
     </label>
   );

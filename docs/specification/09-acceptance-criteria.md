@@ -278,9 +278,18 @@ a release that changes sign-in or Drive behaviour.
   `"treatment": { "alkalinity": 10.3 }`, and clearing that the treatment.
 - `ACC-098` (EDT-069, QE-65) For 4.6 kg of malt, 18 L mash water, tap water 10.3 °dH and 14 °dH carbonate hardness,
   boiling, 1 g/10 L gypsum, 1 % acid malt and 0.5 ml/10 L lactic acid, the rows' ⓘ show their formulas and "starting
-  value 10.3 °dH", "ΔRA = −(14 − 3) × 0.714 = −7.9 °dH", "ΔRA = −1 × 0.93 = −0.9 °dH", "ΔRA = −9.34 × 4.6 × 1 ÷ 18 =
-  −2.4 °dH", "ΔRA = −0.5 × 2.99 = −1.5 °dH" and "RA = 10.3 − 7.9 − 0.9 − 2.4 − 1.5 = −2.4 °dH"; boiling water of 2 °dH
+  value 10.3 °dH", "ΔRA = −(14 − 3) × 0.714 = −7.9 °dH", "ΔRA = −1 × 0.93 = −0.9 °dH", "ΔRA = −9.34 × 4.65 × 1 ÷ 18 =
+  −2.4 °dH" (4.65 kg of total malt with the acid malt), "ΔRA = −0.5 × 2.99 = −1.5 °dH" and "RA = 10.3 − 7.9 − 0.9 − 2.4 − 1.5 = −2.4 °dH"; boiling water of 2 °dH
   carbonate hardness gives "ΔRA = 0 °dH (…)"; without the inputs only the formulas.
+- `ACC-099` (EDT-069, EDT-070, QE-66) With 4.6 kg of malt and 18 L mash water, 1 % acid malt is 46.5 g (1/99 of
+  4600 g; the total malt 4646 g), 1 g/10 L gypsum 1.8 g and 0.5 ml/10 L lactic acid 0.9 ml in the Total column ("1.8 g",
+  "46 g", "0.9 ml"; nothing for boiling); the units read "°dH residual alkalinity", "°dH carbonate hardness",
+  "g/10 L mash water", "% of total malt", "ml/10 L mash water"; without mash water there are no totals of the doses.
+- `ACC-100` (EDT-070, QE-67) With Pilsner malt 4600 g 7 EBC and 1 % acid malt in the Water treatment, the Malt table
+  shows after it a read-only row "Acid malt" (no fields), 5 EBC, "46 g", 1 %, with "From the Water treatment (1 % of
+  the total malt); change it on the Water tab."; Pilsner malt is 99 %, the Total "4646 g", the donut's legend 99 % and
+  1 %; the file's malts are only the Pilsner malt; the link opens the Water tab, and unticking the acid malt there
+  removes the row (Total 4600 g).
 
 ## 9.3 Browser drafts
 

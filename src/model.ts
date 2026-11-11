@@ -312,7 +312,7 @@ export function totalWater(recipe: Recipe): number | undefined {
  */
 export function mashThickness(recipe: Recipe): { value: number } | { missing: ("mash" | "malts")[] } {
   const mash = waterOf(recipe).mash;
-  const kg = totalGrams(ingredientsOf(recipe, "malts")) / 1000;
+  const kg = totalGrams(maltsWithAcidMalt(recipe)) / 1000;
   const missing: ("mash" | "malts")[] = [];
   if (!validWater(mash)) {
     missing.push("mash");
@@ -365,7 +365,7 @@ export function waterEstimate(recipe: Recipe):
     }
   | { missing: ("liters" | "malts")[] } {
   const knockout = batchOf(recipe).liters;
-  const kg = totalGrams(ingredientsOf(recipe, "malts")) / 1000;
+  const kg = totalGrams(maltsWithAcidMalt(recipe)) / 1000;
   const missing: ("liters" | "malts")[] = [];
   if (!validLiters(knockout)) {
     missing.push("liters");
@@ -415,7 +415,7 @@ export type Figure =
 
 /** The beer colour in EBC (EDT-048): every malt with an amount needs its EBC, and the batch needs its volume. */
 export function beerColourOf(recipe: Recipe): Figure {
-  const malts = ingredientsOf(recipe, "malts");
+  const malts = maltsWithAcidMalt(recipe);
   const counted = malts.map((m, i) => ({ m, i })).filter(({ m }) => validGrams(m.grams));
   if (counted.length === 0) {
     return { noEntries: true };
@@ -486,6 +486,31 @@ export function validGrams(grams: unknown): grams is number {
 }
 
 /** The total weight of a list (EDT-043): the sum of its valid amounts, in grams. */
+/** The acid malt of the water treatment as shown on the Malt tab (EDT-070, QE-67): never stored, about 5 EBC. */
+export const ACID_MALT = { name: "Acid malt", ebc: 5 } as const;
+
+/**
+ * The acid malt in grams (EDT-069, EDT-070): its share (`water.treatment.acid_malt`) is of the total malt, the acid
+ * malt included, so it is % ÷ (100 − %) × the Malt tab's malts (1 % with 4.6 kg: 46.5 g). Undefined while there is no
+ * share between 0 and 100 % or no malt.
+ */
+export function acidMaltGrams(recipe: Recipe): number | undefined {
+  const treatment = waterOf(recipe).treatment;
+  const share = isObject(treatment) ? treatment.acid_malt : undefined;
+  const others = totalGrams(ingredientsOf(recipe, "malts"));
+  return finite(share) && share > 0 && share < 100 && others > 0 ? (share / (100 - share)) * others : undefined;
+}
+
+/**
+ * The malts the figures count (EDT-070): the Malt tab's, then the water treatment's acid malt in whole grams (shown
+ * read-only on the Malt tab, never written to the malt list).
+ */
+export function maltsWithAcidMalt(recipe: Recipe): Ingredient[] {
+  const malts = ingredientsOf(recipe, "malts");
+  const grams = acidMaltGrams(recipe);
+  return grams === undefined || Math.round(grams) < 1 ? malts : [...malts, { name: ACID_MALT.name, grams: Math.round(grams), ebc: ACID_MALT.ebc }];
+}
+
 export function totalGrams(list: Ingredient[]): number {
   return list.reduce((sum, entry) => sum + entryGrams(entry), 0);
 }

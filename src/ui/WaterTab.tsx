@@ -15,7 +15,7 @@ import {
   WATER_FIELDS,
   WATER_LABELS,
   batchOf,
-  ingredientsOf,
+  maltsWithAcidMalt,
   mashThickness,
   totalGrams,
   totalWater,
@@ -134,7 +134,7 @@ export function WaterTab(props: { recipe: Recipe; problems: Problem[]; warnings:
   const issues = { problems: props.problems, warnings: props.warnings };
   const total = totalWater(props.recipe);
   const thickness = mashThickness(props.recipe);
-  const kg = totalGrams(ingredientsOf(props.recipe, "malts")) / 1000;
+  const kg = totalGrams(maltsWithAcidMalt(props.recipe)) / 1000; // the acid malt too (EDT-070)
   const estimate = waterEstimate(props.recipe);
   const { min, max } = TYPICAL.mashThickness;
   // Each water field's typical value and how it is worked out (EDT-067, EDT-068).

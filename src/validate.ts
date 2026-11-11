@@ -295,14 +295,14 @@ function checkTreatment(treatment: unknown, problems: Problem[]) {
     alkalinity: [number, "The residual alkalinity must be a number of °dH."],
     carbonate_hardness: [(v) => number(v) && (v as number) >= 0, "The carbonate hardness must be a number of at least 0 °dH."],
     boil: [(v) => typeof v === "boolean", "Boiling must be yes or no."],
-    gypsum: [(v) => number(v) && (v as number) >= 0, "The brewing gypsum must be a number of at least 0 g per 10 L."],
-    acid_malt: [(v) => number(v) && (v as number) >= 0 && (v as number) <= 100, "The acid malt must be a number from 0 to 100 % of the grist."],
-    lactic_acid: [(v) => number(v) && (v as number) >= 0, "The lactic acid must be a number of at least 0 ml per 10 L."],
+    gypsum: [(v) => number(v) && (v as number) >= 0, "The brewing gypsum must be a number of at least 0 g per 10 L of mash water."],
+    acid_malt: [(v) => number(v) && (v as number) >= 0 && (v as number) <= 100, "The acid malt must be a number from 0 to 100 % of the total malt."],
+    lactic_acid: [(v) => number(v) && (v as number) >= 0, "The lactic acid must be a number of at least 0 ml per 10 L of mash water."],
   };
   // A ticked step whose amount is not entered yet (EDT-069, `null`).
   const needs: Record<string, string> = {
     gypsum: "The brewing gypsum needs an amount.",
-    acid_malt: "The acid malt needs its share of the grist.",
+    acid_malt: "The acid malt needs its share of the total malt.",
     lactic_acid: "The lactic acid needs an amount.",
   };
   for (const [key, value] of Object.entries(treatment)) {

@@ -14,7 +14,7 @@
  *   mash water, over 0.357 mmol/L per °dH.
  */
 
-import { beerColourOf, ingredientsOf, isObject, totalGrams, validWater, waterOf, type Recipe } from "./model";
+import { acidMaltGrams, beerColourOf, ingredientsOf, isObject, totalGrams, validWater, waterOf, type Recipe } from "./model";
 
 /** The fields of `water.treatment` in the file's order. */
 export const TREATMENT_FIELDS = ["alkalinity", "carbonate_hardness", "boil", "gypsum", "acid_malt", "lactic_acid"] as const;
@@ -139,7 +139,7 @@ export function treatmentEffects(recipe: Recipe): Treatment {
     if (missing.length > 0) {
       effects.acidMalt = { missing };
     } else {
-      const lacticMmol = ((grams * t.acid_malt) / 100) * TREATMENT_RULES.acidMaltLactic * (1000 / TREATMENT_RULES.lacticMolar);
+      const lacticMmol = acidMaltGrams(recipe)! * TREATMENT_RULES.acidMaltLactic * (1000 / TREATMENT_RULES.lacticMolar);
       effects.acidMalt = { value: -lacticMmol / (mash as number) / TREATMENT_RULES.mmolPerDegree };
     }
   }
@@ -155,6 +155,24 @@ export function treatmentEffects(recipe: Recipe): Treatment {
     effects.target = { max: band.max, ebc: Math.round(colour), beers: band.beers };
   }
   return effects;
+}
+
+export { acidMaltGrams };
+
+/** The total malt in grams: the malts of the Malt tab and the acid malt of the water treatment (EDT-070). */
+export function totalMaltGrams(recipe: Recipe): number {
+  return totalGrams(ingredientsOf(recipe, "malts")) + (acidMaltGrams(recipe) ?? 0);
+}
+
+/**
+ * The total amounts of the steps for this brew (EDT-069, QE-66), read-only: gypsum and lactic acid for the mash water
+ * (their doses are per 10 L of it), the acid malt in grams of the total malt. Undefined where it can't be worked out.
+ */
+export function treatmentTotals(recipe: Recipe): { gypsum?: number; acidMalt?: number; lacticAcid?: number } {
+  const t = treatmentOf(recipe);
+  const mash = waterOf(recipe).mash;
+  const perMash = (dose: unknown) => (finite(dose) && dose >= 0 && validWater(mash) ? (dose * mash) / 10 : undefined);
+  return { gypsum: perMash(t.gypsum), acidMalt: acidMaltGrams(recipe), lacticAcid: perMash(t.lactic_acid) };
 }
 
 /** °dH with one decimal and its sign: "−2.5 °dH", "+1 °dH", "7.8 °dH". */
@@ -214,19 +232,19 @@ export function stepFormula(recipe: Recipe, row: FormulaRow): { formula: string;
     case "gypsum": {
       const effect = effects.gypsum;
       return {
-        formula: `ΔRA = −gypsum [g/10 L] × ${f.calcium} mg/L calcium ÷ ${f.calciumPerDegree} mg/L per °dH ÷ 3.5 = −gypsum × ${f.gypsum}`,
+        formula: `ΔRA = −gypsum [g/10 L mash water] × ${f.calcium} mg/L calcium ÷ ${f.calciumPerDegree} mg/L per °dH ÷ 3.5 = −gypsum × ${f.gypsum}`,
         filled: finite(t.gypsum) && effect && "value" in effect ? `ΔRA = −${num(t.gypsum)} × ${f.gypsum} = ${dh(effect.value)}` : undefined,
       };
     }
     case "acid_malt": {
       const effect = effects.acidMalt;
-      const kg = totalGrams(ingredientsOf(recipe, "malts")) / 1000;
+      const kg = totalMaltGrams(recipe) / 1000;
       const mash = waterOf(recipe).mash;
       return {
         formula:
-          `ΔRA = −(grist [g] × acid malt [%] ÷ 100 × ${num(TREATMENT_RULES.acidMaltLactic * 100)} % lactic acid ÷ ` +
-          `${TREATMENT_RULES.lacticMolar} g/mol) ÷ mash water [L] ÷ ${f.mmol} mmol/L per °dH ≈ −${f.acidMalt} × grist [kg] × ` +
-          "acid malt [%] ÷ mash water [L]",
+          `ΔRA = −(total malt [g] × acid malt [% of total malt] ÷ 100 × ${num(TREATMENT_RULES.acidMaltLactic * 100)} % lactic acid ÷ ` +
+          `${TREATMENT_RULES.lacticMolar} g/mol) ÷ mash water [L] ÷ ${f.mmol} mmol/L per °dH ≈ −${f.acidMalt} × total malt [kg] × ` +
+          "acid malt [% of total malt] ÷ mash water [L]",
         filled:
           finite(t.acid_malt) && finite(mash) && effect && "value" in effect
             ? `ΔRA = −${f.acidMalt} × ${num(kg)} × ${num(t.acid_malt)} ÷ ${num(mash)} = ${dh(effect.value)}`
@@ -237,7 +255,7 @@ export function stepFormula(recipe: Recipe, row: FormulaRow): { formula: string;
       const effect = effects.lacticAcid;
       return {
         formula:
-          `ΔRA = −lactic acid [ml/10 L] × 1.2 g/ml × 80 % ÷ ${TREATMENT_RULES.lacticMolar} g/mol × 1000 ÷ 10 L ÷ ${f.mmol} ` +
+          `ΔRA = −lactic acid [ml/10 L mash water] × 1.2 g/ml × 80 % ÷ ${TREATMENT_RULES.lacticMolar} g/mol × 1000 ÷ 10 L ÷ ${f.mmol} ` +
           `mmol/L per °dH = −lactic acid × ${f.lactic}`,
         filled: finite(t.lactic_acid) && effect && "value" in effect ? `ΔRA = −${num(t.lactic_acid)} × ${f.lactic} = ${dh(effect.value)}` : undefined,
       };

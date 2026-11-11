@@ -5,6 +5,7 @@
  * never stored (app RCP-013).
  */
 
+import { Fragment, type ComponentChildren } from "preact";
 import { useEffect, useState } from "preact/hooks";
 import type { Problem } from "../validate";
 import { beerColourHex } from "../brewMath";
@@ -19,6 +20,7 @@ import {
   totalGrams,
   validBoilMinutes,
   validGrams,
+  validLiters,
   withBatchField,
   withIngredients,
   type BatchField,
@@ -31,7 +33,8 @@ import { ADD_ROW_LINE, AddRowButton } from "./AddRow";
 import { DragHandle, DropLine } from "./DragHandle";
 import { NumberField, TextField } from "./fields";
 import { moveItem } from "./reorder";
-import { BUTTON_STYLES, HINT_STYLE, SECTION_TITLE_STYLE } from "./styles";
+import { BeerColourScale } from "./BeerColourScale";
+import { BUTTON_STYLES, HINT_STYLE, LINK_STYLE, SECTION_TITLE_STYLE } from "./styles";
 import { useReorder } from "./useReorder";
 import { useWidth } from "./useWidth";
 
@@ -135,29 +138,69 @@ function ShareDonut(props: { kind: IngredientKind; list: Ingredient[] }) {
   );
 }
 
-/** Why a figure can't be computed yet (EDT-048, EDT-049), as a hint: what to enter. */
-function missingText(kind: IngredientKind, figure: Figure): string {
+/** A link to the Water tab, where the knockout volume is entered (EDT-050). */
+function WaterLink(props: { onWater?: () => void }) {
+  return props.onWater ? (
+    <button type="button" class={LINK_STYLE} data-water-link onClick={props.onWater}>
+      Water tab
+    </button>
+  ) : (
+    <>Water tab</>
+  );
+}
+
+/** Why a figure can't be computed yet (EDT-048, EDT-049), as a hint: what to enter, and where. */
+function missingText(kind: IngredientKind, figure: Figure, onWater?: () => void): ComponentChildren {
   const { one } = INGREDIENT_LABELS[kind];
   if (figure.noEntries) {
     return kind === "malts" ? "Add malts with their amounts." : "Add hops with their amounts.";
   }
-  const needs: string[] = [];
+  const needs: ComponentChildren[] = [];
   if (figure.rows && figure.rows.length > 0) {
     const what = kind === "malts" ? "the EBC" : "the alpha acid and boil time";
     const rows = figure.rows.length === 1 ? `${one.toLowerCase()} ${figure.rows[0]}` : `${one.toLowerCase()}s ${figure.rows.join(", ")}`;
     needs.push(`${what} of ${rows}`);
   }
   for (const field of figure.batch ?? []) {
-    needs.push(field === "liters" ? "the knockout volume" : "the original gravity");
+    needs.push(
+      field === "liters" ? (
+        <>
+          the knockout volume on the <WaterLink onWater={onWater} />
+        </>
+      ) : (
+        "the original gravity"
+      ),
+    );
   }
-  return `Enter ${needs.join(" and ")}.`;
+  return (
+    <>
+      Enter{" "}
+      {needs.map((n, k) => (
+        <Fragment key={k}>
+          {k > 0 && " and "}
+          {n}
+        </Fragment>
+      ))}
+      .
+    </>
+  );
 }
 
-/** The computed figure above the table: the beer colour with its colour, or the bitterness (EDT-048, EDT-049). */
-function FigureLine(props: { kind: IngredientKind; recipe: Recipe }) {
+/**
+ * The computed figure next to the donut (EDT-048, EDT-049): the beer colour with its swatch and its place among
+ * common beers (EDT-055), or the bitterness; the knockout volume comes from the Water tab.
+ */
+function FigureLine(props: { kind: IngredientKind; recipe: Recipe; onWater?: () => void }) {
   const malts = props.kind === "malts";
   const figure = malts ? beerColourOf(props.recipe) : bitternessOf(props.recipe);
   const label = malts ? "Beer colour" : "Bitterness";
+  const liters = batchOf(props.recipe).liters;
+  const knockout = (
+    <>
+      the knockout volume ({validLiters(liters) ? `${liters} L, ` : ""}
+      <WaterLink onWater={props.onWater} />)
+    </>
+  );
   return (
     <div data-figure={props.kind}>
       <p class="flex items-center gap-2 text-sm font-medium text-ink dark:text-ink-light">
@@ -182,21 +225,21 @@ function FigureLine(props: { kind: IngredientKind; recipe: Recipe }) {
           </span>
         )}
       </p>
-      <p class={HINT_STYLE} data-figure-hint>
-        {figure.value === undefined
-          ? missingText(props.kind, figure)
-          : malts
-            ? "Morey's formula, from each malt's EBC and the knockout volume."
-            : "Tinseth's formula, from each hop's alpha acid and boil time, the knockout volume and the original gravity."}
+      {malts && figure.value !== undefined && <BeerColourScale ebc={figure.value} />}
+      <p class={`${HINT_STYLE} mt-1`} data-figure-hint>
+        {figure.value === undefined ? (
+          missingText(props.kind, figure, props.onWater)
+        ) : malts ? (
+          <>Morey's formula, from each malt's EBC and {knockout}.</>
+        ) : (
+          <>Tinseth's formula, from each hop's alpha acid and boil time, {knockout} and the original gravity.</>
+        )}
       </p>
     </div>
   );
 }
 
-/**
- * The batch fields (EDT-050): the knockout volume (the wort at the end of the boil; Malt, Hops and Water tabs, one
- * value) and the original gravity (Hops).
- */
+/** The batch fields on a tab (EDT-050): the original gravity on the Hops tab (the knockout volume is on Water). */
 export function BatchFields(props: { fields: BatchField[]; recipe: Recipe; problems: Problem[]; onChange: (recipe: Recipe) => void }) {
   const batch = batchOf(props.recipe);
   const invalid = (field: string) => props.problems.some((p) => p.path === `batch.${field}`);
@@ -477,7 +520,14 @@ function withField(entry: Ingredient, field: string, value: unknown): Ingredient
 }
 
 /** The Malt or the Hops tab (GUI-032). */
-export function IngredientsTab(props: { kind: IngredientKind; recipe: Recipe; problems: Problem[]; onChange: (recipe: Recipe) => void }) {
+export function IngredientsTab(props: {
+  kind: IngredientKind;
+  recipe: Recipe;
+  problems: Problem[];
+  onChange: (recipe: Recipe) => void;
+  /** Opens the Water tab (the knockout volume, EDT-050). */
+  onWater?: () => void;
+}) {
   const { kind } = props;
   const list = ingredientsOf(props.recipe, kind);
   return (
@@ -487,20 +537,18 @@ export function IngredientsTab(props: { kind: IngredientKind; recipe: Recipe; pr
           ? "The malts of the brew with their amounts and colours. The shares are of the total malt weight."
           : "The hops of the brew with their amounts, alpha acid and boil time. The shares are of the total hop weight."}
       </p>
-      <div class="mt-3 flex flex-wrap items-start justify-between gap-x-6 gap-y-3 rounded-lg bg-stone-50 p-3 ring-1 ring-line dark:bg-white/5 dark:ring-white/10">
-        <FigureLine kind={kind} recipe={props.recipe} />
-        <BatchFields
-          fields={kind === "malts" ? ["liters"] : ["liters", "plato"]}
-          recipe={props.recipe}
-          problems={props.problems}
-          onChange={props.onChange}
-        />
-      </div>
-      {list.some((e) => validGrams(e.grams)) && (
-        <div class="mt-4">
-          <ShareDonut kind={kind} list={list} />
+      {/* The donut at the left, the figure at the right (EDT-047); stacked on a phone. */}
+      <div class="mt-3 flex flex-col gap-4 sm:flex-row sm:items-start" data-overview>
+        {list.some((e) => validGrams(e.grams)) && (
+          <div class="shrink-0">
+            <ShareDonut kind={kind} list={list} />
+          </div>
+        )}
+        <div class="min-w-0 flex-1 space-y-3 rounded-lg bg-stone-50 p-3 ring-1 ring-line dark:bg-white/5 dark:ring-white/10">
+          <FigureLine kind={kind} recipe={props.recipe} onWater={props.onWater} />
+          {kind === "hops" && <BatchFields fields={["plato"]} recipe={props.recipe} problems={props.problems} onChange={props.onChange} />}
         </div>
-      )}
+      </div>
       <section class="mt-6" aria-labelledby={`${kind}-table-title`}>
         <h3 id={`${kind}-table-title`} class={`${SECTION_TITLE_STYLE} mb-2`}>
           {INGREDIENT_LABELS[kind].title}

@@ -38,7 +38,7 @@ export function bitternessIbu(hops: { grams: number; alpha: number; minutes: num
 }
 
 /** The widely published SRM colour chart, SRM 1 … 40 (one colour per whole SRM). */
-const SRM_COLOURS = [
+export const SRM_COLOURS = [
   "#FFE699", "#FFD878", "#FFCA5A", "#FFBF42", "#FBB123", "#F8A600", "#F39C00", "#EA8F00", "#E58500", "#DE7C00",
   "#D77200", "#CF6900", "#CB6200", "#C35900", "#BB5100", "#B54C00", "#B04500", "#A63E00", "#A13700", "#9B3200",
   "#952D00", "#8E2900", "#882300", "#821E00", "#7B1A00", "#771900", "#701400", "#6A0E00", "#660D00", "#5E0B00",
@@ -50,3 +50,27 @@ export function beerColourHex(ebc: number): string {
   const srm = Math.min(40, Math.max(1, Math.round(ebc / 1.97)));
   return SRM_COLOURS[srm - 1];
 }
+
+/**
+ * Common beer styles and their colour in EBC (BJCP 2021 SRM ranges × 1.97, rounded), for the colour scale
+ * (EDT-055). `scale`: labelled on the scale (a selection that doesn't crowd it).
+ */
+export const BEER_STYLES: { name: string; min: number; max: number; scale: boolean }[] = [
+  { name: "Pils", min: 4, max: 8, scale: true },
+  { name: "Helles", min: 6, max: 10, scale: false },
+  { name: "Weissbier", min: 4, max: 12, scale: false },
+  { name: "Pale Ale", min: 10, max: 20, scale: true },
+  { name: "Märzen", min: 16, max: 33, scale: true },
+  { name: "Dunkel", min: 33, max: 55, scale: true },
+  { name: "Stout", min: 49, max: 79, scale: true },
+];
+
+/** The end of the colour scale (EDT-055): darker beers are shown at its end. */
+export const COLOUR_SCALE_MAX = 80;
+
+/** The styles whose colour range holds this EBC (rounded, as shown), in the list's order. */
+export function stylesOfColour(ebc: number): string[] {
+  const shown = Math.round(ebc);
+  return BEER_STYLES.filter((s) => shown >= s.min && shown <= s.max).map((s) => s.name);
+}
+

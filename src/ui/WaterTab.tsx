@@ -1,6 +1,6 @@
 /**
  * The Water tab (EDT-051..053, QE-36): the brewing-day water volumes (mash, sparge and top-up water, app RCP-015)
- * and the knockout volume (the batch's, shared with the Malt and Hops tabs), with the total water and the mash
+ * and the knockout volume (the batch's, entered only here and used by the Malt and Hops tabs), with the total water and the mash
  * thickness computed from them (never stored).
  */
 
@@ -49,7 +49,7 @@ export function WaterTab(props: { recipe: Recipe; problems: Problem[]; onChange:
               <span class={`${HINT_STYLE} col-span-2 mb-2 sm:col-span-1 sm:mb-0`}>{WATER_LABELS[field].hint}</span>
             </div>
           ))}
-          {/* The batch's knockout volume (EDT-050), the same field as on the Malt and Hops tabs. */}
+          {/* The batch's knockout volume (EDT-050): entered here only; the Malt and Hops tabs use it. */}
           <div class="contents" data-knockout>
             <NumberField
               label="Knockout volume"
@@ -59,7 +59,7 @@ export function WaterTab(props: { recipe: Recipe; problems: Problem[]; onChange:
               onChange={(v) => props.onChange(withBatchField(props.recipe, "liters", v))}
             />
             <span class={`${HINT_STYLE} col-span-2 sm:col-span-1`}>
-              The wort at the end of the boil, the target for the fermenter (also on the Malt and Hops tabs).
+              The wort at the end of the boil, the target for the fermenter (used for the beer colour and bitterness).
             </span>
           </div>
         </div>

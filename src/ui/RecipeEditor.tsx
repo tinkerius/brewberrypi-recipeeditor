@@ -42,14 +42,14 @@ function goalOf(path: string): number | undefined {
 
 /**
  * The tab a problem of the ingredients, the batch or the water is on (EDT-045, EDT-051): the hops and the gravity on
- * Hops, the water on Water, else Malt.
+ * Hops, the water and the knockout volume on Water (where it is entered), else Malt.
  */
 function ingredientsTab(path: string): "malts" | "hops" | "water" | undefined {
   const about = (prefix: string) => path === prefix || path.startsWith(`${prefix}.`);
   if (path.startsWith(`${INGREDIENTS_PATH}.hops`) || path === `${BATCH_PATH}.plato`) {
     return "hops";
   }
-  if (about(WATER_PATH)) {
+  if (about(WATER_PATH) || path === `${BATCH_PATH}.liters`) {
     return "water";
   }
   return about(INGREDIENTS_PATH) || about(BATCH_PATH) ? "malts" : undefined;
@@ -203,7 +203,7 @@ export function RecipeEditor(props: { doc: Doc; onChange: (recipe: Recipe) => vo
         {tab === "water" ? (
           <WaterTab recipe={doc.recipe} problems={problems} onChange={setRecipe} />
         ) : tab === "malts" || tab === "hops" ? (
-          <IngredientsTab key={tab} kind={tab} recipe={doc.recipe} problems={problems} onChange={setRecipe} />
+          <IngredientsTab key={tab} kind={tab} recipe={doc.recipe} problems={problems} onChange={setRecipe} onWater={() => setTab("water")} />
         ) : tab === "mashing" ? (
           <MashingTab recipe={doc.recipe} problems={problems} onChange={setRecipe} />
         ) : (

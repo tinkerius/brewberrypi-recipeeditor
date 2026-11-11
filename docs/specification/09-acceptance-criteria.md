@@ -144,16 +144,17 @@ a release that changes sign-in or Drive behaviour.
   legend Pilsner malt 90 %, Munich malt 10 %, and 5000 g in its middle; each row's swatch has its slice's colour; a
   9th row's slice is "other". No donut without amounts.
 - `ACC-073` (EDT-048, EDT-050) The beer colour is "–" with "Add malts with their amounts."; with Pilsner malt 4500 g
-  3.5 EBC and Munich malt 500 g without EBC, "Enter the EBC of malt 2 and the knockout volume."; with Munich malt
-  15 EBC and 20 l it is "9 EBC" with the swatch #FFBF42. An EBC of −1 is "Malt 2: the colour must be a number of
+  3.5 EBC and Munich malt 500 g without EBC, "Enter the EBC of malt 2 and the knockout volume on the Water tab."
+  (the link opens the Water tab; the Malt tab has no volume field); with Munich malt 15 EBC and 20 L on the Water tab
+  it is "9 EBC" with the swatch #FFBF42 and the hint names "the knockout volume (20 L, Water tab)". An EBC of −1 is "Malt 2: the colour must be a number of
   at least 0 EBC."
 - `ACC-074` (EDT-049, EDT-050) The bitterness of Hallertauer Tradition 30 g, 5.5 %, 60 min in 20 l at 12.6 °P is
   "19 IBU"; until the boil time, volume and gravity are entered it is "–" with "Enter the alpha acid and boil time
-  of hop 1 and the knockout volume and the original gravity."; a hop of 0 min adds nothing. 101 % and 2.5 min are
+  of hop 1 and the knockout volume on the Water tab and the original gravity."; a hop of 0 min adds nothing. 101 % and 2.5 min are
   problems.
-- `ACC-075` (EDT-050, EDT-045, FMT-006) The Malt tab has the field Knockout volume, the Hops tab Knockout volume (the
-  same value) and Original gravity; 20 l and 12.6 °P are written as `"batch": { "liters": 20, "plato": 12.6 }`; 0 l and
-  41 °P are problems whose entries open the Malt and the Hops tab; clearing both removes `batch`.
+- `ACC-075` (EDT-050, EDT-045, FMT-006) The Malt tab has no batch field, the Hops tab only Original gravity; the
+  knockout volume is entered on the Water tab; 20 l and 12.6 °P are written as `"batch": { "liters": 20, "plato": 12.6 }`; 0 l and
+  41 °P are problems whose entries open the Water and the Hops tab; clearing both removes `batch`.
 - `ACC-076` (EDT-041, QE-36) The Malt tab has the heading Malt before its table; the Hops tab Hops before its table
   and Hop Schedule after it.
 - `ACC-077` (EDT-054) Hops Saaz 10 g 0 min, Hallertauer Tradition 30 g 60 min, Tettnanger 20 g 10 min and Cascade
@@ -166,7 +167,10 @@ a release that changes sign-in or Drive behaviour.
   all three removes `water`.
 - `ACC-079` (EDT-052, EDT-050) With 5000 g of malt: total water "–", then 14 L, then with 16 L mash and 2.5 L
   top-up water 32.5 L and a mash thickness of 3.2 L/kg (typical 2.5–4 L/kg); "Enter the mash water." before, and
-  "Enter the malts on the Malt tab." without malts. A knockout volume of 20 L shows on the Malt tab too.
+  "Enter the malts on the Malt tab." without malts. With a knockout volume of 20 L the Malt tab no longer asks for it.
+- `ACC-080` (EDT-055) At 9 EBC the colour scale has the styles Pils, Pale Ale, Märzen, Dunkel, Stout, the marker
+  between Pils and Pale Ale and "In the range of: Helles, Weissbier."; with roasted barley above 80 EBC the marker
+  is at the scale's end and it says "Darker than a typical stout."; no scale without a colour.
 
 ## 9.3 Browser drafts
 

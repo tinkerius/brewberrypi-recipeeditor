@@ -92,8 +92,9 @@ a release that changes sign-in or Drive behaviour.
   the typical duration in the Typical column after min, an unticked check box and no fields (for a recipe without
   `mashing`); a ticked rest shows its fields in the °C and min columns, the typical values staying in theirs; and an ⓘ button "About this rest" that expands the rest's texts below the row (one at a time)
   and collapses them again; the goals are not shown in it.
-- `ACC-059` (EDT-032, EDT-034, FMT-006) Ticking Mash-out and then Maltose rest plans them with 78 °C, 10 min and
-  63 °C, 45 min (a pre-mash with 25 °C, 20 min); the recipe is complete, and the written file has `"mashing"` after `"mashing_process"` with
+- `ACC-059` (EDT-032, EDT-034, FMT-006, QE-63) Ticking Mash-out and then Maltose rest plans them with empty fields (a
+  pre-mash too), reported as "The Maltose rest needs a temperature." and "The Mash-out needs minutes."; with 78 °C,
+  10 min and 63 °C, 50 min entered the recipe is complete, and the written file has `"mashing"` after `"mashing_process"` with
   `MaltoseRest` before `MashOut`, one rest per line, and reads back the same. Changing the Maltose rest's fields
   changes the plan; unticking both rests removes `mashing` from the recipe.
 - `ACC-060` (EDT-033) A Maltose rest at 70 °C shows "⚠ Outside the typical range" after the typical range
@@ -103,7 +104,7 @@ a release that changes sign-in or Drive behaviour.
   Mash Process tab opens the Mashing tab. A file with an unknown rest in `mashing` is opened with it kept and
   reported.
 - `ACC-062` (QE-33, EDT-036) The rest data holds every rest once, with its typical temperature inside its range and
-  not above 78 °C, presets inside the typical duration, enzymes and texts; sorted by typical temperature
+  not above 78 °C, enzymes and texts; sorted by typical temperature
   the rests are 25, 35, 40, 45, 52, 63, 67, 72, 78 °C; rests whose ranges overlap or
   touch never share a lane; labels spread by the ladder keep their gap and stay inside the chart.
 - `ACC-063` (EDT-039) Pre-mash 35 °C 15 min → Maltose rest 63 °C 45 min → Saccharification rest 72 °C 30 min →
@@ -119,7 +120,8 @@ a release that changes sign-in or Drive behaviour.
   sorted by typical temperature, each label with its short name and typical temperature only (no effect), and
   a tooltip with its enzymes; the acid rest says "(obsolete)"; the limit reads "max 78 °C". Planning the pre-mash at 30 °C shows "Pre-mash 30 °C" with its tick
   at 30 °C and "Planned: 30 °C for 20 min" in its tooltip; unticking it shows "Pre-mash 25 °C" again. Without planned rests it says "No
-  rests planned yet." and "Tick rests below to draw the schedule." Clicking the Protein rest in the ladder opens its
+  rests planned yet." and "Tick rests below to draw the schedule." (with a ticked rest without values "Enter the
+  temperature and duration of the ticked rests." and "Enter their temperature and duration to draw the schedule.") Clicking the Protein rest in the ladder opens its
   texts in the table.
 - `ACC-066` (EDT-039, EDT-040) Planning the steps of `ACC-063` in the table shows "Total mash time 2 h 18 min: 1 h
   35 min of rests, 43 min heating at 1 °C/min." and the profile; a heating rate of 2 shows "Total mash time 1 h 57
@@ -261,9 +263,12 @@ a release that changes sign-in or Drive behaviour.
   (4 L/kg) is no warning; with hop additions of 90 and 10 min and 20 L: "20 L + 3 L (90 min, ~10 %/h) + 4.5 L
   (~1 L/kg) + 1 L = 28.5 L". The hop table's heads read "α %" over "2–20" and "Additions (cooking time · amount)"
   over "cooking time up to 90 min".
-- `ACC-097` (EDT-069, QE-61, FMT-006) With Pilsner malt 4600 g 7 EBC, 18 L mash water and 24 L knockout volume, the Water
-  tab's section Water treatment has Residual alkalinity (tap water) °dH, Carbonate hardness (tap water) °dH, Boil the
-  brewing water, Brewing gypsum g/10 L, Acid malt (of the grist) %, Lactic acid 80 % ml/10 L, and the columns Typical
+- `ACC-097` (EDT-069, QE-61, QE-63, FMT-006) With Pilsner malt 4600 g 7 EBC, 18 L mash water and 24 L knockout volume,
+  the Water tab's section Water treatment has Residual alkalinity (tap water) °dH and the steps Boil the brewing
+  water, Brewing gypsum, Acid malt (of the grist) and Lactic acid 80 %, each with a checkbox and, unticked, no field
+  and the effect "–"; ticked, its field is empty (gypsum: "⊘ The brewing gypsum needs an amount."; boiling asks for
+  the carbonate hardness in its row), clearing it keeps it ticked ("The lactic acid needs an amount."), and
+  unticking all leaves `"treatment": { "alkalinity": 10.3 }`; the columns Typical
   and Effect (`QE-62`; the effects in it, apart from the hints; the tap water's "10.3 °dH" first, none for the
   carbonate hardness, the result as its total); the result is "–", with
   10.3 °dH "10.3 °dH", the target "at most 2 °dH (9 EBC, like Pils)" and its warning; boiling's effect is "–" and its

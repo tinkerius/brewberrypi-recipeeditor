@@ -92,9 +92,9 @@ export function withMashRest(recipe: Recipe, id: MashRestId, rest: MashRest | un
   return Object.keys(plan).length === 0 ? others : { ...others, mashing: inPlanOrder(plan) };
 }
 
-/** A new planned rest, with the preset temperature and minutes (EDT-032). */
-export function newMashRest(id: MashRestId): MashRest {
-  return { temperature: MASH_RESTS[id].tempTypical, minutes: MASH_RESTS[id].minutes };
+/** A newly ticked rest (EDT-032): no preset (QE-63), its temperature and minutes are entered; until then problems. */
+export function newMashRest(_id: MashRestId): MashRest {
+  return {};
 }
 
 /** Whether a rest's temperature is outside its typical range (EDT-033); only for numbers. */
@@ -806,7 +806,10 @@ export function serializeRecipe(recipe: Recipe): string {
       lines[lines.length - 1] += ",";
       lines.push(`  "mashing": {`);
       entries.forEach(([id, value], i) => {
-        const text = isObject(value) ? indentGoal(value as Goal) : JSON.stringify(value);
+        // A rest's fields in the file's order, temperature then minutes, however they were entered (FMT-006).
+        const text = isObject(value)
+          ? indentGoal((({ temperature, minutes, ...more }) => ({ temperature, minutes, ...more }))(value) as Goal)
+          : JSON.stringify(value);
         lines.push(`    ${JSON.stringify(id)}: ${text}${i < entries.length - 1 ? "," : ""}`);
       });
       lines.push(`  }`);

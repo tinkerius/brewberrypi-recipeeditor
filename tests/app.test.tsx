@@ -828,14 +828,20 @@ describe("App, the Mashing tab (QE-32)", () => {
     expect(panel().querySelector("[data-goal-line]")).toBeNull();
   });
 
-  it("ACC-059 ticking plans a rest with its presets, its fields change it, unticking removes it", async () => {
+  it("ACC-059 ticking plans a rest with empty fields, its fields set it, unticking removes it", async () => {
     await openMashing();
     await tick("MashOut");
     await tick("MaltoseRest");
-    expect([field("MaltoseRest", "Temperature").value, field("MaltoseRest", "Duration").value]).toEqual(["63", "45"]);
-    expect([field("MashOut", "Temperature").value, field("MashOut", "Duration").value]).toEqual(["78", "10"]);
-    expect(await status()).toContain("Complete: BrewberryPi can load this recipe.");
+    // No presets (QE-63): the fields are empty, and errors until they are filled.
+    expect([field("MaltoseRest", "Temperature").value, field("MaltoseRest", "Duration").value]).toEqual(["", ""]);
+    expect([field("MashOut", "Temperature").value, field("MashOut", "Duration").value]).toEqual(["", ""]);
+    expect(await status()).toContain("Mashing, Maltose rest: The Maltose rest needs a temperature.");
+    expect(await status()).toContain("Mashing, Mash-out: The Mash-out needs minutes.");
+    await type(field("MaltoseRest", "Temperature"), "63");
+    await type(field("MashOut", "Temperature"), "78");
+    await type(field("MashOut", "Duration"), "10");
     await type(field("MaltoseRest", "Duration"), "50");
+    expect(await status()).toContain("Complete: BrewberryPi can load this recipe.");
     const text = await download();
     expect(text).toContain(
       '  },\n  "mashing": {\n    "MaltoseRest": { "temperature": 63, "minutes": 50 },\n    "MashOut": { "temperature": 78, "minutes": 10 }\n  }\n}\n',
@@ -845,12 +851,13 @@ describe("App, the Mashing tab (QE-32)", () => {
     expect(row("MaltoseRest").querySelector("input:not([type=checkbox])")).toBeNull();
     expect(await download()).not.toContain("mashing\"");
     await tick("PreMash");
-    expect([field("PreMash", "Temperature").value, field("PreMash", "Duration").value]).toEqual(["25", "20"]);
+    expect([field("PreMash", "Temperature").value, field("PreMash", "Duration").value]).toEqual(["", ""]);
   });
 
   it("ACC-060 warns outside the typical range, and the recipe stays complete", async () => {
     await openMashing();
     await tick("MaltoseRest");
+    await type(field("MaltoseRest", "Duration"), "45");
     const warning = () => row("MaltoseRest").querySelector("[data-mash-typical=temperature] ~ [data-field-notes] [data-field-warning]")?.textContent;
     const typicalOf = () => row("MaltoseRest").querySelector("[data-mash-typical=temperature]")!;
     expect(warning()).toBeUndefined();
@@ -926,6 +933,11 @@ describe("App, the Mashing tab (QE-32)", () => {
     expect(l.querySelector("[data-ladder-limit]")!.textContent).toBe("max 78 °C");
     expect(total()).toBe("No rests planned yet.");
     expect(l.textContent).toContain("Tick rests below to draw the schedule.");
+    // Ticked, but without values yet (no presets, QE-63): it asks for them.
+    await tick("MashOut");
+    expect(total()).toBe("Enter the temperature and duration of the ticked rests.");
+    expect(recipe().querySelector("[role=tabpanel]")!.textContent).toContain("Enter their temperature and duration to draw the schedule.");
+    await tick("MashOut");
     expect(l.querySelector("[data-ladder-profile]")).toBeNull();
   });
 
@@ -1952,7 +1964,7 @@ describe("App, the Water tab (QE-36)", () => {
     expect((await info("sparge")).textContent).toContain("20 L + 3 L (90 min, ~10 %/h) + 4.5 L (~1 L/kg) + 1 L = 28.5 L");
   });
 
-  it("ACC-097 the Water treatment section lowers the tap water's residual alkalinity, each measure with its effect", async () => {
+  it("ACC-097 the Water treatment section lowers the tap water's residual alkalinity, each step ticked, with its effect", async () => {
     await open({
       version: 3,
       name: "Brew",
@@ -1962,59 +1974,73 @@ describe("App, the Water tab (QE-36)", () => {
       batch: { liters: 24 },
     });
     const section = () => recipe().querySelector("[data-water-treatment]")!;
-    // Each measure's effect in its own column (QE-62), its hint apart; the result is the column's total.
-    const effect = (field: string) => section().querySelector(`[data-treatment=${field}] [data-effect-cell]`)!.textContent;
-    const hint = (field: string) => section().querySelector(`[data-treatment=${field}] [data-field-hint]`)!.textContent;
-    expect([...section().querySelectorAll("[data-treatment-fields] > span")].map((h) => h.textContent)).toEqual(["", "", "Typical", "Effect", ""]);
+    // Each step's effect in its own column (QE-62), its hint apart; the result is the column's total.
+    const effect = (row: string) => section().querySelector(`[data-treatment=${row}] [data-effect-cell]`)!.textContent;
+    const hint = (row: string) => section().querySelector(`[data-treatment=${row}] [data-field-hint]`)!.textContent;
     const result = () => section().querySelector("[data-treatment-result]")!.textContent;
-    const treatmentInput = (field: string) => section().querySelector<HTMLInputElement>(`[data-treatment=${field}] input`)!;
+    const amount = (row: string) => section().querySelector<HTMLInputElement>(`[data-treatment=${row}] input[type=text]`);
+    // Ticked like the mashing rests (QE-63).
+    const tickStep = (step: string) => act(async () => section().querySelector<HTMLInputElement>(`#treatment-step-${step}`)!.click());
+    expect([...section().querySelectorAll("[data-treatment-fields] > span")].map((h) => h.textContent)).toEqual(["", "", "Typical", "Effect", ""]);
     expect(section().querySelector("h3")!.textContent).toBe("Water treatment");
-    expect([...section().querySelectorAll("label")].map((l) => l.textContent)).toEqual([
-      "Residual alkalinity (tap water)°dH",
-      "Carbonate hardness (tap water)°dH",
+    expect([...section().querySelectorAll("label[for]")].map((l) => l.textContent)).toEqual([
       "Boil the brewing water",
-      "Brewing gypsumg/10 L",
-      "Acid malt (of the grist)%",
-      "Lactic acid 80 %ml/10 L",
+      "Brewing gypsum",
+      "Acid malt (of the grist)",
+      "Lactic acid 80 %",
     ]);
+    // Unticked steps have no field and no effect.
+    for (const step of ["boil", "gypsum", "acid_malt", "lactic_acid"]) {
+      expect(amount(step)).toBeNull();
+      expect(effect(step)).toBe("Effect: –");
+    }
     expect(result()).toBe("–");
-    await type(treatmentInput("alkalinity"), "10.3");
-    expect(result()).toBe("10.3 °dH");
+    await type(amount("alkalinity")!, "10.3");
+    expect([effect("alkalinity"), result()]).toEqual(["Effect: 10.3 °dH", "10.3 °dH"]);
     // The target for the beer colour (here 9 EBC), with a warning above it.
     expect(section().querySelector("[data-field-row=treatment-result] [data-typical]")!.textContent).toBe("Typical: at most 2 °dH (9 EBC, like Pils)");
     expect(section().querySelector("[data-field-row=treatment-result] [data-field-warning]")!.textContent).toBe(
       "⚠ A residual alkalinity of 10.3 °dH after treatment is above the typical 2 °dH at most for a beer of 9 EBC.",
     );
-    // Boiling needs the carbonate hardness.
-    await act(async () => treatmentInput("boil").click());
-    expect([effect("boil"), hint("boil")]).toEqual(["Effect: –", "Enter the carbonate hardness. Down to about 3 °dH carbonate hardness."]);
-    await type(treatmentInput("carbonate_hardness"), "14");
-    expect([effect("boil"), hint("boil")]).toEqual(["Effect: −7.9 °dH", "Down to about 3 °dH carbonate hardness."]);
-    await type(treatmentInput("gypsum"), "1");
+    // Boiling: ticked, it asks for the tap water's carbonate hardness in its row.
+    await tickStep("boil");
+    expect(amount("boil")!.value).toBe("");
+    expect(effect("boil")).toBe("Effect: –");
+    expect(hint("boil")).toBe("Enter the carbonate hardness. The tap water's carbonate hardness (from the analysis) goes down to about 3 °dH.");
+    await type(amount("boil")!, "14");
+    expect(effect("boil")).toBe("Effect: −7.9 °dH");
+    // Gypsum: ticked, its amount is empty and an error until entered (no preset).
+    await tickStep("gypsum");
+    expect(amount("gypsum")!.value).toBe("");
+    expect(section().querySelector("[data-treatment=gypsum] [data-field-error]")!.textContent).toBe("⊘ The brewing gypsum needs an amount.");
+    await type(amount("gypsum")!, "1");
     expect([effect("gypsum"), hint("gypsum")]).toEqual(["Effect: −0.9 °dH", "Its calcium lowers it."]);
-    await type(treatmentInput("acid_malt"), "1");
-    expect([effect("acid_malt"), hint("acid_malt")]).toEqual(["Effect: −2.4 °dH", "Its lactic acid acts in the mash."]);
-    await type(treatmentInput("lactic_acid"), "0.5");
-    expect([effect("lactic_acid"), hint("lactic_acid")]).toEqual(["Effect: −1.5 °dH", "About −3 °dH per ml per 10 L."]);
-    expect([effect("alkalinity"), effect("carbonate_hardness")]).toEqual(["Effect: 10.3 °dH", ""]);
+    await tickStep("acid_malt");
+    await type(amount("acid_malt")!, "1");
+    expect(effect("acid_malt")).toBe("Effect: −2.4 °dH");
+    await tickStep("lactic_acid");
+    await type(amount("lactic_acid")!, "0.5");
+    expect(effect("lactic_acid")).toBe("Effect: −1.5 °dH");
     expect(effect("result")).toBe("Effect: −2.4 °dH");
-    expect(result()).toBe("−2.4 °dH");
     expect(section().querySelector("[data-field-row=treatment-result] [data-field-warning]")).toBeNull();
     expect(await download()).toContain(
       '"water": { "mash": 18, "treatment": { "alkalinity": 10.3, "carbonate_hardness": 14, "boil": true, "gypsum": 1, "acid_malt": 1, "lactic_acid": 0.5 } }',
     );
-    // Typical limits: gypsum up to 3 g/10 L, acid malt up to 5 %.
-    await type(treatmentInput("gypsum"), "4");
+    // Clearing a ticked step's amount keeps it ticked, as an error.
+    await type(amount("lactic_acid")!, "");
+    expect(section().querySelector<HTMLInputElement>("#treatment-step-lactic_acid")!.checked).toBe(true);
+    expect(await status()).toContain("Lactic acid: The lactic acid needs an amount.");
+    // Typical limits: gypsum up to 3 g/10 L.
+    await type(amount("gypsum")!, "4");
     expect(section().querySelector("[data-treatment=gypsum] [data-field-warning]")!.textContent).toBe(
       "⚠ 4 g of brewing gypsum per 10 L is above the typical 3 g at most.",
     );
-    await type(treatmentInput("acid_malt"), "101");
-    expect(await status()).toContain("Acid malt: The acid malt must be a number from 0 to 100 % of the grist.");
-    // Cleared, the treatment leaves the file.
-    for (const field of ["alkalinity", "carbonate_hardness", "gypsum", "acid_malt", "lactic_acid"]) {
-      await type(treatmentInput(field), "");
+    // Unticked, a step leaves the file (boiling with the carbonate hardness).
+    for (const step of ["boil", "gypsum", "acid_malt", "lactic_acid"]) {
+      await tickStep(step);
     }
-    await act(async () => treatmentInput("boil").click());
+    expect(await download()).toContain('"water": { "mash": 18, "treatment": { "alkalinity": 10.3 } }');
+    await type(amount("alkalinity")!, "");
     expect(await download()).toContain('"water": { "mash": 18 }');
   });
 

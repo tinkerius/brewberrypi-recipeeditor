@@ -106,17 +106,17 @@ Applies signed out (drafts, §4) and signed in (Drive recipes, §5) alike, unles
   button ("About this rest") expands what the rest does (enzymes, effect, when useful) below its row, one rest at
   a time; pressing it again collapses it. The texts are the product owner's (2026-11-10), verbatim.
 
-| Rest id | Name | Temperature range | Typ. duration | Warning outside | Preset |
-|---|---|---|---|---|---|
-| `PreMash` | Pre-mash / Dough-in rest (soaking) | Room temp. to 40 °C, typ. ~25 °C | 15–30 min (cold: up to several hours) | 15–40 °C | 25 °C, 20 min |
-| `AcidRest` | Acid rest / Phytase rest | 30–35 °C (up to 52 °C), typ. ~35 °C | 30–120 min | 30–52 °C | 35 °C, 30 min |
-| `BetaGlucanRest` | Beta-glucan rest (gum rest) | 35–45 °C, typ. ~40 °C | 15–20 min | 35–45 °C | 40 °C, 15 min |
-| `FerulicAcidRest` | Ferulic acid rest | 43–45 °C, typ. ~45 °C | 15–20 min | 43–45 °C | 45 °C, 15 min |
-| `ProteinRest` | Protein rest (protease rest) | 45–55 °C, typ. ~52 °C | 10–20 min | 45–55 °C | 52 °C, 10 min |
-| `MaltoseRest` | Maltose rest (beta-amylase rest) | 60–65 °C, typ. ~63 °C | 30–60 min | 60–65 °C | 63 °C, 45 min |
-| `CombinedRest` | Combined rest (single infusion) | 65–68 °C, typ. ~67 °C | 60 min | 65–68 °C | 67 °C, 60 min |
-| `SaccharificationRest` | Saccharification rest (dextrinization / alpha-amylase rest) | 70–75 °C, typ. ~72 °C | 20–40 min, until iodine-negative | 70–75 °C | 72 °C, 30 min |
-| `MashOut` | Mash-out | 76–78 °C, typ. ~78 °C | Heat up + 5–10 min | 76–78 °C | 78 °C, 10 min |
+| Rest id | Name | Temperature range | Typ. duration | Warning outside |
+|---|---|---|---|---|
+| `PreMash` | Pre-mash / Dough-in rest (soaking) | Room temp. to 40 °C, typ. ~25 °C | 15–30 min (cold: up to several hours) | 15–40 °C |
+| `AcidRest` | Acid rest / Phytase rest | 30–35 °C (up to 52 °C), typ. ~35 °C | 30–120 min | 30–52 °C |
+| `BetaGlucanRest` | Beta-glucan rest (gum rest) | 35–45 °C, typ. ~40 °C | 15–20 min | 35–45 °C |
+| `FerulicAcidRest` | Ferulic acid rest | 43–45 °C, typ. ~45 °C | 15–20 min | 43–45 °C |
+| `ProteinRest` | Protein rest (protease rest) | 45–55 °C, typ. ~52 °C | 10–20 min | 45–55 °C |
+| `MaltoseRest` | Maltose rest (beta-amylase rest) | 60–65 °C, typ. ~63 °C | 30–60 min | 60–65 °C |
+| `CombinedRest` | Combined rest (single infusion) | 65–68 °C, typ. ~67 °C | 60 min | 65–68 °C |
+| `SaccharificationRest` | Saccharification rest (dextrinization / alpha-amylase rest) | 70–75 °C, typ. ~72 °C | 20–40 min, until iodine-negative | 70–75 °C |
+| `MashOut` | Mash-out | 76–78 °C, typ. ~78 °C | Heat up + 5–10 min | 76–78 °C |
 
   What each rest does (**About this rest**):
   - Pre-mash / Dough-in rest: **Enzymes:** no targeted enzyme activity; amylases and proteases dissolve from the
@@ -149,8 +149,10 @@ Applies signed out (drafts, §4) and signed in (Drive recipes, §5) alike, unles
   - Mash-out: **Enzymes:** none (inactivation). **Effect:** fixes the sugar profile, lowers viscosity for better
     lautering. **When useful:** always. Do not exceed 78 °C, otherwise α-amylase is also destroyed and starch
     dissolved during lautering stays unconverted (starch haze).
-- `EDT-032` Ticking a rest plans it with its preset temperature and duration (table above); its **Temperature**
-  (°C) and **Duration** (min, a whole number) fields appear and can be changed (`EDT-015`). Unticking it removes the
+- `EDT-032` Ticking a rest plans it without values (no preset, `QE-63`): its **Temperature** (°C) and **Duration**
+  (min, a whole number) fields appear empty, with the typical values next to them, and are problems ("The Maltose
+  rest needs a temperature.", "… needs minutes.", `EDT-035`) until entered (`EDT-015`); the ladder and the schedule
+  count a rest once both are set. In the file a rest's fields are written temperature first, however entered. Unticking it removes the
   rest from the plan, with its values.
 - `EDT-033` A planned rest whose temperature is outside its "warning outside" range (inclusive) shows a warning:
   its temperature field and its typical range are marked amber, and "⚠ Outside the typical range" follows that
@@ -195,13 +197,15 @@ Applies signed out (drafts, §4) and signed in (Drive recipes, §5) alike, unles
   rate, then holds it for the step's minutes. A step lower than the one before is reached at the same rate. The
   time axis is in minutes. Above the chart: "Total mash time <total>: <holds> of rests, <ramps> heating at <rate>
   °C/min." (times as "45 min" or "2 h 18 min"); "No rests planned yet." and, in the chart, "Tick rests below to
-  draw the schedule." while there are no steps.
+  draw the schedule." while there are no steps; while rests are ticked but none has both values (`QE-63`), "Enter
+  the temperature and duration of the ticked rests." and "Enter their temperature and duration to draw the
+  schedule."
 - `EDT-040` The **heating rate** (°C/min, default 1) is a field next to the total. It is not stored: the recipe
   file has no place for it, and the editor keeps nothing else in the browser (`NFR-002`); a value that is not a
   number above 0 counts as 1.
 
 All rest values live in one file, the rest data (`src/mashRests.ts`): names, typical temperature range and
-temperature, typical duration (text and `durationMin`/`durationMax`), presets, enzymes, effect, when useful and the
+temperature, typical duration (text and `durationMin`/`durationMax`), enzymes, effect, when useful and the
 flags `obsolete`, `optional`, `always` and `conversion`; neither the table, the ladder nor the warnings write a
 temperature of their own. The typical durations of `EDT-038` and the flags:
 
@@ -445,10 +449,14 @@ temperature of their own. The typical durations of `EDT-038` and the flags:
   **residual alkalinity** of the brewing water, in °dH, with the hint "The residual alkalinity of the brewing water,
   in °dH: lower it for pale beers, so the mash gets the right pH." Its rows (`EDT-068`; inputs left empty are left out
   of the file, `treatment` when it holds nothing, and `water` when that is empty):
-  **Residual alkalinity (tap water)** (°dH, any number; "From your water supplier's analysis."), **Carbonate
-  hardness (tap water)** (°dH ≥ 0; "From the analysis; needed for boiling."), **Boil the brewing water** (a checkbox;
-  unticked is left out), **Brewing gypsum** (g/10 L ≥ 0, typical up to 3), **Acid malt (of the grist)** (%, 0–100,
-  typical up to 5) and **Lactic acid 80 %** (ml/10 L ≥ 0). The grid has, after Typical, a column **Effect**
+  **Residual alkalinity (tap water)** (°dH, any number; "From the water analysis."), then the **steps**, each ticked
+  to use it like a mashing rest (`QE-63`; a checkbox before its name, "Tick the steps you use."): **Boil the brewing
+  water** (ticked: `boil: true` and, in its row, the tap water's **carbonate hardness** in °dH ≥ 0, "°dH KH"),
+  **Brewing gypsum** (g/10 L ≥ 0, typical up to 3), **Acid malt (of the grist)** (%, 0–100, typical up to 5) and
+  **Lactic acid 80 %** (ml/10 L ≥ 0). A ticked step's field starts empty (no preset); while empty it is an error
+  ("The brewing gypsum needs an amount.", "The acid malt needs its share of the grist.", "The lactic acid needs an
+  amount."; boiling without the carbonate hardness only asks for it), and clearing it keeps the step ticked.
+  Unticked, a step has no field and no effect, and leaves the file (boiling with the carbonate hardness). The grid has, after Typical, a column **Effect**
   (`QE-62`; label and field as wide as in the other sections, Typical narrower): the tap water's residual alkalinity
   as the starting value ("10.3 °dH"), nothing for the carbonate hardness, and each measure's effect on the residual
   alkalinity, signed ("−0.9 °dH"; "–" while unused or not worked out, its hint then says what to enter: "Enter the

@@ -210,9 +210,17 @@ describe("goalLine", () => {
 });
 
 describe("mashing plan (QE-32)", () => {
-  it("ACC-059 plans rests with their presets, in table order, one per line, and drops the plan with the last rest", () => {
+  it("ACC-059 plans rests without presets, in table order, one per line, and drops the plan with the last rest", () => {
     const empty = { ...emptyRecipe(), name: "P" };
-    const planned = withMashRest(withMashRest(empty, "MashOut", newMashRest("MashOut")), "MaltoseRest", newMashRest("MaltoseRest"));
+    // Ticked, a rest has no values yet (QE-63): its temperature and minutes are problems until entered.
+    const ticked = withMashRest(empty, "MashOut", newMashRest("MashOut"));
+    expect(ticked.mashing).toEqual({ MashOut: {} });
+    expect(validateRecipe(ticked).map((p) => p.message)).toEqual(["The Mash-out needs a temperature.", "The Mash-out needs minutes."]);
+    const planned = withMashRest(
+      withMashRest(empty, "MashOut", { temperature: 78, minutes: 10 }),
+      "MaltoseRest",
+      { temperature: 63, minutes: 45 },
+    );
     expect(planned.mashing).toEqual({ MaltoseRest: { temperature: 63, minutes: 45 }, MashOut: { temperature: 78, minutes: 10 } });
     expect(Object.keys(planned.mashing as object)).toEqual(["MaltoseRest", "MashOut"]);
     expect(validateRecipe(planned)).toEqual([]);

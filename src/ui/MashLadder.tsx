@@ -57,6 +57,8 @@ export function MashLadder(props: { plan: Record<string, unknown>; selected?: Ma
   const [rateValue, setRateValue] = useState<unknown>(DEFAULT_HEATING_RATE);
   const rate = typeof rateValue === "number" && rateValue > 0 ? rateValue : DEFAULT_HEATING_RATE;
   const steps = stepsOf(props.plan);
+  // Ticked rests without both values yet (no presets, QE-63): the chart asks for them.
+  const ticked = Object.keys(props.plan).length > 0;
   const profile = mashProfile(steps, rate);
   const warnings = scheduleWarnings(steps);
   const planned = new Set(steps.map((s) => s.restId));
@@ -102,7 +104,9 @@ export function MashLadder(props: { plan: Record<string, unknown>; selected?: Ma
 
   const summary =
     steps.length === 0
-      ? "No rests planned yet."
+      ? ticked
+        ? "Enter the temperature and duration of the ticked rests."
+        : "No rests planned yet."
       : `Total mash time ${formatMinutes(profile.totalMinutes)}: ${formatMinutes(profile.holdMinutes)} of rests, ` +
         `${formatMinutes(profile.rampMinutes)} heating at ${rate} °C/min.`;
 
@@ -197,7 +201,7 @@ export function MashLadder(props: { plan: Record<string, unknown>; selected?: Ma
               text-anchor="middle"
               class="fill-stone-500 text-[11px] dark:fill-stone-400"
             >
-              Tick rests below to draw the schedule.
+              {ticked ? "Enter their temperature and duration to draw the schedule." : "Tick rests below to draw the schedule."}
             </text>
           ) : (
             <g data-ladder-profile>

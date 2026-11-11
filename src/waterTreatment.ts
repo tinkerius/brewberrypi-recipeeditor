@@ -31,6 +31,29 @@ export const TREATMENT_RULES = {
   mmolPerDegree: 0.3566, // mmol/L of alkalinity per °dH
 } as const;
 
+/** The steps that are ticked to use them, like the mashing rests (EDT-069, QE-63). */
+export const TREATMENT_STEPS = ["boil", "gypsum", "acid_malt", "lactic_acid"] as const;
+export type TreatmentStep = (typeof TREATMENT_STEPS)[number];
+
+/** Whether a step is ticked: boiling while `boil` is true, the others while their key is there (maybe still empty). */
+export function stepOn(recipe: Recipe, step: TreatmentStep): boolean {
+  const t = treatmentOf(recipe);
+  return step === "boil" ? t.boil === true : step in t;
+}
+
+/**
+ * The recipe with a step ticked or unticked (EDT-069): ticked, boiling is `boil: true`, another step its key with no
+ * value yet (`null`, a problem until entered; no preset, QE-63); unticked, the step's keys leave the file (boiling's
+ * carbonate hardness too).
+ */
+export function withTreatmentStep(recipe: Recipe, step: TreatmentStep, on: boolean): Recipe {
+  if (on) {
+    return withTreatmentField(recipe, step, step === "boil" ? true : null);
+  }
+  const off = withTreatmentField(recipe, step, undefined);
+  return step === "boil" ? withTreatmentField(off, "carbonate_hardness", undefined) : off;
+}
+
 /** The typical upper limits (EDT-064): gypsum and acid malt. */
 export const TREATMENT_TYPICAL = { gypsum: 3, acidMalt: 5 } as const;
 

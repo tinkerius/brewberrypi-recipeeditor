@@ -17,9 +17,6 @@ describe("rest data (QE-33)", () => {
       if (r.durationMin !== null && r.durationMax !== null) {
         expect(r.durationMin <= r.durationMax, id).toBe(true);
       }
-      // The presets are inside the typical duration, so a fresh plan has no warnings for them.
-      expect(r.durationMin === null || r.minutes >= r.durationMin, id).toBe(true);
-      expect(r.durationMax === null || r.minutes <= r.durationMax, id).toBe(true);
       expect(r.enzymes.length > 0 && r.about.length === 3, id).toBe(true);
     }
     expect(MASH_RESTS.AcidRest.flags).toContain("obsolete");

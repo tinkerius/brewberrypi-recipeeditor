@@ -299,9 +299,17 @@ function checkTreatment(treatment: unknown, problems: Problem[]) {
     acid_malt: [(v) => number(v) && (v as number) >= 0 && (v as number) <= 100, "The acid malt must be a number from 0 to 100 % of the grist."],
     lactic_acid: [(v) => number(v) && (v as number) >= 0, "The lactic acid must be a number of at least 0 ml per 10 L."],
   };
+  // A ticked step whose amount is not entered yet (EDT-069, `null`).
+  const needs: Record<string, string> = {
+    gypsum: "The brewing gypsum needs an amount.",
+    acid_malt: "The acid malt needs its share of the grist.",
+    lactic_acid: "The lactic acid needs an amount.",
+  };
   for (const [key, value] of Object.entries(treatment)) {
     const check = messages[key];
-    if (!check) {
+    if (value === null && key in needs) {
+      problems.push({ path: `${at}.${key}`, message: needs[key] });
+    } else if (!check) {
       problems.push({ path: `${at}.${key}`, message: `The water treatment has no field "${key}".` });
     } else if (!check[0](value)) {
       problems.push({ path: `${at}.${key}`, message: check[1] });

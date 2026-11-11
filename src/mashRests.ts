@@ -1,6 +1,6 @@
 /**
  * The rests of a mashing plan (app RCP-012, QE-32) and everything the editor knows about them: names, typical
- * temperatures and durations, presets, enzymes and texts. The single source of these values (QE-33): the Mashing
+ * temperatures and durations, enzymes and texts. The single source of these values (QE-33): the Mashing
  * table, the temperature ladder and the schedule's warnings all read them from here. The texts are the product
  * owner's (2026-11-10), verbatim.
  */
@@ -35,12 +35,10 @@ export interface MashRestInfo {
   /** The typical temperature range (°C, inclusive); outside it the editor warns (EDT-033). */
   tempMin: number;
   tempMax: number;
-  /** The typical temperature: preset when the rest is ticked (EDT-032), marked in the ladder (EDT-036). */
+  /** The typical temperature, marked in the ladder (EDT-036) and its order (no preset when ticked, QE-63). */
   tempTypical: number;
   /** The typical duration, as text. */
   duration: string;
-  /** The duration preset when the rest is ticked (EDT-032). */
-  minutes: number;
   /** The typical duration in minutes; outside it the schedule warns (EDT-038). null: no limit. */
   durationMin: number | null;
   durationMax: number | null;
@@ -61,7 +59,6 @@ export const MASH_RESTS: Record<MashRestId, MashRestInfo> = {
     tempMax: 40,
     duration: "15–30 min (cold: up to several hours)",
     tempTypical: 25,
-    minutes: 20,
     durationMin: 15,
     durationMax: null,
     enzymes: ["amylases and proteases dissolve", "phytase, β-glucanase (slightly)"],
@@ -80,7 +77,6 @@ export const MASH_RESTS: Record<MashRestId, MashRestInfo> = {
     tempMax: 52,
     duration: "30–120 min",
     tempTypical: 35,
-    minutes: 30,
     durationMin: 30,
     durationMax: 120,
     enzymes: ["phytase"],
@@ -99,7 +95,6 @@ export const MASH_RESTS: Record<MashRestId, MashRestInfo> = {
     tempMax: 45,
     duration: "15–20 min",
     tempTypical: 40,
-    minutes: 15,
     durationMin: 15,
     durationMax: 20,
     enzymes: ["β-glucanase"],
@@ -118,7 +113,6 @@ export const MASH_RESTS: Record<MashRestId, MashRestInfo> = {
     tempMax: 45,
     duration: "15–20 min",
     tempTypical: 45,
-    minutes: 15,
     durationMin: 15,
     durationMax: 20,
     enzymes: ["feruloyl esterase"],
@@ -137,7 +131,6 @@ export const MASH_RESTS: Record<MashRestId, MashRestInfo> = {
     tempMax: 55,
     duration: "10–20 min",
     tempTypical: 52,
-    minutes: 10,
     durationMin: 10,
     durationMax: 20,
     enzymes: ["peptidases", "proteinases"],
@@ -156,7 +149,6 @@ export const MASH_RESTS: Record<MashRestId, MashRestInfo> = {
     tempMax: 65,
     duration: "30–60 min",
     tempTypical: 63,
-    minutes: 45,
     durationMin: 30,
     durationMax: 60,
     enzymes: ["β-amylase"],
@@ -175,7 +167,6 @@ export const MASH_RESTS: Record<MashRestId, MashRestInfo> = {
     tempMax: 68,
     duration: "60 min",
     tempTypical: 67,
-    minutes: 60,
     durationMin: 60,
     durationMax: 60,
     enzymes: ["β-amylase", "α-amylase"],
@@ -194,7 +185,6 @@ export const MASH_RESTS: Record<MashRestId, MashRestInfo> = {
     tempMax: 75,
     duration: "20–40 min, until iodine-negative",
     tempTypical: 72,
-    minutes: 30,
     durationMin: 20,
     durationMax: 40,
     enzymes: ["α-amylase"],
@@ -213,7 +203,6 @@ export const MASH_RESTS: Record<MashRestId, MashRestInfo> = {
     tempMax: 78,
     duration: "Heat up + 5–10 min",
     tempTypical: 78,
-    minutes: 10,
     durationMin: 5,
     durationMax: 10,
     enzymes: ["none (inactivation)"],

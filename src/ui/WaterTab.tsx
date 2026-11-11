@@ -9,7 +9,7 @@
 import type { ComponentChildren } from "preact";
 import type { Problem } from "../validate";
 import { TYPICAL, type Warning } from "../warnings";
-import { notesAt } from "./notes";
+import { notesAt, notesWhere } from "./notes";
 import {
   MASH_WATER_BY_STYLE,
   WATER_FIELDS,
@@ -37,8 +37,11 @@ import {
   treatmentEffects,
   treatmentOf,
   withTreatmentField,
+  stepOn,
+  withTreatmentStep,
   type Effect,
   type TreatmentField,
+  type TreatmentStep,
 } from "../waterTreatment";
 
 /** Litres with at most one decimal: "32 L", "14.5 L". */
@@ -264,39 +267,72 @@ function effectHint(effect: Effect, about: string): string {
   return `Enter ${effect.missing.map((m) => what[m]).join(" and ")}. ${sentence}`;
 }
 
+/** The label column's indent of rows without a checkbox, so all labels line up with the steps' (EDT-069). */
+const NO_CHECKBOX = "pl-6";
+
 /**
- * The water treatment (EDT-069, QE-61, QE-62): the tap water's residual alkalinity and carbonate hardness, what is
- * done to the water, each measure's effect in its own column, and their total, the residual alkalinity after
- * treatment, against the typical target for the beer's colour.
+ * The water treatment (EDT-069, QE-61..QE-63): the tap water's residual alkalinity, the steps ticked like the mashing
+ * rests (boiling, with the tap water's carbonate hardness; gypsum; acid malt; lactic acid), each step's effect in its
+ * own column, and their total, the residual alkalinity after treatment, against the typical target for the beer's
+ * colour. A ticked step starts empty (no preset).
  */
 function WaterTreatment(props: { recipe: Recipe; problems: Problem[]; warnings: Warning[]; onChange: (recipe: Recipe) => void }) {
   const t = treatmentOf(props.recipe);
   const effects = treatmentEffects(props.recipe);
   const issues = { problems: props.problems, warnings: props.warnings };
   const path = (field: string) => `water.treatment.${field}`;
-  const set = (field: TreatmentField, value: unknown) => props.onChange(withTreatmentField(props.recipe, field, value));
-  const number = (field: TreatmentField, label: string, unit: string) => (
+  const input = (field: TreatmentField, label: string, unit: string, keepTicked: boolean) => (
     <NumberField
       label={label}
+      hiddenLabel
       unit={unit}
-      value={t[field]}
+      value={t[field] ?? undefined}
       invalid={props.problems.some((p) => p.path === path(field))}
       warn={props.warnings.some((w) => w.path === path(field))}
-      onChange={(v) => set(field, v)}
+      // Clearing a ticked step's amount keeps it ticked (empty, a problem until entered).
+      onChange={(v) => props.onChange(withTreatmentField(props.recipe, field, v === undefined && keepTicked ? null : v))}
     />
   );
-  const row = (field: TreatmentField, label: string, unit: string, effect: string, hint: string, typical?: string) => (
-    <div class="contents" data-treatment={field}>
-      <FieldRow
-        id={`treatment-${field}`}
-        field={number(field, label, unit)}
-        typical={typical}
-        notes={notesAt(issues, path(field))}
-        effect={effect}
-        hint={hint}
-      />
-    </div>
-  );
+  /** A step: its checkbox and label, its field while ticked (EDT-069). */
+  const step = (
+    name: TreatmentStep,
+    label: string,
+    field: { key: TreatmentField; label: string; unit: string } | undefined,
+    effect: Effect,
+    about: string,
+    typical?: string,
+  ) => {
+    const on = stepOn(props.recipe, name);
+    const id = `treatment-step-${name}`;
+    return (
+      <div class="contents" data-treatment={name} data-treatment-on={on ? "" : undefined}>
+        <FieldRow
+          id={`treatment-${name}`}
+          field={
+            <>
+              <span class="flex items-center gap-2">
+                <input
+                  id={id}
+                  type="checkbox"
+                  class="size-4 shrink-0 accent-berry"
+                  checked={on}
+                  onChange={(e) => props.onChange(withTreatmentStep(props.recipe, name, e.currentTarget.checked))}
+                />
+                <label for={id} class={`${LABEL_STYLE} cursor-pointer`}>
+                  {label}
+                </label>
+              </span>
+              {on && field ? input(field.key, field.label, field.unit, name !== "boil") : <span aria-hidden="true" />}
+            </>
+          }
+          typical={typical}
+          notes={notesWhere(issues, (p) => p === path(name) || (name === "boil" && p === path("carbonate_hardness")))}
+          effect={on ? effectValue(effect) : "–"}
+          hint={effectHint(on ? effect : undefined, about)}
+        />
+      </div>
+    );
+  };
   const alkalinity = t.alkalinity;
   const target = effects.target;
   return (
@@ -305,67 +341,62 @@ function WaterTreatment(props: { recipe: Recipe; problems: Problem[]; warnings: 
         Water treatment
       </h3>
       <p class={`${HINT_STYLE} mb-3`}>
-        The residual alkalinity of the brewing water, in °dH: lower it for pale beers, so the mash gets the right pH.
+        The residual alkalinity of the brewing water, in °dH: lower it for pale beers, so the mash gets the right pH. Tick
+        the steps you use.
       </p>
       <FieldGrid effect data-treatment-fields>
-        {row(
-          "alkalinity",
-          "Residual alkalinity (tap water)",
-          "°dH",
-          typeof alkalinity === "number" && Number.isFinite(alkalinity) ? degrees(alkalinity) : "–",
-          "From the water analysis.",
-        )}
-        {row("carbonate_hardness", "Carbonate hardness (tap water)", "°dH", "", "From the analysis; for boiling.")}
-        <div class="contents" data-treatment="boil">
+        <div class="contents" data-treatment="alkalinity">
           <FieldRow
-            id="treatment-boil"
+            id="treatment-alkalinity"
             field={
-              <label class="contents">
-                <span class={LABEL_STYLE}>Boil the brewing water</span>
-                <span class="flex items-center">
-                  <input
-                    type="checkbox"
-                    class="size-4 accent-berry"
-                    checked={t.boil === true}
-                    onChange={(e) => set("boil", e.currentTarget.checked)}
-                  />
+              <>
+                <span class={`${LABEL_STYLE} ${NO_CHECKBOX}`} aria-hidden="true">
+                  Residual alkalinity (tap water)
                 </span>
-              </label>
+                {input("alkalinity", "Residual alkalinity (tap water)", "°dH", false)}
+              </>
             }
-            notes={notesAt(issues, path("boil"))}
-            effect={effectValue(effects.boil)}
-            hint={effectHint(effects.boil, "down to about 3 °dH carbonate hardness")}
+            notes={notesAt(issues, path("alkalinity"))}
+            effect={typeof alkalinity === "number" && Number.isFinite(alkalinity) ? degrees(alkalinity) : "–"}
+            hint="From the water analysis."
           />
         </div>
-        {row(
+        {step(
+          "boil",
+          "Boil the brewing water",
+          { key: "carbonate_hardness", label: "Carbonate hardness (tap water)", unit: "°dH KH" },
+          effects.boil,
+          "the tap water's carbonate hardness (from the analysis) goes down to about 3 °dH",
+        )}
+        {step(
           "gypsum",
           "Brewing gypsum",
-          "g/10 L",
-          effectValue(effects.gypsum),
-          effectHint(effects.gypsum, "its calcium lowers it"),
+          { key: "gypsum", label: "Brewing gypsum", unit: "g/10 L" },
+          effects.gypsum,
+          "its calcium lowers it",
           `up to ${TREATMENT_TYPICAL.gypsum} g/10 L`,
         )}
-        {row(
+        {step(
           "acid_malt",
           "Acid malt (of the grist)",
-          "%",
-          effectValue(effects.acidMalt),
-          effectHint(effects.acidMalt, "its lactic acid acts in the mash"),
+          { key: "acid_malt", label: "Acid malt (of the grist)", unit: "%" },
+          effects.acidMalt,
+          "its lactic acid acts in the mash",
           `up to ${TREATMENT_TYPICAL.acidMalt} %`,
         )}
-        {row(
+        {step(
           "lactic_acid",
           "Lactic acid 80 %",
-          "ml/10 L",
-          effectValue(effects.lacticAcid),
-          effectHint(effects.lacticAcid, "about −3 °dH per ml per 10 L"),
+          { key: "lactic_acid", label: "Lactic acid 80 %", unit: "ml/10 L" },
+          effects.lacticAcid,
+          "about −3 °dH per ml per 10 L",
         )}
         <div class="contents" data-treatment="result">
           <FieldRow
             id="treatment-result"
             field={
               <>
-                <span class={`${LABEL_STYLE} font-semibold`}>Residual alkalinity after treatment</span>
+                <span class={`${LABEL_STYLE} ${NO_CHECKBOX} font-semibold`}>Residual alkalinity after treatment</span>
                 {/* The result is the Effect column's total (QE-62). */}
                 <span aria-hidden="true" />
               </>

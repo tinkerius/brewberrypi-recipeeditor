@@ -25,6 +25,8 @@ export function NumberField(props: {
   unit?: string;
   /** In a table cell (EDT-031): the label is only for screen readers, the field narrower. */
   compact?: boolean;
+  /** The label only for screen readers, the field as wide as usual (its visible label is elsewhere, EDT-069). */
+  hiddenLabel?: boolean;
   /** Marks the field as worth a second look (a warning, not a problem; EDT-033). */
   warn?: boolean;
   /** The id of a hint that describes the field (e.g. its typical values). */
@@ -41,7 +43,7 @@ export function NumberField(props: {
   }, [shown]);
   return (
     <label class="contents">
-      <span class={props.compact ? "sr-only" : LABEL_STYLE}>{props.label}</span>
+      <span class={props.compact || props.hiddenLabel ? "sr-only" : LABEL_STYLE}>{props.label}</span>
       <span class="flex items-center gap-2 text-sm text-stone-600 dark:text-stone-300">
         <input
           type="text"

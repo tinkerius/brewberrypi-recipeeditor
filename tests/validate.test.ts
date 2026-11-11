@@ -175,6 +175,8 @@ const CASES: [string, unknown][] = [
   ["water treatment acid malt above 100", { ...valid, water: { treatment: { acid_malt: 101 } } }],
   ["water treatment boil a string", { ...valid, water: { treatment: { boil: "yes" } } }],
   ["water treatment negative lactic acid", { ...valid, water: { treatment: { lactic_acid: -1 } } }],
+  ["water treatment step ticked without amount", { ...valid, water: { treatment: { gypsum: null } } }],
+  ["water treatment acid malt ticked without share", { ...valid, water: { treatment: { acid_malt: null } } }],
   // The description (app RCP-016, Q-44)
   ["description", { ...valid, description: "A wheat beer." }],
   ["description multi-line", { ...valid, description: "Line one.\nLine two." }],

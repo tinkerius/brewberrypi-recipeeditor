@@ -54,7 +54,7 @@ in the brand colours. Unlike the website, the editor also has a dark mode, follo
   `<id>.json` (not editable here, `EDT-003`); the state (`BRW-004`,
   `DRV-010`) at the right. Then the tabs (`GUI-032`), and below them the problems (`EDT-020`).
 - `GUI-032` The recipe's sections are **tabs** below its title (`QE-28`). So far there are five, in this order:
-  **Malt** (selected when a recipe is opened) and **Hops**: the ingredients (`EDT-041`..`EDT-050`, `EDT-054`,
+  **Malt** (selected when a recipe is opened) and **Boiling** (hops and other additions; `QE-42`): the ingredients (`EDT-041`..`EDT-050`, `EDT-054`,
   `QE-34`, `QE-35`); **Water**: the brewing-day water (`EDT-051`..`EDT-053`, `QE-36`);
   **Mashing**: the mashing plan (`EDT-030`..`EDT-035`, `QE-32`); and **Mash Process**: the goals in brewing order, one line each with one open for editing (`EDT-011`..`EDT-015`, `QE-26`), and
   **+ Add goal**.

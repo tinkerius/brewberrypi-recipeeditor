@@ -67,7 +67,7 @@ a release that changes sign-in or Drive behaviour.
   it.
 - `ACC-047` (QE-27, GUI-001, GUI-004) The top bar shows "BrewberryPi" as a link to https://brewberrypi.org/, "Recipe
   Editor" and Cloud Sync; the footer links to brewberrypi.org, the privacy policy, the terms and the source code.
-- `ACC-048` (QE-28, QE-34, QE-35, GUI-032) Below the recipe's title is a tab list with the tabs **Malt**, **Hops**,
+- `ACC-048` (QE-28, QE-34, QE-35, GUI-032) Below the recipe's title is a tab list with the tabs **Malt**, **Boiling**,
   **Water**, **Mashing** and **Mash Process**, in this order, Malt selected (it shows the malt table); the Mash Process panel holds the goals and, as the list's last row, + Add goal; the problems are below the panel, not in it.
 - `ACC-049` (QE-29, GUI-024, NFR-002) "Hide sidebar" collapses the recipe list to a strip with "Show sidebar" and
   New recipe, the recipe stays shown, and the browser remembers it (also after the page is shown again); with a
@@ -124,7 +124,7 @@ a release that changes sign-in or Drive behaviour.
   35 min of rests, 43 min heating at 1 °C/min." and the profile; a heating rate of 2 shows "Total mash time 1 h 57
   min: 1 h 35 min of rests, 22 min heating at 2 °C/min."
 - `ACC-067` (QE-34, QE-35, EDT-041, EDT-042) The Malt tab has a table with Name, EBC, Absolute amount (g), Relative amount (%)
-  and a Total line, the Hops tab one with Name, α %, Cooking time (min), Absolute amount (g), Relative amount (%) and
+  and a Total line, the Boiling tab one with Name, α %, Cooking time (min), Absolute amount (g), Relative amount (%) and
   a Total line, saying "No malt yet." / "No hop yet." for a recipe without `ingredients`; + Add malt / + Add
   hop is the table's last row before the Total line, and adds an empty row above it whose name field has the focus; ✕ removes a row; removing the last row of both tables removes
   `ingredients` from the recipe.
@@ -133,7 +133,7 @@ a release that changes sign-in or Drive behaviour.
 - `ACC-069` (EDT-044, EDT-045, FMT-004) A new row is reported as "Malt 1: Malt 1 needs a name." and
   "… needs an amount in grams.", with its fields marked; 12.5 g is "Malt 1: the amount must be a whole number of
   grams.", 0 g "… must be at least 1 g."; clicking "Malt 1" from the Mash Process tab opens the
-  Malt tab, "Hop 1" the Hops tab. A name and 4500 g make the recipe complete.
+  Malt tab, "Hop 1" the Boiling tab. A name and 4500 g make the recipe complete.
 - `ACC-070` (FMT-006, EDT-042) Two malts and a hop are written as `"ingredients"` after `"mashing"` (or after
   `"mashing_process"`), `malts` before `hops`, one entry per line in the brewer's order
   (`{ "name": "Pilsner malt", "grams": 4500 }`), without shares; the file reads back the same.
@@ -153,13 +153,13 @@ a release that changes sign-in or Drive behaviour.
   "19 IBU"; until the boil time, volume and gravity are entered it is "–" with "Enter the alpha acid and boil time
   of hop 1 and the knockout volume and the original gravity on the Water tab."; a hop of 0 min adds nothing. 101 % and 2.5 min are
   problems.
-- `ACC-075` (EDT-050, EDT-045, FMT-006) The Malt and Hops tabs have no batch fields; the knockout volume and the
+- `ACC-075` (EDT-050, EDT-045, FMT-006) The Malt and Boiling tabs have no batch fields; the knockout volume and the
   original gravity are entered on the Water tab; 20 l and 12.6 °P are written as `"batch": { "liters": 20, "plato": 12.6 }`; 0 l and
   41 °P are problems whose entries open the Water tab; clearing both removes `batch`.
-- `ACC-076` (EDT-041, QE-36) The Malt tab has the heading Malt before its table; the Hops tab Hops before its table
-  and Hop Schedule after it.
+- `ACC-076` (EDT-041, QE-36, QE-42) The Malt tab has the heading Malt before its table; the Boiling tab Boil Ingredients
+  before its table and Boil Schedule after it.
 - `ACC-077` (EDT-054) Hops Saaz 10 g 0 min, Hallertauer Tradition 30 g 60 min, Tettnanger 20 g 10 min and Cascade
-  15 g without cooking time: "Total boil time: 60 min"; the table (Add at, Hops, Cooking time, Amount) lists 0 min
+  15 g without cooking time: "Total boil time: 60 min"; the table (Add at, Ingredient, Cooking time, Amount) lists 0 min
   (start) Hallertauer Tradition 60 min 30 g, 50 min Tettnanger 10 min 20 g, 60 min (flame-out) Saaz 0 min 10 g; the
   dots go from left (start) to right (end) in the hops' donut colours, with tooltips ("…, add at 0 min (start),
   cooks 60 min"); it says "No cooking time yet: hop 4."; without cooking times it asks for them.
@@ -187,6 +187,12 @@ a release that changes sign-in or Drive behaviour.
 - `ACC-084` (EDT-059) At BU:GU 0.37 the balance bar has the bands malty, balanced, bitter, very bitter, the limits
   0, 0.35, 0.55, 0.80, 1.0+, "balanced" in bold and the marker in the balanced band's malty half; at 126 IBU "very
   bitter" is bold and the marker at the end. No bar without BU:GU.
+- `ACC-085` (EDT-060, QE-42) On the Boiling tab (so named), with Hallertauer Tradition 30 g 5.5 % 60 min (19 IBU):
+  below the hops the label "Other additions — not in the shares or the bitterness"; + Add other addition adds a row
+  with the focus on its name and no α field; Irish Moss 10 g 15 min leaves 19 IBU, the hop's 100 %, one donut slice
+  and "Total hops 30 g"; the schedule adds it at 45 min as a grey square; the file has
+  `"others": [ { "name": "Irish Moss", "grams": 10, "minutes": 15 } ]` after `hops`; without grams it is
+  "Other addition 1: Other addition 1 needs an amount in grams.", whose entry opens the Boiling tab.
 
 ## 9.3 Browser drafts
 

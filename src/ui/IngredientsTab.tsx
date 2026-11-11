@@ -1,5 +1,5 @@
 /**
- * The Malt and Hops tabs (EDT-041..050, QE-34, QE-35): the malts or the hops of the brew as a table the brewer adds
+ * The Malt and Boiling tabs (EDT-041..060, QE-34, QE-35, QE-42): the malts, or the hops and other additions, as a table the brewer adds
  * rows to and sorts, a donut of each row's share of the total weight, and a figure computed from the table and the
  * batch: the beer colour (EBC) for the malts, the bitterness (IBU) for the hops. Shares and figures are computed,
  * never stored (app RCP-013).
@@ -10,6 +10,7 @@ import { useEffect, useState } from "preact/hooks";
 import type { Problem } from "../validate";
 import { balanceOf, beerColourHex, buGu } from "../brewMath";
 import {
+  INGREDIENT_EXTRA_FIELDS,
   INGREDIENT_LABELS,
   batchOf,
   beerColourOf,
@@ -49,7 +50,7 @@ export const seriesColour = (i: number) => (i < SERIES ? `var(--series-${i + 1})
 /** A number field of a row (EDT-042): the grams, a malt's EBC, a hop's alpha acid and boil time. */
 type Column = { field: "grams" | "ebc" | "alpha" | "minutes"; head: string; label: string; integer: boolean; width: string };
 /** In this order after the name (EDT-042, QE-40): the absolute amount last, just before the relative one. */
-const COLUMNS: Record<IngredientKind, Column[]> = {
+const COLUMNS: Record<"malts" | "hops", Column[]> = {
   malts: [
     { field: "ebc", head: "EBC", label: "Colour (EBC)", integer: false, width: "w-24 sm:w-28" },
     { field: "grams", head: "Absolute amount (g)", label: "Absolute amount (g)", integer: true, width: "w-16 sm:w-28" },
@@ -256,13 +257,27 @@ function FigureLine(props: { kind: IngredientKind; recipe: Recipe; onWater?: () 
   );
 }
 
-function IngredientTable(props: { kind: IngredientKind; recipe: Recipe; problems: Problem[]; onChange: (recipe: Recipe) => void }) {
-  const { kind } = props;
+/** The kinds of rows a tab's table holds (EDT-060): the malts; the hops, then the other boil additions. */
+const TABLE_GROUPS: Record<"malts" | "hops", IngredientKind[]> = { malts: ["malts"], hops: ["hops", "others"] };
+
+/**
+ * One kind of rows in a table (EDT-042, EDT-060), in its own `<tbody>`: its rows, sorted by drag and drop within the
+ * group (EDT-046), and its add row. `columns` are the table's; a field the kind doesn't have stays empty. Shares only
+ * for the table's first kind (`shares`).
+ */
+function IngredientGroup(props: {
+  kind: IngredientKind;
+  columns: Column[];
+  shares: boolean;
+  recipe: Recipe;
+  problems: Problem[];
+  onChange: (recipe: Recipe) => void;
+}) {
+  const { kind, columns } = props;
   const { one } = INGREDIENT_LABELS[kind];
-  const columns = COLUMNS[kind];
   const span = columns.length + 4;
+  const fields = ["grams", ...INGREDIENT_EXTRA_FIELDS[kind]];
   const list = ingredientsOf(props.recipe, kind);
-  const total = totalGrams(list);
   const set = (next: Ingredient[]) => props.onChange(withIngredients(props.recipe, kind, next));
   const setField = (i: number, field: string, value: unknown) =>
     set(list.map((e, j) => (j === i ? withField(e, field, value) : e)));
@@ -279,8 +294,130 @@ function IngredientTable(props: { kind: IngredientKind; recipe: Recipe; problems
     }
   }, [focusRow]);
   return (
+    <tbody ref={body} data-ingredient-group={kind}>
+      {list.map((entry, i) => {
+        const share = props.shares ? shareOf(entry, list) : undefined;
+        return (
+          <tr
+            key={i}
+            class={
+              "relative border-t border-line dark:border-white/10 " +
+              (reorder.dragging(i) ? "bg-berry/10 opacity-60 dark:bg-berry-light/10" : "")
+            }
+            data-ingredient={i}
+            data-ingredient-kind={kind}
+          >
+            <td class={`${CELL} pr-0!`}>
+              {reorder.dropLine(i) && <DropLine at={reorder.dropLine(i)!} />}
+              <DragHandle
+                label={`Move ${one.toLowerCase()} ${i + 1}`}
+                title={`Drag to move the ${one.toLowerCase()} (or use the arrow keys)`}
+                count={list.length}
+                onDragStart={(e) => reorder.startDrag(i, e)}
+                onMoveKey={(delta) => reorder.moveKey(i, delta)}
+              />
+            </td>
+            <td class={`${CELL} min-w-32 sm:min-w-0 [&_input]:px-2! sm:[&_input]:px-3!`} data-ingredient-name>
+              <TextField
+                label={`Name, ${one} ${i + 1}`}
+                compact
+                value={entry.name}
+                invalid={invalid(i, "name")}
+                onChange={(name) => setField(i, "name", name)}
+              />
+            </td>
+            {columns.map((c) =>
+              !fields.includes(c.field) ? (
+                <td key={c.field} class={CELL} />
+              ) : (
+                <td
+                  key={c.field}
+                  class={`${CELL} ${c.field === "ebc" ? "min-w-22" : "min-w-14"} sm:min-w-0 [&_input]:w-full! [&_input]:px-1.5! sm:[&_input]:px-3! [&_span]:justify-end`}
+                  data-ingredient-field={c.field}
+                >
+                  <div class="flex items-center gap-1.5">
+                    {/* A malt's own colour, from its EBC (EDT-058). */}
+                    {c.field === "ebc" && (
+                      <span
+                        aria-hidden="true"
+                        data-malt-swatch
+                        title={validEbc(entry.ebc) ? `About the colour of ${entry.ebc} EBC` : undefined}
+                        class={
+                          "size-4 shrink-0 rounded-sm ring-1 ring-black/10 dark:ring-white/20 " +
+                          (validEbc(entry.ebc) ? "" : "invisible")
+                        }
+                        style={validEbc(entry.ebc) ? { background: beerColourHex(entry.ebc) } : undefined}
+                      />
+                    )}
+                    <NumberField
+                      label={`${c.label}, ${one} ${i + 1}`}
+                      compact
+                      integer={c.integer}
+                      value={entry[c.field]}
+                      invalid={invalid(i, c.field)}
+                      onChange={(v) => setField(i, c.field, v)}
+                    />
+                  </div>
+                </td>
+              ),
+            )}
+            <td class={`${CELL} ${NUMBER} text-stone-600 dark:text-stone-300`} data-ingredient-share>
+              {props.shares && (
+                <span class="inline-flex items-center justify-end gap-1.5">
+                  {share !== undefined && (
+                    // On a phone the legend carries the colours, so the columns fit.
+                    <span aria-hidden="true" class="hidden size-2.5 rounded-sm sm:inline-block" style={{ background: seriesColour(i) }} />
+                  )}
+                  {share === undefined ? "–" : formatShare(share)}
+                </span>
+              )}
+            </td>
+            <td class={`${CELL} text-right`}>
+              <button
+                type="button"
+                class={BUTTON_STYLES.small}
+                title={`Remove ${one.toLowerCase()}`}
+                aria-label={`Remove ${one.toLowerCase()} ${i + 1}`}
+                onClick={() => set(list.filter((_, j) => j !== i))}
+              >
+                ✕
+              </button>
+            </td>
+          </tr>
+        );
+      })}
+      {list.length === 0 && props.shares && (
+        <tr class="border-t border-line dark:border-white/10">
+          <td colSpan={span} class={`${CELL} ${HINT_STYLE}`}>
+            No {one.toLowerCase()} yet.
+          </td>
+        </tr>
+      )}
+      <tr class={ADD_ROW_LINE}>
+        <td colSpan={span} class="p-0">
+          <AddRowButton
+            label={`Add ${one.toLowerCase()}`}
+            onClick={() => {
+              set([...list, { name: "" }]);
+              setFocusRow(list.length);
+            }}
+          />
+        </td>
+      </tr>
+    </tbody>
+  );
+}
+
+/** A tab's table (EDT-042): the column heads, its groups of rows (EDT-060), and the Total of the first group. */
+function IngredientTable(props: { kind: "malts" | "hops"; recipe: Recipe; problems: Problem[]; onChange: (recipe: Recipe) => void }) {
+  const { kind } = props;
+  const columns = COLUMNS[kind];
+  const span = columns.length + 4;
+  const groups = TABLE_GROUPS[kind];
+  const total = totalGrams(ingredientsOf(props.recipe, kind));
+  return (
     <div class="relative overflow-x-auto rounded-lg ring-1 ring-line dark:ring-white/10" data-ingredients={kind}>
-      <table aria-label={INGREDIENT_LABELS[kind].title} class="w-full border-collapse text-sm">
+      <table aria-label={kind === "malts" ? "Malt" : "Boil ingredients"} class="w-full border-collapse text-sm">
         <thead class="bg-stone-50 dark:bg-white/5">
           <tr>
             <th class={`${HEAD} w-8`}>
@@ -298,114 +435,33 @@ function IngredientTable(props: { kind: IngredientKind; recipe: Recipe; problems
             </th>
           </tr>
         </thead>
-        <tbody ref={body}>
-          {list.map((entry, i) => {
-            const share = shareOf(entry, list);
-            return (
-              <tr
-                key={i}
-                class={
-                  "relative border-t border-line dark:border-white/10 " +
-                  (reorder.dragging(i) ? "bg-berry/10 opacity-60 dark:bg-berry-light/10" : "")
-                }
-                data-ingredient={i}
-              >
-                <td class={`${CELL} pr-0!`}>
-                  {reorder.dropLine(i) && <DropLine at={reorder.dropLine(i)!} />}
-                  <DragHandle
-                    label={`Move ${one.toLowerCase()} ${i + 1}`}
-                    title={`Drag to move the ${one.toLowerCase()} (or use the arrow keys)`}
-                    count={list.length}
-                    onDragStart={(e) => reorder.startDrag(i, e)}
-                    onMoveKey={(delta) => reorder.moveKey(i, delta)}
-                  />
-                </td>
-                <td class={`${CELL} min-w-32 sm:min-w-0 [&_input]:px-2! sm:[&_input]:px-3!`} data-ingredient-name>
-                  <TextField
-                    label={`Name, ${one} ${i + 1}`}
-                    compact
-                    value={entry.name}
-                    invalid={invalid(i, "name")}
-                    onChange={(name) => setField(i, "name", name)}
-                  />
-                </td>
-                {columns.map((c) => (
-                  <td
-                    key={c.field}
-                    class={`${CELL} ${c.field === "ebc" ? "min-w-22" : "min-w-14"} sm:min-w-0 [&_input]:w-full! [&_input]:px-1.5! sm:[&_input]:px-3! [&_span]:justify-end`}
-                    data-ingredient-field={c.field}
-                  >
-                    <div class="flex items-center gap-1.5">
-                      {/* A malt's own colour, from its EBC (EDT-058). */}
-                      {c.field === "ebc" && (
-                        <span
-                          aria-hidden="true"
-                          data-malt-swatch
-                          title={validEbc(entry.ebc) ? `About the colour of ${entry.ebc} EBC` : undefined}
-                          class={
-                            "size-4 shrink-0 rounded-sm ring-1 ring-black/10 dark:ring-white/20 " +
-                            (validEbc(entry.ebc) ? "" : "invisible")
-                          }
-                          style={validEbc(entry.ebc) ? { background: beerColourHex(entry.ebc) } : undefined}
-                        />
-                      )}
-                      <NumberField
-                        label={`${c.label}, ${one} ${i + 1}`}
-                        compact
-                        integer={c.integer}
-                        value={entry[c.field]}
-                        invalid={invalid(i, c.field)}
-                        onChange={(v) => setField(i, c.field, v)}
-                      />
-                    </div>
+        {groups.map((group, k) => (
+          <Fragment key={group}>
+            {k > 0 && (
+              // The group's name (EDT-060): its rows follow, then its add row.
+              <tbody>
+                <tr class="border-t-2 border-line bg-stone-50/60 dark:border-white/15 dark:bg-white/[0.03]" data-group-label={group}>
+                  <td colSpan={span} class={`${CELL} text-xs font-semibold text-stone-600 dark:text-stone-300`}>
+                    {INGREDIENT_LABELS[group].title}
+                    <span class="font-normal text-stone-500 dark:text-stone-400"> — not in the shares or the bitterness</span>
                   </td>
-                ))}
-                <td class={`${CELL} ${NUMBER} text-stone-600 dark:text-stone-300`} data-ingredient-share>
-                  <span class="inline-flex items-center justify-end gap-1.5">
-                    {share !== undefined && (
-                      // On a phone the legend carries the colours, so the columns fit.
-                      <span aria-hidden="true" class="hidden size-2.5 rounded-sm sm:inline-block" style={{ background: seriesColour(i) }} />
-                    )}
-                    {share === undefined ? "–" : formatShare(share)}
-                  </span>
-                </td>
-                <td class={`${CELL} text-right`}>
-                  <button
-                    type="button"
-                    class={BUTTON_STYLES.small}
-                    title={`Remove ${one.toLowerCase()}`}
-                    aria-label={`Remove ${one.toLowerCase()} ${i + 1}`}
-                    onClick={() => set(list.filter((_, j) => j !== i))}
-                  >
-                    ✕
-                  </button>
-                </td>
-              </tr>
-            );
-          })}
-          {list.length === 0 && (
-            <tr class="border-t border-line dark:border-white/10">
-              <td colSpan={span} class={`${CELL} ${HINT_STYLE}`}>
-                No {one.toLowerCase()} yet.
-              </td>
-            </tr>
-          )}
-          <tr class={ADD_ROW_LINE}>
-            <td colSpan={span} class="p-0">
-              <AddRowButton
-                label={`Add ${one.toLowerCase()}`}
-                onClick={() => {
-                  set([...list, { name: "" }]);
-                  setFocusRow(list.length);
-                }}
-              />
-            </td>
-          </tr>
-        </tbody>
+                </tr>
+              </tbody>
+            )}
+            <IngredientGroup
+              kind={group}
+              columns={columns}
+              shares={k === 0}
+              recipe={props.recipe}
+              problems={props.problems}
+              onChange={props.onChange}
+            />
+          </Fragment>
+        ))}
         <tfoot class="border-t-2 border-line font-semibold text-ink dark:border-white/20 dark:text-ink-light">
           <tr data-ingredient-total>
             <td class={CELL} />
-            <td class={CELL}>Total</td>
+            <td class={CELL}>{kind === "malts" ? "Total" : "Total hops"}</td>
             {columns.map((c) =>
               c.field === "grams" ? (
                 <td key={c.field} class={`${CELL} ${NUMBER}`} data-total-grams>
@@ -435,31 +491,44 @@ export function additionText(addAt: number, boil: number, cooking: number): stri
  * to its end (right), one row and dot per hop in its donut colour with a line for how long it cooks, and as a table in
  * the order of addition. Hops without a cooking time are named in a hint.
  */
-function HopSchedule(props: { list: Ingredient[] }) {
+function HopSchedule(props: { hops: Ingredient[]; others: Ingredient[] }) {
   const { box, width } = useWidth();
-  const name = (entry: Ingredient, i: number) => (typeof entry.name === "string" && entry.name ? entry.name : `Hop ${i + 1}`);
-  const withAmount = props.list.map((h, i) => ({ h, i })).filter(({ h }) => validGrams(h.grams));
+  type Entry = { h: Ingredient; i: number; kind: "hops" | "others" };
+  const one = (kind: Entry["kind"]) => INGREDIENT_LABELS[kind].one;
+  const name = ({ h, i, kind }: Entry) => (typeof h.name === "string" && h.name ? h.name : `${one(kind)} ${i + 1}`);
+  // A hop in its donut colour (EDT-047); another addition in the "other" grey, as a square (EDT-060).
+  const colour = ({ i, kind }: Entry) => (kind === "hops" ? seriesColour(i) : "var(--series-other)");
+  const key = ({ i, kind }: Entry) => (kind === "hops" ? String(i) : `other-${i}`);
+  const withAmount: Entry[] = [
+    ...props.hops.map((h, i) => ({ h, i, kind: "hops" as const })),
+    ...props.others.map((h, i) => ({ h, i, kind: "others" as const })),
+  ].filter(({ h }) => validGrams(h.grams));
   const cooked = withAmount.filter(({ h }) => validBoilMinutes(h.minutes));
-  const untimed = withAmount.filter(({ h }) => !validBoilMinutes(h.minutes)).map(({ i }) => i + 1);
+  const untimed = (["hops", "others"] as const).flatMap((kind) => {
+    const rows = withAmount.filter((e) => e.kind === kind && !validBoilMinutes(e.h.minutes)).map(({ i }) => i + 1);
+    const label = one(kind).toLowerCase();
+    return rows.length === 0 ? [] : [rows.length === 1 ? `${label} ${rows[0]}` : `${label}s ${rows.join(", ")}`];
+  });
   const missing =
     untimed.length === 0 ? null : (
       <p class={`${HINT_STYLE} mt-2`} data-schedule-missing>
-        No cooking time yet: {untimed.length === 1 ? `hop ${untimed[0]}` : `hops ${untimed.join(", ")}`}.
+        No cooking time yet: {untimed.join(", ")}.
       </p>
     );
   // The outer box is always there, so its width is measured from the start (also while there is no chart yet).
   if (cooked.length === 0) {
     return (
       <div ref={box} data-hop-schedule>
-        <p class={HINT_STYLE}>Enter the hops' amounts and cooking times to see when each goes into the boil.</p>
+        <p class={HINT_STYLE}>Enter the amounts and cooking times to see when each goes into the boil.</p>
         {missing}
       </div>
     );
   }
   const boil = Math.max(...cooked.map(({ h }) => h.minutes as number));
+  // Ties: hops before other additions, then table order.
   const timed = cooked
-    .map(({ h, i }) => ({ h, i, cooking: h.minutes as number, addAt: boil - (h.minutes as number) }))
-    .sort((a, b) => a.addAt - b.addAt || a.i - b.i);
+    .map((e, order) => ({ ...e, order, cooking: e.h.minutes as number, addAt: boil - (e.h.minutes as number) }))
+    .sort((a, b) => a.addAt - b.addAt || a.order - b.order);
   const ROW = 26;
   const LABEL = 96;
   const top = 8;
@@ -487,7 +556,7 @@ function HopSchedule(props: { list: Ingredient[] }) {
           viewBox={`0 0 ${width} ${height}`}
           role="img"
           aria-label={`Hop schedule over a ${boil}-minute boil: ${timed
-            .map(({ h, i, addAt, cooking }) => `${name(h, i)} ${h.grams} g added at ${additionText(addAt, boil, cooking)}`)
+            .map((e) => `${name(e)} ${e.h.grams} g added at ${additionText(e.addAt, boil, e.cooking)}`)
             .join(", ")}`}
           class="block max-w-full text-ink dark:text-ink-light"
         >
@@ -503,44 +572,53 @@ function HopSchedule(props: { list: Ingredient[] }) {
           <text x={x1} y={axisY + 26} text-anchor="end" class="fill-stone-500 text-[10px] dark:fill-stone-400">
             min after the start of the boil
           </text>
-          {timed.map(({ h, i, addAt, cooking }, row) => {
+          {timed.map((e, row) => {
+            const { h, addAt, cooking } = e;
             const y = top + row * ROW + ROW / 2;
             return (
-              <g key={i} data-schedule-hop={i}>
-                <title>{`${name(h, i)}: ${h.grams} g, add at ${additionText(addAt, boil, cooking)}, cooks ${cooking} min`}</title>
+              <g key={key(e)} data-schedule-hop={key(e)}>
+                <title>{`${name(e)}: ${h.grams} g, add at ${additionText(addAt, boil, cooking)}, cooks ${cooking} min`}</title>
                 <text x={8} y={y} dy="0.32em" class="fill-stone-600 text-[11px] tabular-nums dark:fill-stone-300">
                   {additionText(addAt, boil, cooking)}
                 </text>
                 {/* How long it cooks: from its addition to the end of the boil. */}
-                <line x1={x(addAt)} x2={x(boil)} y1={y} y2={y} stroke={seriesColour(i)} stroke-width={2} stroke-linecap="round" opacity={0.45} />
-                <circle cx={x(addAt)} cy={y} r={6} fill={seriesColour(i)} class="stroke-white stroke-2 dark:stroke-surface-dark" />
+                <line x1={x(addAt)} x2={x(boil)} y1={y} y2={y} stroke={colour(e)} stroke-width={2} stroke-linecap="round" opacity={0.45} />
+                {e.kind === "hops" ? (
+                  <circle cx={x(addAt)} cy={y} r={6} fill={colour(e)} class="stroke-white stroke-2 dark:stroke-surface-dark" />
+                ) : (
+                  <rect x={x(addAt) - 5.5} y={y - 5.5} width={11} height={11} rx={2} fill={colour(e)} class="stroke-white stroke-2 dark:stroke-surface-dark" />
+                )}
               </g>
             );
           })}
         </svg>
       </div>
       <div class="mt-3 overflow-hidden rounded-lg ring-1 ring-line dark:ring-white/10">
-        <table class="w-full border-collapse text-sm" aria-label="Hop schedule" data-schedule-list>
+        <table class="w-full border-collapse text-sm" aria-label="Boil schedule" data-schedule-list>
           <thead class="bg-stone-50 dark:bg-white/5">
             <tr>
               <th class={`${HEAD} text-left`}>Add at</th>
-              <th class={`${HEAD} text-left`}>Hops</th>
+              <th class={`${HEAD} text-left`}>Ingredient</th>
               <th class={`${HEAD} text-right`}>Cooking time</th>
               <th class={`${HEAD} text-right`}>Amount</th>
             </tr>
           </thead>
           <tbody>
-            {timed.map(({ h, i, addAt, cooking }) => (
-              <tr key={i} class="border-t border-line dark:border-white/10" data-schedule-row={i}>
+            {timed.map((e) => (
+              <tr key={key(e)} class="border-t border-line dark:border-white/10" data-schedule-row={key(e)}>
                 <td class={`${CELL} whitespace-nowrap tabular-nums text-ink dark:text-ink-light`}>
                   <span class="inline-flex items-center gap-2">
-                    <span aria-hidden="true" class="size-2.5 shrink-0 rounded-full" style={{ background: seriesColour(i) }} />
-                    {additionText(addAt, boil, cooking)}
+                    <span
+                      aria-hidden="true"
+                      class={`size-2.5 shrink-0 ${e.kind === "hops" ? "rounded-full" : "rounded-[2px]"}`}
+                      style={{ background: colour(e) }}
+                    />
+                    {additionText(e.addAt, boil, e.cooking)}
                   </span>
                 </td>
-                <td class={`${CELL} text-ink dark:text-ink-light`}>{name(h, i)}</td>
-                <td class={`${CELL} ${NUMBER} text-stone-600 dark:text-stone-300`}>{cooking} min</td>
-                <td class={`${CELL} ${NUMBER} text-ink dark:text-ink-light`}>{h.grams as number} g</td>
+                <td class={`${CELL} text-ink dark:text-ink-light`}>{name(e)}</td>
+                <td class={`${CELL} ${NUMBER} text-stone-600 dark:text-stone-300`}>{e.cooking} min</td>
+                <td class={`${CELL} ${NUMBER} text-ink dark:text-ink-light`}>{e.h.grams as number} g</td>
               </tr>
             ))}
           </tbody>
@@ -560,9 +638,9 @@ function withField(entry: Ingredient, field: string, value: unknown): Ingredient
   return { ...entry, [field]: value };
 }
 
-/** The Malt or the Hops tab (GUI-032). */
+/** The Malt or the Boiling tab (GUI-032). */
 export function IngredientsTab(props: {
-  kind: IngredientKind;
+  kind: "malts" | "hops";
   recipe: Recipe;
   problems: Problem[];
   onChange: (recipe: Recipe) => void;
@@ -576,7 +654,7 @@ export function IngredientsTab(props: {
       <p class={HINT_STYLE}>
         {kind === "malts"
           ? "The malts of the brew with their amounts and colours. The shares are of the total malt weight."
-          : "The hops of the brew with their amounts, alpha acid and boil time. The shares are of the total hop weight."}
+          : "The hops and other additions of the boil with their amounts and cooking times. The shares and the bitterness are of the hops."}
       </p>
       {/* The donut at the left, the figure at the right (EDT-047); stacked on a phone. */}
       <div class="mt-3 flex flex-col gap-4 sm:flex-row sm:items-start" data-overview>
@@ -591,16 +669,16 @@ export function IngredientsTab(props: {
       </div>
       <section class="mt-6" aria-labelledby={`${kind}-table-title`}>
         <h3 id={`${kind}-table-title`} class={`${SECTION_TITLE_STYLE} mb-2`}>
-          {INGREDIENT_LABELS[kind].title}
+          {kind === "malts" ? "Malt" : "Boil Ingredients"}
         </h3>
         <IngredientTable kind={kind} recipe={props.recipe} problems={props.problems} onChange={props.onChange} />
       </section>
       {kind === "hops" && (
-        <section class="mt-6" aria-labelledby="hop-schedule-title">
-          <h3 id="hop-schedule-title" class={`${SECTION_TITLE_STYLE} mb-2`}>
-            Hop Schedule
+        <section class="mt-6" aria-labelledby="boil-schedule-title">
+          <h3 id="boil-schedule-title" class={`${SECTION_TITLE_STYLE} mb-2`}>
+            Boil Schedule
           </h3>
-          <HopSchedule list={list} />
+          <HopSchedule hops={list} others={ingredientsOf(props.recipe, "others")} />
         </section>
       )}
     </>

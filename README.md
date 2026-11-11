@@ -6,7 +6,8 @@ BrewberryPi is a Raspberry Pi controller for a home-brewing mash kettle. It brew
 recipe, in its recipe folder (`{"version": 3, "name": …, "mashing_process": {"goals": […]}, "mashing": {…},
 "ingredients": {"malts": […], "hops": […]}, "batch": {…}, "water": {…}}`; the goals may be empty, then the app lists the recipe but
 can't brew it). A recipe has five tabs: **Malt**, the malts with their amounts, shares and colours, and the beer
-colour; **Hops**, the hops with their amounts, shares, alpha acid and boil times, the bitterness and the hop schedule;
+colour; **Boiling**, the hops (amounts, shares, alpha acid, cooking times, the bitterness) and other boil additions, and the
+boil schedule;
 **Water**, the mash, sparge and top-up water, the knockout volume, total water and mash thickness, and the original
 and final gravity with the alcohol;
 **Mashing**, the brewer's mashing plan (the rests planned, each with temperature and duration); and **Mash Process**,

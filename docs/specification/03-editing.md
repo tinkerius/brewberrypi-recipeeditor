@@ -204,9 +204,9 @@ temperature of their own. The typical durations of `EDT-038` and the flags:
 
 ## 3.7 Malt and hops (`QE-34`, `QE-35`)
 
-- `EDT-041` The tabs **Malt** and **Hops** (`GUI-032`) hold the brew's ingredients (app `RCP-013`), each tab one
+- `EDT-041` The tabs **Malt** and **Boiling** (`GUI-032`, `QE-42`) hold the brew's ingredients (app `RCP-013`), each tab one
   table, with the donut of the shares at the left and the figure computed from the table at the right above it
-  (stacked on a phone; `QE-37`). The table has the heading **Malt** or **Hops** (`QE-36`); on the Hops tab the **Hop Schedule** (`EDT-054`)
+  (stacked on a phone; `QE-37`). The table has the heading **Malt** or **Boil Ingredients** (`QE-36`, `QE-42`); on the Boiling tab the **Boil Schedule** (`EDT-054`)
   follows it under its own heading. Like the mashing plan, they are design information for the brewer; they do not change the goals, and the
   app does not use them.
 - `EDT-042` A table has a drag handle, then the columns (`QE-40`) — Malt: **Name**, **EBC** (its colour), **Absolute
@@ -242,7 +242,7 @@ temperature of their own. The typical durations of `EDT-038` and the flags:
   and the knockout volume on the Water tab.", "Water tab" a link that opens it). With a colour, the hint names the
   volume used: "Morey's formula, from each malt's EBC and the knockout volume (20 L, Water tab)."; below the figure
   the colour scale (`EDT-055`).
-- `EDT-049` The Hops tab shows the **bitterness** in IBU by Tinseth's formula (per hop, 1.65 · 0.000125^(SG − 1) ·
+- `EDT-049` The Boiling tab shows the **bitterness** in IBU by Tinseth's formula (per hop, 1.65 · 0.000125^(SG − 1) ·
   (1 − e^(−0.04 · min)) / 4.15 · alpha/100 · g · 1000 / l, SG from the original gravity in °P), rounded to a whole
   number ("19 IBU"). It needs the alpha acid and boil time of every hop with an amount, the knockout volume and
   the original gravity (both from the Water tab); until then it shows "–" and says what to enter ("… and the
@@ -250,17 +250,17 @@ temperature of their own. The typical durations of `EDT-038` and the flags:
   ("the original gravity (12.6 °P, Water tab)"); below the figure the bitterness scale and BU:GU (`EDT-056`).
 - `EDT-050` The **batch** fields (app `RCP-014`) are entered on the Water tab only (`EDT-051`, `EDT-057`; `QE-37`,
   `QE-38`): the **Knockout volume** (L, the wort at the end of the boil, the target for the fermenter; `QE-36`), the
-  target **Original gravity** and the **Final gravity** (°P). The Malt and Hops tabs use them and name them in their
+  target **Original gravity** and the **Final gravity** (°P). The Malt and Boiling tabs use them and name them in their
   hints (`EDT-048`, `EDT-049`); they have no batch fields. A field left empty is left out of the
   file, and `batch` too when both are.
-- `EDT-054` The **Hop Schedule** (`QE-41`) works back from the cooking times: the **total boil time** is the longest
-  cooking time of the hops with an amount ("Total boil time: 60 min (the longest cooking time)"), and each hop goes
+- `EDT-054` The **Boil Schedule** (`QE-41`, `QE-42`) works back from the cooking times of the hops and the other
+  additions (`EDT-060`): the **total boil time** is the longest cooking time of those with an amount ("Total boil time: 60 min (the longest cooking time)"), and each hop goes
   in at that time minus its own cooking time, counted from the start of the boil (a 60-minute hop at "0 min
   (start)", a 10-minute hop at "50 min", a 0-minute hop at "60 min (flame-out)"); ties keep the table order. A
   timeline over the boil from its start ("start", left) to its end ("end", right), axis "min after the start of the
   boil", has one row and dot per hop in its donut colour (`EDT-047`) at its addition, a line to the end for how long
   it cooks, the addition time at the left and a tooltip ("Hallertauer Tradition: 30 g, add at 0 min (start), cooks
-  60 min"). Below it a table in the order of addition with the headers **Add at**, **Hops**, **Cooking time** and
+  60 min"). Below it a table in the order of addition with the headers **Add at**, **Ingredient**, **Cooking time** and
   **Amount** (`QE-40`). Hops with an amount but no cooking time are named in a hint ("No cooking time yet: hop 4.");
   without any cooking time it says "Enter the hops' amounts and cooking times to see when each goes into the boil."
 - `EDT-055` Below the beer colour, a **colour scale** shows where it lies among common beers: the SRM colour chart
@@ -307,13 +307,20 @@ temperature of their own. The typical durations of `EDT-038` and the flags:
   the limits below, and a marker at the beer's BU:GU (above 1.0 at the end). No style names: BU:GU ranges of styles
   overlap too much to help.
 
+- `EDT-060` **Other additions** (app `RCP-013` `others`, `QE-42`) — Irish moss, spices, yeast nutrient — are like
+  hops without alpha acid: in the Boiling tab's table below the hops' add row, under the label "Other additions — not
+  in the shares or the bitterness", their rows (Name, Cooking time, Absolute amount; no α %, no share) and the add row
+  **+ Add other addition**; sorted by drag and drop among themselves (`EDT-046`). They are not in the shares, the
+  donut, the hop total ("Total hops") or the bitterness, but in the Boil Schedule (a grey square instead of a dot).
+  Their problems read "Other addition n" and open the Boiling tab.
+
 ## 3.8 Water (`QE-36`)
 
 - `EDT-051` The tab **Water** (`GUI-032`) holds the brewing-day water (app `RCP-015`) under the heading **Water**,
   and the gravity under the heading **Gravity** (`EDT-057`). Under Water:
   **Mash water** (strike water, mashed in with the malt), **Sparge water** (rinses the sugar out of the grain while
   lautering) and **Top-up water** (added after lautering to reach the original gravity), in litres, each a number
-  ≥ 0 with a one-line hint, and the **Knockout volume** (`EDT-050`, entered only here; the Malt and Hops tabs use it). A
+  ≥ 0 with a one-line hint, and the **Knockout volume** (`EDT-050`, entered only here; the Malt and Boiling tabs use it). A
   field left empty is left out of the file, and `water` too when all three are. A volume below 0 is a problem
   ("Mash water: The mash water must be a number of at least 0 litres."); clicking it opens the Water tab.
 - `EDT-052` Below the fields, computed and never stored: **Total water**, the sum of the volumes entered ("32.5 L",

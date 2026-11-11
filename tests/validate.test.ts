@@ -133,6 +133,14 @@ const CASES: [string, unknown][] = [
   ["batch final_plato above 40", { ...valid, batch: { final_plato: 40.5 } }],
   ["batch final_plato negative", { ...valid, batch: { final_plato: -0.1 } }],
   ["batch final_plato a string", { ...valid, batch: { final_plato: "2.5" } }],
+  // Other boil additions (app RCP-013, Q-42)
+  ["other additions", { ...valid, ingredients: { others: [{ name: "Irish Moss", grams: 10, minutes: 5 }, { name: "Coriander", grams: 15 }] } }],
+  ["other additions empty", { ...valid, ingredients: { others: [] } }],
+  ["other addition with alpha", { ...valid, ingredients: { others: [{ name: "Irish Moss", grams: 10, alpha: 5 }] } }],
+  ["other addition with EBC", { ...valid, ingredients: { others: [{ name: "Irish Moss", grams: 10, ebc: 3 }] } }],
+  ["other addition without grams", { ...valid, ingredients: { others: [{ name: "Irish Moss" }] } }],
+  ["other addition fractional minutes", { ...valid, ingredients: { others: [{ name: "Irish Moss", grams: 10, minutes: 2.5 }] } }],
+  ["other additions not a list", { ...valid, ingredients: { others: {} } }],
   // The water (app RCP-015, Q-40)
   ["water", { ...valid, water: { mash: 16, sparge: 14, top_up: 2 } }],
   ["water empty", { ...valid, water: {} }],

@@ -2,7 +2,7 @@
  * The Water tab (EDT-051..053, EDT-057; QE-36, QE-38): the brewing-day water volumes (mash, sparge and top-up water,
  * app RCP-015) and the knockout volume, with the total water and the mash thickness; and the gravity: the target
  * original gravity and the final gravity (the batch's, app RCP-014), with the alcohol and the attenuation. The
- * knockout volume and the original gravity are entered only here; the Malt and Hops tabs use them. Computed values
+ * knockout volume and the original gravity are entered only here; the Malt and Boiling tabs use them. Computed values
  * are never stored.
  */
 
@@ -90,7 +90,7 @@ export function WaterTab(props: { recipe: Recipe; problems: Problem[]; onChange:
               <span class={HINT}>{WATER_LABELS[field].hint}</span>
             </div>
           ))}
-          {/* The batch's knockout volume (EDT-050): entered here only; the Malt and Hops tabs use it. */}
+          {/* The batch's knockout volume (EDT-050): entered here only; the Malt and Boiling tabs use it. */}
           <div class="contents" data-knockout>
             {batchField("liters")}
           </div>

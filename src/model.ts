@@ -104,13 +104,14 @@ export function outsideTypicalRange(id: MashRestId, temperature: unknown): boole
 }
 
 /** The two ingredient lists of the Ingredients tab (app RCP-013, EDT-041), in the file's key order. */
-export const INGREDIENT_KINDS = ["malts", "hops"] as const;
+export const INGREDIENT_KINDS = ["malts", "hops", "others"] as const;
 export type IngredientKind = (typeof INGREDIENT_KINDS)[number];
 
 /** How an ingredient kind is called: the section heading, one entry, the add button. */
 export const INGREDIENT_LABELS: Record<IngredientKind, { title: string; one: string }> = {
   malts: { title: "Malt", one: "Malt" },
   hops: { title: "Hops", one: "Hop" },
+  others: { title: "Other additions", one: "Other addition" },
 };
 
 /** A malt or a hop; a malt may have `ebc`, a hop `alpha` and `minutes` (app RCP-013, Q-39). */
@@ -123,6 +124,7 @@ export type Ingredient = { name?: unknown; grams?: unknown; ebc?: unknown; alpha
 export const INGREDIENT_EXTRA_FIELDS: Record<IngredientKind, readonly string[]> = {
   malts: ["ebc"],
   hops: ["alpha", "minutes"],
+  others: ["minutes"],
 };
 
 function finite(value: unknown): value is number {

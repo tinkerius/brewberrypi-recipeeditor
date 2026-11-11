@@ -10,7 +10,7 @@ commit (`NFR-030`).
   `{"version": 3, "name": …, "mashing_process": {"goals": [ … ]}, "mashing": { … }, "ingredients": { … },
   "batch": { … }, "water": { … }}`, one recipe per file. The goals MAY be empty (app `Q-34`); `mashing_process` is always there. `mashing`, the mashing
   plan (app `RCP-012`, `QE-32`), is there only while the brewer plans a rest (`EDT-034`); `ingredients` (app
-  `RCP-013`, `QE-34`) only while there is a malt or a hop (`EDT-042`); `batch` (app `RCP-014`, `QE-35`) only while
+  `RCP-013`, `QE-34`) only while there is a malt, a hop or another addition (`EDT-042`, `EDT-060`); `batch` (app `RCP-014`, `QE-35`) only while
   its volume or gravity is set (`EDT-050`); `water` (app `RCP-015`, `QE-36`) only while a water volume is set
   (`EDT-051`).
 - `FMT-002` The file name is the recipe id: `^[A-Za-z0-9_-]+$` (app `RCP-001`). Files carry no `id` field.
@@ -33,7 +33,7 @@ commit (`NFR-030`).
   minutes or with any other field, the same ranges as for goals; in the ingredients (app `RCP-013`): not an object,
   a list other than `malts` and `hops`, a list that is not a list, an entry that is not an object, without a name
   (or an empty one) or without grams, grams that are not a whole number ≥ 1, a malt's EBC below 0, a hop's alpha
-  acid outside 0–100 or boil time that is not a whole number ≥ 0, any other field of an entry; in the batch (app
+  acid outside 0–100 or boil time that is not a whole number ≥ 0, alpha acid on another addition, any other field of an entry; in the batch (app
   `RCP-014`): not an object, a volume not above 0, an original or final gravity outside 0–40 °P, any other field; in the water (app `RCP-015`): not an
   object, a volume that is not a number ≥ 0, any other field; any other key. An entry is named by its table and number ("Malt 2"). A rest is named by its short name
   ("Mashing, Maltose rest"). A temperature outside a rest's typical range is not a problem (`EDT-033`).
@@ -43,7 +43,7 @@ commit (`NFR-030`).
   problems (`EDT-020`). Fields a goal type does not take can be removed with one action.
 - `FMT-006` Written files (download, Drive) are formatted like the app's shipped recipes: `version` first, then
   `name`, then `mashing_process` with one goal per line, then `mashing` (if any) with one rest per line in the
-  order of the rest table (`EDT-031`), then `ingredients` (if any) with `malts` before `hops` and one entry per
+  order of the rest table (`EDT-031`), then `ingredients` (if any) with `malts`, `hops`, `others` in this order and one entry per
   line in the brewer's order, then `batch` (if any) on one line, `liters`, `plato`, `final_plato`, then `water` (if any) on one line, `mash`,
   `sparge`, `top_up`; no `$schema`. Reading a written file gives the same recipe.
 - `FMT-007` The samples are exactly the app's shipped recipes (app `RCP-002`; today `BENIWEISS` and `WaterBoil`);

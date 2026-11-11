@@ -47,7 +47,7 @@ function goalOf(path: string): number | undefined {
  */
 function ingredientsTab(path: string): "malts" | "hops" | "water" | undefined {
   const about = (prefix: string) => path === prefix || path.startsWith(`${prefix}.`);
-  if (path.startsWith(`${INGREDIENTS_PATH}.hops`)) {
+  if (path.startsWith(`${INGREDIENTS_PATH}.hops`) || path.startsWith(`${INGREDIENTS_PATH}.others`)) {
     return "hops";
   }
   if (about(WATER_PATH) || about(BATCH_PATH)) {
@@ -66,9 +66,9 @@ function describePath(path: string): string {
   if (goal !== undefined) {
     return `Goal ${goal + 1}`;
   }
-  const ingredient = /^ingredients\.(malts|hops)(?:\[(\d+)\])?/.exec(path);
+  const ingredient = /^ingredients\.(malts|hops|others)(?:\[(\d+)\])?/.exec(path);
   if (ingredient) {
-    const { title, one } = INGREDIENT_LABELS[ingredient[1] as "malts" | "hops"];
+    const { title, one } = INGREDIENT_LABELS[ingredient[1] as "malts" | "hops" | "others"];
     return ingredient[2] === undefined ? title : `${one} ${Number(ingredient[2]) + 1}`;
   }
   const rest = /^mashing\.([^.]+)/.exec(path)?.[1];
@@ -141,7 +141,7 @@ export function ProblemList(props: {
 /** The recipe's tabs (GUI-032, QE-28, QE-32, QE-34, QE-35); more come later. */
 const RECIPE_TABS = [
   { id: "malts", label: "Malt" },
-  { id: "hops", label: "Hops" },
+  { id: "hops", label: "Boiling" },
   { id: "water", label: "Water" },
   { id: "mashing", label: "Mashing" },
   { id: "mash", label: "Mash Process" },

@@ -2031,10 +2031,14 @@ describe("App, the Water tab (QE-36)", () => {
     expect(section().querySelector("[data-treatment=gypsum] [data-field-error]")!.textContent).toBe("⊘ The brewing gypsum needs an amount.");
     await type(amount("gypsum")!, "1");
     expect(effect("gypsum")).toBe("−0.9 °dH");
-    expect(await about("gypsum")).toBe("Its calcium lowers the residual alkalinity: 1 g per 10 L adds 23 mg/L of calcium, about −0.93 °dH.");
+    const gypsumAbout = await about("gypsum");
+    expect(gypsumAbout).toContain("Its calcium lowers the residual alkalinity: 1 g per 10 L adds 23 mg/L of calcium, about −0.93 °dH.");
+    // With its formula, filled in with the recipe's numbers (QE-65).
+    expect(gypsumAbout).toContain("ΔRA = −1 × 0.93 = −0.9 °dH");
     await tickStep("acid_malt");
     await type(amount("acid_malt")!, "1");
     expect(effect("acid_malt")).toBe("−2.4 °dH");
+    expect(await about("acid_malt")).toContain("ΔRA = −9.34 × 4.6 × 1 ÷ 18 = −2.4 °dH");
     await tickStep("lactic_acid");
     await type(amount("lactic_acid")!, "0.5");
     expect(effect("lactic_acid")).toBe("−1.5 °dH");

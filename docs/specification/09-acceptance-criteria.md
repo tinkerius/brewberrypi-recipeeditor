@@ -276,6 +276,11 @@ a release that changes sign-in or Drive behaviour.
   "carbonate_hardness": 14, "boil": true, "gypsum": 1, "acid_malt": 1, "lactic_acid": 0.5 } }`; clearing the lactic
   acid keeps it ticked ("The lactic acid needs an amount."); 4 g/10 L gypsum warns; unticking all leaves
   `"treatment": { "alkalinity": 10.3 }`, and clearing that the treatment.
+- `ACC-098` (EDT-069, QE-65) For 4.6 kg of malt, 18 L mash water, tap water 10.3 °dH and 14 °dH carbonate hardness,
+  boiling, 1 g/10 L gypsum, 1 % acid malt and 0.5 ml/10 L lactic acid, the rows' ⓘ show their formulas and "starting
+  value 10.3 °dH", "ΔRA = −(14 − 3) × 0.714 = −7.9 °dH", "ΔRA = −1 × 0.93 = −0.9 °dH", "ΔRA = −9.34 × 4.6 × 1 ÷ 18 =
+  −2.4 °dH", "ΔRA = −0.5 × 2.99 = −1.5 °dH" and "RA = 10.3 − 7.9 − 0.9 − 2.4 − 1.5 = −2.4 °dH"; boiling water of 2 °dH
+  carbonate hardness gives "ΔRA = 0 °dH (…)"; without the inputs only the formulas.
 
 ## 9.3 Browser drafts
 

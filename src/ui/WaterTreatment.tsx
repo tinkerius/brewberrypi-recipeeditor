@@ -20,7 +20,9 @@ import {
   treatmentOf,
   withTreatmentField,
   withTreatmentStep,
+  stepFormula,
   type Effect,
+  type FormulaRow,
   type TreatmentField,
   type TreatmentStep,
 } from "../waterTreatment";
@@ -85,6 +87,24 @@ const ROWS: Record<
     about: "Lowers the residual alkalinity by about 3 °dH per ml per 10 L.",
   },
 };
+
+/** How a row's value is worked out (EDT-069, QE-65): the formula, and with the recipe's numbers once it can be. */
+function Formula(props: { recipe: Recipe; row: FormulaRow }) {
+  const { formula, filled } = stepFormula(props.recipe, props.row);
+  const code = "block font-mono text-[11px] leading-snug break-words whitespace-normal sm:text-xs";
+  return (
+    <>
+      <code class={`${code} text-stone-600 dark:text-stone-300`} data-formula>
+        {formula}
+      </code>
+      {filled && (
+        <code class={`${code} font-semibold text-ink dark:text-ink-light`} data-formula-filled>
+          {filled}
+        </code>
+      )}
+    </>
+  );
+}
 
 export function WaterTreatment(props: { recipe: Recipe; problems: Problem[]; warnings: Warning[]; onChange: (recipe: Recipe) => void }) {
   const t = treatmentOf(props.recipe);
@@ -192,7 +212,14 @@ export function WaterTreatment(props: { recipe: Recipe; problems: Problem[]; war
           </td>
           <td class={`${CELL} w-7 text-right sm:w-10`}>{toggle(id, `About: ${info.name}`)}</td>
         </tr>
-        {aboutRow(id, Boolean(step && ticked), <p data-treatment-hint>{info.about}</p>)}
+        {aboutRow(
+          id,
+          Boolean(step && ticked),
+          <>
+            <p data-treatment-hint>{info.about}</p>
+            <Formula recipe={props.recipe} row={id} />
+          </>,
+        )}
       </>
     );
   };
@@ -263,10 +290,10 @@ export function WaterTreatment(props: { recipe: Recipe; problems: Problem[]; war
               false,
               <>
                 <p data-treatment-hint>
-                  The sum of the effects
-                  {effects.result === undefined ? " (enter the tap water's residual alkalinity)" : ""}. Typical at most, by the
-                  beer colour of the Malt tab:
+                  The sum of the effects{effects.result === undefined ? " (enter the tap water's residual alkalinity)" : ""}.
                 </p>
+                <Formula recipe={props.recipe} row="result" />
+                <p class="pt-1">Typical at most, by the beer colour of the Malt tab:</p>
                 <table class="mt-1" data-target-table>
                   <tbody>
                     {TARGET_BY_COLOUR.map((b) => (

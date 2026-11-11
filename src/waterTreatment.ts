@@ -164,3 +164,95 @@ export function degrees(value: number, signed = false): string {
   const sign = rounded < 0 ? "−" : signed && rounded > 0 ? "+" : "";
   return `${sign}${text} °dH`;
 }
+
+/** A number as shown in a formula: at most `digits` decimals, no trailing zeros, "−" for minus. */
+function num(value: number, digits = 2): string {
+  const text = String(Math.round(value * 10 ** digits) / 10 ** digits);
+  return text.startsWith("-") ? `−${text.slice(1)}` : text;
+}
+
+/** The factors of the formulas, from the rules, as shown (EDT-069). */
+export const FORMULA_FACTORS = {
+  boil: num(TREATMENT_RULES.boilPerDegree, 3),
+  calcium: num(100 * (40.078 / 172.17), 1), // mg/L of calcium per g of gypsum per 10 L
+  calciumPerDegree: num(7.147, 2), // mg/L of calcium per °dH
+  gypsum: num(TREATMENT_RULES.gypsumPerGram),
+  acidMalt: num(((TREATMENT_RULES.acidMaltLactic * 1000) / TREATMENT_RULES.lacticMolar) * 10 / TREATMENT_RULES.mmolPerDegree),
+  lactic: num(TREATMENT_RULES.lacticPerMl),
+  mmol: num(TREATMENT_RULES.mmolPerDegree, 3),
+} as const;
+
+export type FormulaRow = "alkalinity" | TreatmentStep | "result";
+
+/**
+ * How a row's value is worked out (EDT-069, QE-65): the formula in words and symbols, and, once it can be worked out,
+ * the same formula with the recipe's numbers and its result, rounded as shown so it reads like a check.
+ */
+export function stepFormula(recipe: Recipe, row: FormulaRow): { formula: string; filled?: string } {
+  const t = treatmentOf(recipe);
+  const effects = treatmentEffects(recipe);
+  const f = FORMULA_FACTORS;
+  const dh = (value: number) => `${num(value, 1)} °dH`;
+  switch (row) {
+    case "alkalinity":
+      return {
+        formula: "RA = carbonate hardness − calcium hardness ÷ 3.5 − magnesium hardness ÷ 7 (each in °dH, from the water analysis)",
+        filled: finite(t.alkalinity) ? `starting value ${dh(t.alkalinity)}` : undefined,
+      };
+    case "boil": {
+      const hardness = t.carbonate_hardness;
+      const effect = effects.boil;
+      let filled: string | undefined;
+      if (t.boil === true && finite(hardness) && effect && "value" in effect) {
+        filled =
+          hardness > TREATMENT_RULES.boiledHardness
+            ? `ΔRA = −(${num(hardness)} − ${TREATMENT_RULES.boiledHardness}) × ${f.boil} = ${dh(effect.value)}`
+            : `ΔRA = 0 °dH (carbonate hardness ${num(hardness)} °dH, not above ${TREATMENT_RULES.boiledHardness} °dH)`;
+      }
+      return { formula: `ΔRA = −(carbonate hardness − ${TREATMENT_RULES.boiledHardness} °dH) × (1 − 1 ÷ 3.5) = −(KH − 3) × ${f.boil}`, filled };
+    }
+    case "gypsum": {
+      const effect = effects.gypsum;
+      return {
+        formula: `ΔRA = −gypsum [g/10 L] × ${f.calcium} mg/L calcium ÷ ${f.calciumPerDegree} mg/L per °dH ÷ 3.5 = −gypsum × ${f.gypsum}`,
+        filled: finite(t.gypsum) && effect && "value" in effect ? `ΔRA = −${num(t.gypsum)} × ${f.gypsum} = ${dh(effect.value)}` : undefined,
+      };
+    }
+    case "acid_malt": {
+      const effect = effects.acidMalt;
+      const kg = totalGrams(ingredientsOf(recipe, "malts")) / 1000;
+      const mash = waterOf(recipe).mash;
+      return {
+        formula:
+          `ΔRA = −(grist [g] × acid malt [%] ÷ 100 × ${num(TREATMENT_RULES.acidMaltLactic * 100)} % lactic acid ÷ ` +
+          `${TREATMENT_RULES.lacticMolar} g/mol) ÷ mash water [L] ÷ ${f.mmol} mmol/L per °dH ≈ −${f.acidMalt} × grist [kg] × ` +
+          "acid malt [%] ÷ mash water [L]",
+        filled:
+          finite(t.acid_malt) && finite(mash) && effect && "value" in effect
+            ? `ΔRA = −${f.acidMalt} × ${num(kg)} × ${num(t.acid_malt)} ÷ ${num(mash)} = ${dh(effect.value)}`
+            : undefined,
+      };
+    }
+    case "lactic_acid": {
+      const effect = effects.lacticAcid;
+      return {
+        formula:
+          `ΔRA = −lactic acid [ml/10 L] × 1.2 g/ml × 80 % ÷ ${TREATMENT_RULES.lacticMolar} g/mol × 1000 ÷ 10 L ÷ ${f.mmol} ` +
+          `mmol/L per °dH = −lactic acid × ${f.lactic}`,
+        filled: finite(t.lactic_acid) && effect && "value" in effect ? `ΔRA = −${num(t.lactic_acid)} × ${f.lactic} = ${dh(effect.value)}` : undefined,
+      };
+    }
+    case "result": {
+      const parts = [effects.boil, effects.gypsum, effects.acidMalt, effects.lacticAcid]
+        .filter((e): e is { value: number } => e !== undefined && "value" in e)
+        .map((e) => (e.value < 0 ? ` − ${num(-e.value, 1)}` : ` + ${num(e.value, 1)}`));
+      return {
+        formula: "RA after treatment = the tap water's RA + the effects of the ticked steps",
+        filled:
+          effects.result !== undefined && finite(t.alkalinity)
+            ? `RA = ${num(t.alkalinity, 1)}${parts.join("")} = ${dh(effects.result)}`
+            : undefined,
+      };
+    }
+  }
+}

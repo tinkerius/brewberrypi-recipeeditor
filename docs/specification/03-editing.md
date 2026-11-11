@@ -465,7 +465,12 @@ temperature of their own. The typical durations of `EDT-038` and the flags:
   Unticked, a step has no field and no effect, and leaves the file (boiling with the carbonate hardness). The column
   **Effect** (`QE-62`) holds the tap water's residual alkalinity as the starting value ("10.3 °dH") and each step's
   effect on it, signed ("−0.9 °dH"; "–" while unused or not worked out, "Enter the carbonate hardness." then under
-  Typical); each row's ⓘ says what the step does and how its effect is worked out. The effects are worked out from the chemistry (RA = carbonate hardness − calcium hardness/3.5 − magnesium
+  Typical); each row's ⓘ says what the step does and shows how its value is worked out (`QE-65`): its formula and, once
+  it can be worked out, the same formula with the recipe's numbers and the result, rounded as shown (tap water
+  "starting value 10.3 °dH"; boiling "ΔRA = −(14 − 3) × 0.714 = −7.9 °dH"; gypsum "ΔRA = −1 × 0.93 = −0.9 °dH";
+  acid malt "ΔRA = −9.34 × 4.6 × 1 ÷ 18 = −2.4 °dH", i.e. −9.34 × grist [kg] × acid malt [%] ÷ mash water [L];
+  lactic acid "ΔRA = −0.5 × 2.99 = −1.5 °dH"; the result "RA = 10.3 − 7.9 − 0.9 − 2.4 − 1.5 = −2.4 °dH"). The
+  effects are worked out from the chemistry (RA = carbonate hardness − calcium hardness/3.5 − magnesium
   hardness/7) and never stored:
   - boiling precipitates carbonate hardness down to about 3 °dH, with as much calcium hardness: −(KH − 3) · (1 −
     1/3.5) ("−7.9 °dH" for 14 °dH; "Enter the carbonate hardness." without it);

@@ -979,7 +979,7 @@ describe("App, the Malt and Hops tabs (QE-34, QE-35)", () => {
   /** The Total line: its label, total weight and share. */
   const total = (kind: string) => {
     const tds = [...section(kind).querySelectorAll("[data-ingredient-total] td")].map((td) => td.textContent);
-    return [tds[1], tds[2], tds[tds.length - 2]];
+    return [tds[1], tds[tds.length - 3], tds[tds.length - 2]]; // the grams just before the share
   };
   const figure = () => recipe().querySelector("[data-figure] [data-figure-value]")!.textContent;
   const hint = () => recipe().querySelector("[data-figure-hint]")!.textContent;
@@ -1038,7 +1038,7 @@ describe("App, the Malt and Hops tabs (QE-34, QE-35)", () => {
   it("ACC-067 the Malt and Hops tabs each have a table; rows are added and removed, and an empty list leaves the file", async () => {
     await open();
     const heads = (kind: string) => [...section(kind).querySelectorAll("thead th")].map((th) => th.textContent);
-    expect(heads("malts")).toEqual(["Move", "Name", "g", "EBC", "%", "Remove"]);
+    expect(heads("malts")).toEqual(["Move", "Name", "EBC", "Absolute amount (g)", "Relative amount (%)", "Remove"]);
     expect(section("hops")).toBeNull(); // on its own tab
     expect(section("malts").textContent).toContain("No malt yet.");
     expect(total("malts")[0]).toBe("Total");
@@ -1055,7 +1055,7 @@ describe("App, the Malt and Hops tabs (QE-34, QE-35)", () => {
     expect(rows("malts")).toHaveLength(0);
     expect(await download()).not.toContain("ingredients");
     await showTab("hops");
-    expect(heads("hops")).toEqual(["Move", "Name", "g", "α %", "min", "%", "Remove"]);
+    expect(heads("hops")).toEqual(["Move", "Name", "α %", "Cooking time (min)", "Absolute amount (g)", "Relative amount (%)", "Remove"]);
     expect(section("hops").textContent).toContain("No hop yet.");
     expect(section("hops").querySelector("tbody tr:last-child [data-add-row]")!.textContent).toBe("+ Add hop");
   });
@@ -1366,7 +1366,8 @@ describe("App, the Malt and Hops tabs (QE-34, QE-35)", () => {
     await add("hops", "Hallertauer Tradition", "30", { minutes: "60" });
     await add("hops", "Tettnanger", "20", { minutes: "10" });
     await add("hops", "Cascade", "15");
-    const items = [...schedule().querySelectorAll("[data-schedule-list] li")].map((li) => li.textContent);
+    expect([...schedule().querySelectorAll("[data-schedule-list] thead th")].map((th) => th.textContent)).toEqual(["Cooking time", "Hops", "Amount"]);
+    const items = [...schedule().querySelectorAll("[data-schedule-list] tbody tr")].map((tr) => tr.textContent);
     expect(items).toEqual(["60 minHallertauer Tradition30 g", "10 minTettnanger20 g", "flame-outSaaz10 g"]);
     const dots = [...schedule().querySelectorAll("[data-schedule-hop]")];
     expect(dots.map((g) => (g as HTMLElement).dataset.scheduleHop)).toEqual(["1", "2", "0"]);

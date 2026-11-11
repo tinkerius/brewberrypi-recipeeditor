@@ -123,8 +123,9 @@ a release that changes sign-in or Drive behaviour.
 - `ACC-066` (EDT-039, EDT-040) Planning the steps of `ACC-063` in the table shows "Total mash time 2 h 18 min: 1 h
   35 min of rests, 43 min heating at 1 °C/min." and the profile; a heating rate of 2 shows "Total mash time 1 h 57
   min: 1 h 35 min of rests, 22 min heating at 2 °C/min."
-- `ACC-067` (QE-34, QE-35, EDT-041, EDT-042) The Malt tab has a table with Name, g, EBC, % and a Total line, the
-  Hops tab one with Name, g, α %, min, % and a Total line, saying "No malt yet." / "No hop yet." for a recipe without `ingredients`; + Add malt / + Add
+- `ACC-067` (QE-34, QE-35, EDT-041, EDT-042) The Malt tab has a table with Name, EBC, Absolute amount (g), Relative amount (%)
+  and a Total line, the Hops tab one with Name, α %, Cooking time (min), Absolute amount (g), Relative amount (%) and
+  a Total line, saying "No malt yet." / "No hop yet." for a recipe without `ingredients`; + Add malt / + Add
   hop is the table's last row before the Total line, and adds an empty row above it whose name field has the focus; ✕ removes a row; removing the last row of both tables removes
   `ingredients` from the recipe.
 - `ACC-068` (EDT-043) Malts Pilsner malt 4500 g and Munich malt 500 g show 90 % and 10 % and the total 5000 g, 100 %;
@@ -158,7 +159,7 @@ a release that changes sign-in or Drive behaviour.
 - `ACC-076` (EDT-041, QE-36) The Malt tab has the heading Malt before its table; the Hops tab Hops before its table
   and Hop Schedule after it.
 - `ACC-077` (EDT-054) Hops Saaz 10 g 0 min, Hallertauer Tradition 30 g 60 min, Tettnanger 20 g 10 min and Cascade
-  15 g without boil time: the schedule lists 60 min Hallertauer Tradition 30 g, 10 min Tettnanger 20 g, flame-out
+  15 g without boil time: the schedule's table (headers Cooking time, Hops, Amount) lists 60 min Hallertauer Tradition 30 g, 10 min Tettnanger 20 g, flame-out
   Saaz 10 g, with dots from left to right in the hops' donut colours and tooltips ("… 60 min before the end of the
   boil", "Saaz: 10 g, flame-out"), and says "No boil time yet: hop 4."; without boil times it asks for them.
 - `ACC-078` (EDT-051, EDT-053, FMT-006) The Water tab has the heading Water and the fields Mash water, Sparge water,

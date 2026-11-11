@@ -48,15 +48,16 @@ export const seriesColour = (i: number) => (i < SERIES ? `var(--series-${i + 1})
 
 /** A number field of a row (EDT-042): the grams, a malt's EBC, a hop's alpha acid and boil time. */
 type Column = { field: "grams" | "ebc" | "alpha" | "minutes"; head: string; label: string; integer: boolean; width: string };
+/** In this order after the name (EDT-042, QE-40): the absolute amount last, just before the relative one. */
 const COLUMNS: Record<IngredientKind, Column[]> = {
   malts: [
-    { field: "grams", head: "g", label: "Amount (g)", integer: true, width: "w-16 sm:w-28" },
     { field: "ebc", head: "EBC", label: "Colour (EBC)", integer: false, width: "w-24 sm:w-28" },
+    { field: "grams", head: "Absolute amount (g)", label: "Absolute amount (g)", integer: true, width: "w-16 sm:w-28" },
   ],
   hops: [
-    { field: "grams", head: "g", label: "Amount (g)", integer: true, width: "w-12 sm:w-24" },
     { field: "alpha", head: "α %", label: "Alpha acid (%)", integer: false, width: "w-12 sm:w-20" },
-    { field: "minutes", head: "min", label: "Boil time (min)", integer: true, width: "w-12 sm:w-20" },
+    { field: "minutes", head: "Cooking time (min)", label: "Cooking time (min)", integer: true, width: "w-14 sm:w-24" },
+    { field: "grams", head: "Absolute amount (g)", label: "Absolute amount (g)", integer: true, width: "w-14 sm:w-24" },
   ],
 };
 
@@ -287,11 +288,11 @@ function IngredientTable(props: { kind: IngredientKind; recipe: Recipe; problems
             </th>
             <th class={`${HEAD} text-left`}>Name</th>
             {columns.map((c) => (
-              <th key={c.field} class={`${HEAD} ${c.width} whitespace-nowrap text-right`} title={c.label}>
+              <th key={c.field} class={`${HEAD} ${c.width} text-right ${c.head.length < 6 ? "whitespace-nowrap" : ""}`} title={c.label}>
                 {c.head}
               </th>
             ))}
-            <th class={`${HEAD} w-12 text-right sm:w-20`}>%</th>
+            <th class={`${HEAD} w-14 text-right sm:w-24`}>Relative amount (%)</th>
             <th class={`${HEAD} w-10`}>
               <span class="sr-only">Remove</span>
             </th>
@@ -405,10 +406,15 @@ function IngredientTable(props: { kind: IngredientKind; recipe: Recipe; problems
           <tr data-ingredient-total>
             <td class={CELL} />
             <td class={CELL}>Total</td>
-            <td class={`${CELL} ${NUMBER}`}>{total} g</td>
-            {columns.slice(1).map((c) => (
-              <td key={c.field} class={CELL} />
-            ))}
+            {columns.map((c) =>
+              c.field === "grams" ? (
+                <td key={c.field} class={`${CELL} ${NUMBER}`} data-total-grams>
+                  {total} g
+                </td>
+              ) : (
+                <td key={c.field} class={CELL} />
+              ),
+            )}
             <td class={`${CELL} ${NUMBER}`}>{total > 0 ? "100 %" : ""}</td>
             <td class={CELL} />
           </tr>
@@ -506,16 +512,31 @@ function HopSchedule(props: { list: Ingredient[] }) {
           })}
         </svg>
       </div>
-      <ol class="mt-3 divide-y divide-line rounded-lg text-sm ring-1 ring-line dark:divide-white/10 dark:ring-white/10" data-schedule-list>
-        {timed.map(({ h, i }) => (
-          <li key={i} class="flex items-center gap-3 px-3 py-2">
-            <span aria-hidden="true" class="size-2.5 shrink-0 rounded-full" style={{ background: seriesColour(i) }} />
-            <span class="w-20 shrink-0 tabular-nums text-stone-600 dark:text-stone-300">{additionTime(h.minutes as number)}</span>
-            <span class="min-w-0 flex-1 truncate text-ink dark:text-ink-light">{name(h, i)}</span>
-            <span class="tabular-nums text-ink dark:text-ink-light">{h.grams as number} g</span>
-          </li>
-        ))}
-      </ol>
+      <div class="mt-3 overflow-hidden rounded-lg ring-1 ring-line dark:ring-white/10">
+        <table class="w-full border-collapse text-sm" aria-label="Hop schedule" data-schedule-list>
+          <thead class="bg-stone-50 dark:bg-white/5">
+            <tr>
+              <th class={`${HEAD} w-32 text-left sm:w-40`}>Cooking time</th>
+              <th class={`${HEAD} text-left`}>Hops</th>
+              <th class={`${HEAD} text-right`}>Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            {timed.map(({ h, i }) => (
+              <tr key={i} class="border-t border-line dark:border-white/10" data-schedule-row={i}>
+                <td class={`${CELL} tabular-nums text-stone-600 dark:text-stone-300`}>
+                  <span class="inline-flex items-center gap-2">
+                    <span aria-hidden="true" class="size-2.5 shrink-0 rounded-full" style={{ background: seriesColour(i) }} />
+                    {additionTime(h.minutes as number)}
+                  </span>
+                </td>
+                <td class={`${CELL} text-ink dark:text-ink-light`}>{name(h, i)}</td>
+                <td class={`${CELL} ${NUMBER} text-ink dark:text-ink-light`}>{h.grams as number} g</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
       {missing}
     </div>
   );

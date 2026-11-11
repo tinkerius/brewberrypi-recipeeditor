@@ -209,17 +209,18 @@ temperature of their own. The typical durations of `EDT-038` and the flags:
   (stacked on a phone; `QE-37`). The table has the heading **Malt** or **Hops** (`QE-36`); on the Hops tab the **Hop Schedule** (`EDT-054`)
   follows it under its own heading. Like the mashing plan, they are design information for the brewer; they do not change the goals, and the
   app does not use them.
-- `EDT-042` A table has a drag handle, the columns **Name**, **g** (the amount in grams, a whole number), for a malt
-  **EBC** (its colour), for a hop **α %** (its alpha acid) and **min** (its boil time, a whole number), then **%**,
-  and a button ✕ ("Remove malt" / "Remove hop") per row; EBC, α % and min may stay empty (an empty one is left out
+- `EDT-042` A table has a drag handle, then the columns (`QE-40`) — Malt: **Name**, **EBC** (its colour), **Absolute
+  amount (g)** (a whole number), **Relative amount (%)**; Hops: **Name**, **α %** (its alpha acid), **Cooking time
+  (min)** (its boil time, a whole number), **Absolute amount (g)**, **Relative amount (%)** — and a button ✕ ("Remove
+  malt" / "Remove hop") per row; EBC, α % and min may stay empty (an empty one is left out
   of the file). After the last row and before the Total line, an add row like the goal list's (`EDT-012`),
   **+ Add malt** (or **+ Add hop**), adds an empty row at the end, whose name field gets the focus. The rows keep
   the brewer's order. ✕ removes the row. An empty table says "No malt yet." / "No hop yet."; a table without rows
   is left out of the file, and `ingredients` too when both are empty.
-- `EDT-043` The **%** column is a row's share of its table's total weight (a hop's of all hops), rounded to one
+- `EDT-043` The **Relative amount (%)** column is a row's share of its table's total weight (a hop's of all hops), rounded to one
   decimal ("90 %", "33.3 %"), with a swatch in its colour of the donut (`EDT-047`); it is computed, never stored. A
   row whose amount is not a whole number ≥ 1 yet shows "–" and does not count. The last line, **Total**, sums the
-  table's amounts ("5000 g") and shows "100 %" while the total is above 0.
+  table's amounts ("5000 g", under Absolute amount) and shows "100 %" while the total is above 0.
 - `EDT-044` A row needs a name and an amount: until it has both, it is a problem (`FMT-004`) and the recipe cannot
   be saved or downloaded; the field with the problem is marked. The same name may appear twice. An EBC below 0, an
   alpha acid outside 0–100 % or a boil time that is not a whole number ≥ 0 is a problem too.
@@ -256,7 +257,8 @@ temperature of their own. The typical durations of `EDT-038` and the flags:
   longest boil first (ties in table order): a timeline over the boil, from its start (the longest boil time) at the
   left to its end at the right, one row and dot per hop in its donut colour (`EDT-047`) with the time at the left
   ("60 min", 0 min as "flame-out") and a tooltip ("Hallertauer Tradition: 30 g, 60 min before the end of the boil");
-  below it a list of time, name and amount. Hops with an amount but no boil time are named in a hint ("No boil time
+  below it a table with the headers **Cooking time**, **Hops** and **Amount** (time with the hop's colour, name,
+  grams; `QE-40`). Hops with an amount but no boil time are named in a hint ("No boil time
   yet: hop 4."); without any boil time it says "Enter the hops' amounts and boil times to see when each goes into
   the boil."
 

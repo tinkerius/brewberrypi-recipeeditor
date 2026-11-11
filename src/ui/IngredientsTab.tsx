@@ -8,6 +8,8 @@
 import { Fragment, type ComponentChildren } from "preact";
 import { useEffect, useState } from "preact/hooks";
 import type { Problem } from "../validate";
+import type { Warning } from "../warnings";
+import { FieldNotes, hasWarning, notesAt, notesWhere, type Issues } from "./notes";
 import { balanceOf, beerColourHex, buGu } from "../brewMath";
 import {
   INGREDIENT_EXTRA_FIELDS,
@@ -341,12 +343,14 @@ function AdditionsCell(props: {
   index: number;
   entry: Ingredient;
   problems: Problem[];
+  warnings: Warning[];
   onChange: (additions: Addition[]) => void;
 }) {
   const additions = additionsOf(props.entry);
   const { one } = INGREDIENT_LABELS[props.kind];
   const at = (j: number, field: string) => `ingredients.${props.kind}[${props.index}].additions[${j}].${field}`;
   const invalid = (j: number, field: string) => props.problems.some((p) => p.path === at(j, field));
+  const warn = (j: number, field: string) => props.warnings.some((w) => w.path === at(j, field));
   const set = (j: number, field: "minutes" | "grams", value: unknown) =>
     props.onChange(
       additions.map((a, k) => {
@@ -372,6 +376,7 @@ function AdditionsCell(props: {
               unit="min"
               value={a.minutes}
               invalid={invalid(j, "minutes")}
+              warn={warn(j, "minutes")}
               onChange={(v) => set(j, "minutes", v)}
             />
           </span>
@@ -422,9 +427,11 @@ function IngredientGroup(props: {
   shares: boolean;
   recipe: Recipe;
   problems: Problem[];
+  warnings: Warning[];
   onChange: (recipe: Recipe) => void;
 }) {
   const { kind, columns } = props;
+  const issues: Issues = { problems: props.problems, warnings: props.warnings };
   const { one } = INGREDIENT_LABELS[kind];
   const span = columns.length + (props.shares ? 4 : 3);
   const fields = [...INGREDIENT_EXTRA_FIELDS[kind], "total"];
@@ -433,6 +440,12 @@ function IngredientGroup(props: {
   const setField = (i: number, field: string, value: unknown) =>
     set(list.map((e, j) => (j === i ? withField(e, field, value) : e)));
   const invalid = (i: number, field: string) => props.problems.some((p) => p.path === `ingredients.${kind}[${i}].${field}`);
+  const warn = (i: number, field: string) => hasWarning(notesAt(issues, `ingredients.${kind}[${i}].${field}`));
+  // A row's errors and warnings, in a line right below it (EDT-062).
+  const rowNotes = (i: number) => {
+    const at = `ingredients.${kind}[${i}]`;
+    return notesWhere(issues, (path) => path === at || path.startsWith(`${at}.`));
+  };
   // Drag and drop with the handle, or the arrow keys on it (EDT-046), like the goals.
   const reorder = useReorder<HTMLTableSectionElement>(list.length, (from, to) => set(moveItem(list, from, to)));
   const body = reorder.container;
@@ -448,9 +461,10 @@ function IngredientGroup(props: {
     <tbody ref={body} data-ingredient-group={kind}>
       {list.map((entry, i) => {
         const share = props.shares ? shareOf(entry, list) : undefined;
+        const notes = rowNotes(i);
         return (
+          <Fragment key={i}>
           <tr
-            key={i}
             class={
               "relative border-t border-line dark:border-white/10 " +
               (reorder.dragging(i) ? "bg-berry/10 opacity-60 dark:bg-berry-light/10" : "")
@@ -497,6 +511,7 @@ function IngredientGroup(props: {
                     index={i}
                     entry={entry}
                     problems={props.problems}
+                    warnings={props.warnings}
                     onChange={(additions) => set(list.map((e, j) => (j === i ? withAdditions(e, additions) : e)))}
                   />
                 </td>
@@ -531,6 +546,7 @@ function IngredientGroup(props: {
                       integer={c.integer}
                       value={entry[c.field]}
                       invalid={invalid(i, c.field)}
+                      warn={warn(i, c.field)}
                       onChange={(v) => setField(i, c.field, v)}
                     />
                   </div>
@@ -560,6 +576,15 @@ function IngredientGroup(props: {
               </button>
             </td>
           </tr>
+          {notes.length > 0 && (
+            <tr data-row-note={i}>
+              <td />
+              <td colSpan={span - 1} class="px-1 pb-2 sm:px-2">
+                <FieldNotes notes={notes} />
+              </td>
+            </tr>
+          )}
+          </Fragment>
         );
       })}
       {list.length === 0 && (
@@ -589,7 +614,13 @@ function IngredientGroup(props: {
  * A table of one kind (EDT-042): the malts, the hops, or the other boil additions (EDT-060), with its column heads, its
  * rows and add row (`IngredientGroup`) and its Total.
  */
-function IngredientTable(props: { kind: IngredientKind; recipe: Recipe; problems: Problem[]; onChange: (recipe: Recipe) => void }) {
+function IngredientTable(props: {
+  kind: IngredientKind;
+  recipe: Recipe;
+  problems: Problem[];
+  warnings: Warning[];
+  onChange: (recipe: Recipe) => void;
+}) {
   const { kind } = props;
   const columns = COLUMNS[kind];
   const shares = HAS_SHARES[kind];
@@ -620,6 +651,7 @@ function IngredientTable(props: { kind: IngredientKind; recipe: Recipe; problems
           shares={shares}
           recipe={props.recipe}
           problems={props.problems}
+          warnings={props.warnings}
           onChange={props.onChange}
         />
         <tfoot class="border-t-2 border-line font-semibold text-ink dark:border-white/20 dark:text-ink-light">
@@ -859,6 +891,7 @@ export function IngredientsTab(props: {
   kind: "malts" | "hops";
   recipe: Recipe;
   problems: Problem[];
+  warnings: Warning[];
   onChange: (recipe: Recipe) => void;
   /** Opens the Water tab (the knockout volume, EDT-050). */
   onWater?: () => void;
@@ -897,7 +930,7 @@ export function IngredientsTab(props: {
           {kind === "malts" ? "Malt" : "Boil Ingredients"}
         </h3>
         {kind === "malts" ? (
-          <IngredientTable kind="malts" recipe={props.recipe} problems={props.problems} onChange={props.onChange} />
+          <IngredientTable kind="malts" recipe={props.recipe} problems={props.problems} warnings={props.warnings} onChange={props.onChange} />
         ) : (
           // Two tables (EDT-060, QE-44): the hops, then the other additions, each with its own heading and Total.
           (["hops", "others"] as const).map((k) => (
@@ -910,7 +943,7 @@ export function IngredientsTab(props: {
                   <span class="font-normal text-stone-500 dark:text-stone-400"> — not in the shares or the bitterness</span>
                 )}
               </h4>
-              <IngredientTable kind={k} recipe={props.recipe} problems={props.problems} onChange={props.onChange} />
+              <IngredientTable kind={k} recipe={props.recipe} problems={props.problems} warnings={props.warnings} onChange={props.onChange} />
             </div>
           ))
         )}

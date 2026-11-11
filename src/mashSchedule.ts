@@ -91,6 +91,8 @@ export function mashProfile(steps: MashStep[], heatingRate = DEFAULT_HEATING_RAT
 export interface ScheduleWarning {
   /** The step it is about; none for the whole schedule. */
   restId?: MashRestId;
+  /** The step's field it is about (EDT-062): its temperature or its duration. */
+  field?: "temperature" | "minutes";
   message: string;
 }
 
@@ -106,12 +108,14 @@ export function scheduleWarnings(steps: MashStep[]): ScheduleWarning[] {
     if (before && step.targetTemp < before.targetTemp) {
       warnings.push({
         restId: step.restId,
+        field: "temperature",
         message: `${info.short} at ${step.targetTemp} °C is lower than the ${MASH_RESTS[before.restId].short} before it (${before.targetTemp} °C): the steps should rise.`,
       });
     }
     if (step.targetTemp > MASH_TEMPERATURE_LIMIT) {
       warnings.push({
         restId: step.restId,
+        field: "temperature",
         message: `${info.short} at ${step.targetTemp} °C is above ${MASH_TEMPERATURE_LIMIT} °C: α-amylase is destroyed and unconverted starch stays in the wort.`,
       });
     }
@@ -119,6 +123,7 @@ export function scheduleWarnings(steps: MashStep[]): ScheduleWarning[] {
     if ((durationMin !== null && step.holdMinutes < durationMin) || (durationMax !== null && step.holdMinutes > durationMax)) {
       warnings.push({
         restId: step.restId,
+        field: "minutes",
         message: `${info.short} for ${step.holdMinutes} min is outside its typical duration (${info.duration}).`,
       });
     }

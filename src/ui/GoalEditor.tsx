@@ -3,6 +3,7 @@
  * Clicking the line opens the goal: the explanation of its type, the pencil for the type and its fields.
  */
 
+import { FieldNotes, notesAt } from "./notes";
 import { useState } from "preact/hooks";
 import { FIELD_LABELS, GOAL_INFO, changeGoalType, goalFields, goalLine, isGoalType, type Goal, type GoalType } from "../model";
 import { GOALS_PATH, type Problem } from "../validate";
@@ -41,6 +42,8 @@ export function GoalEditor(props: {
   const [choosing, setChoosing] = useState(false);
   const at = `${GOALS_PATH}[${index}]`;
   const problemsAt = (field: string) => props.problems.filter((p) => p.path === `${at}.${field}`);
+  // A field's errors, at the field (EDT-062).
+  const notes = (field: string) => notesAt({ problems: props.problems, warnings: [] }, `${at}.${field}`);
   const incomplete = props.problems.some((p) => p.path === at || p.path.startsWith(`${at}.`));
   const known = isGoalType(goal.type);
   const fields = goalFields(goal.type);
@@ -143,6 +146,7 @@ export function GoalEditor(props: {
                   onChange={(v) => set("temperature", v)}
                 />
               )}
+              {fields.includes("temperature") && <FieldNotes notes={notes("temperature")} class="col-start-2 -mt-1" />}
               {fields.includes("minutes") && (
                 <NumberField
                   label={FIELD_LABELS.minutes}
@@ -153,6 +157,7 @@ export function GoalEditor(props: {
                   onChange={(v) => set("minutes", v)}
                 />
               )}
+              {fields.includes("minutes") && <FieldNotes notes={notes("minutes")} class="col-start-2 -mt-1" />}
               {goal.type === "Rest" && (
                 <label class="col-start-2 flex items-center gap-2 text-sm">
                   <input
@@ -173,6 +178,7 @@ export function GoalEditor(props: {
               {(goal.type === "CookWater" || customTexts) && (
                 <>
                   <TextField label={FIELD_LABELS.name} value={goal.name} invalid={problemsAt("name").length > 0} onChange={(v) => set("name", v)} />
+                  <FieldNotes notes={notes("name")} class="col-start-2 -mt-1" />
                   <TextField
                     label={FIELD_LABELS.description}
                     value={goal.description}
@@ -180,6 +186,7 @@ export function GoalEditor(props: {
                     invalid={problemsAt("description").length > 0}
                     onChange={(v) => set("description", v)}
                   />
+                  <FieldNotes notes={notes("description")} class="col-start-2 -mt-1" />
                 </>
               )}
             </div>

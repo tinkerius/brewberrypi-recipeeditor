@@ -272,7 +272,8 @@ describe("App, the recipe's tabs (QE-28)", () => {
     await show(store);
     const recipe = root.querySelector("[aria-label=Recipe]")!;
     const tabs = () => [...recipe.querySelectorAll<HTMLElement>("[role=tablist] [role=tab]")];
-    expect(tabs().map((t) => [t.textContent, t.getAttribute("aria-selected")])).toEqual([
+    // The tab's name (a badge may follow it, EDT-063).
+    expect(tabs().map((t) => [t.firstChild!.textContent, t.getAttribute("aria-selected")])).toEqual([
       ["Malt", "true"],
       ["Mashing", "false"],
       ["Boiling", "false"],
@@ -830,12 +831,12 @@ describe("App, the Mashing tab (QE-32)", () => {
   it("ACC-060 warns outside the typical range, and the recipe stays complete", async () => {
     await openMashing();
     await tick("MaltoseRest");
-    const warning = () => row("MaltoseRest").querySelector("[data-mash-warning]")?.textContent;
+    const warning = () => row("MaltoseRest").querySelector("[data-mash-typical=temperature] ~ [data-field-notes] [data-field-warning]")?.textContent;
     const typicalOf = () => row("MaltoseRest").querySelector("[data-mash-typical=temperature]")!;
     expect(warning()).toBeUndefined();
     await type(field("MaltoseRest", "Temperature"), "70");
     expect(warning()).toBe("⚠ Outside the typical range");
-    expect(typicalOf().nextElementSibling!.matches("[data-mash-warning]")).toBe(true); // right after the range
+    expect(typicalOf().nextElementSibling!.matches("[data-field-notes]")).toBe(true); // right after the range
     const input = field("MaltoseRest", "Temperature");
     expect(input.className).toContain("ring-amber-500!");
     const typical = document.getElementById(input.getAttribute("aria-describedby")!)!;
@@ -1056,7 +1057,9 @@ describe("App, the Malt and Hops tabs (QE-34, QE-35)", () => {
     await act(async () => button("+ Add malt").click());
     expect(rows("malts")).toHaveLength(1);
     expect(document.activeElement).toBe(nameField("malts", 0));
-    expect(rows("malts")[0].nextElementSibling!.querySelector("[data-add-row]")).not.toBeNull();
+    // After the row and the line of its notes (EDT-062).
+    expect(rows("malts")[0].nextElementSibling!.hasAttribute("data-row-note")).toBe(true);
+    expect(rows("malts")[0].nextElementSibling!.nextElementSibling!.querySelector("[data-add-row]")).not.toBeNull();
     await type(nameField("malts", 0), "Pilsner malt");
     await type(field("malts", 0, "grams"), "4500");
     expect(await download()).toContain('"ingredients"');
@@ -1550,6 +1553,91 @@ describe("App, the Malt and Hops tabs (QE-34, QE-35)", () => {
     expect(recipe().textContent).not.toContain('has no field "grams"');
     await type(field("hops", 0, "grams", 1), "5");
     expect(rows("hops")[0].querySelector("[data-entry-total]")!.textContent).toBe("20 g");
+  });
+
+  it("ACC-090 shows each error and warning at its field: red with ⊘ for missing or wrong data, amber with ⚠ outside the typical range", async () => {
+    await open();
+    await showTab("hops");
+    await add("hops", "Hallertauer", "20", { alpha: "25", minutes: "120" });
+    await act(async () => rows("hops")[0].querySelector<HTMLElement>("[data-add-addition]")!.click());
+    // The row's notes in a line right below it: its errors first, then its warnings.
+    const note = rows("hops")[0].nextElementSibling as HTMLElement;
+    expect(note.hasAttribute("data-row-note")).toBe(true);
+    expect([...note.querySelectorAll("[data-field-error]")].map((e) => e.textContent)).toEqual(["⊘ Addition 2 needs an amount in grams."]);
+    expect(note.querySelector("[data-field-error]")!.className).toContain("text-red-700");
+    expect([...note.querySelectorAll("[data-field-warning]")].map((e) => e.textContent)).toEqual([
+      "⚠ α typically 2–20 %",
+      "⚠ Addition 1: typically up to 90 min",
+    ]);
+    expect(note.querySelector("[data-field-warning]")!.className).toContain("text-amber-700");
+    // The fields: red for an error, amber for a warning.
+    expect(field("hops", 0, "grams", 1).className).toContain("ring-red-500!");
+    expect(field("hops", 0, "alpha").className).toContain("ring-amber-500!");
+    expect(field("hops", 0, "minutes").className).toContain("ring-amber-500!");
+    // Fixed, the line goes.
+    await type(field("hops", 0, "grams", 1), "10");
+    await type(field("hops", 0, "alpha"), "5");
+    await type(field("hops", 0, "minutes"), "60");
+    expect(rows("hops")[0].nextElementSibling!.hasAttribute("data-row-note")).toBe(false);
+    // On the Water tab under the field's hint.
+    await setOnWater("Original gravity", "25", "hops");
+    await showTab("water");
+    const plato = recipe().querySelector("[data-batch-field=plato]")!;
+    expect(plato.querySelector("[data-field-warning]")!.textContent).toBe("⚠ An original gravity of 25 °P is outside the typical 7–22 °P.");
+    await type(plato.querySelector("input")!, "41");
+    expect(plato.querySelector("[data-field-error]")!.textContent).toBe("⊘ The original gravity must be a number from 0 to 40 °P.");
+    expect(plato.querySelector("[data-field-warning]")).toBeNull();
+  });
+
+  it("ACC-090 shows the recipe name's error at the title", async () => {
+    await open({ version: 3, name: "", mashing_process: { goals: [] } });
+    const title = recipe().querySelector("input[aria-label='Recipe name']")!.parentElement!;
+    expect(title.querySelector("[data-field-error]")!.textContent).toBe("⊘ The recipe needs a name.");
+  });
+
+  it("ACC-091 each tab shows its number of errors (red) and warnings (amber ⚠)", async () => {
+    await open();
+    const badge = (tab: string) => recipe().querySelector(`#tab-${tab} [data-tab-badge]`);
+    const counts = (tab: string) => [
+      badge(tab)?.querySelector("[data-tab-errors]")?.textContent,
+      badge(tab)?.querySelector("[data-tab-warnings]")?.textContent,
+    ];
+    expect(["malts", "mashing", "hops", "water", "mash"].map(badge)).toEqual([null, null, null, null, null]);
+    await showTab("hops");
+    await add("hops", "Hallertauer", "", { alpha: "25" });
+    expect(counts("hops")).toEqual(["1", "⚠ 1"]);
+    expect(badge("hops")!.querySelector(".sr-only")!.textContent).toBe("(1 error, 1 warning)");
+    expect(recipe().querySelector("#tab-hops")!.textContent).toBe("Boiling(1 error, 1 warning)1⚠ 1");
+    expect(badge("malts")).toBeNull();
+    await setOnWater("Original gravity", "25", "hops");
+    await setOnWater("Final gravity", "0.5", "hops");
+    expect(counts("water")).toEqual([undefined, "⚠ 3"]); // the original and final gravity, and the attenuation
+    await type(field("hops", 0, "grams"), "20");
+    await type(field("hops", 0, "alpha"), "5");
+    expect(badge("hops")).toBeNull();
+  });
+
+  it("ACC-092 lists the errors and the warnings apart; a recipe with only warnings is complete", async () => {
+    await open();
+    await showTab("hops");
+    await add("hops", "Hallertauer", "", { alpha: "25", minutes: "60" });
+    const errors = () => recipe().querySelector("[data-error-list]");
+    const warnings = () => recipe().querySelector("[data-warning-list]");
+    expect(errors()!.textContent).toContain("⊘ Incomplete — fix these before saving or downloading:");
+    expect(errors()!.textContent).toContain("Hop 1: Hop 1, addition 1 needs an amount in grams.");
+    expect(errors()!.textContent).not.toContain("alpha acid of 25");
+    expect(warnings()!.textContent).toContain("⚠ Warnings — outside the typical range; the recipe stays valid:");
+    expect(warnings()!.textContent).toContain("Hop 1: An alpha acid of 25 % is outside the typical 2–20 %.");
+    await type(field("hops", 0, "grams"), "20");
+    expect(errors()).toBeNull();
+    expect(recipe().textContent).toContain("Complete: BrewberryPi can load this recipe.");
+    expect(warnings()).not.toBeNull();
+    // Its entry opens the tab, like an error's.
+    await act(async () => recipe().querySelector<HTMLElement>("#tab-malts")!.click());
+    await act(async () => [...warnings()!.querySelectorAll("button")].find((b) => b.textContent === "Hop 1")!.click());
+    expect(recipe().querySelector("#tab-hops")!.getAttribute("aria-selected")).toBe("true");
+    // A warning doesn't stop the download.
+    expect(await download()).toContain('"alpha": 25');
   });
 
   it("ACC-083 shows each malt's colour from its EBC next to the field", async () => {

@@ -6,6 +6,8 @@
  * stays valid.
  */
 
+import type { Warning } from "../warnings";
+import { FieldNotes, hasWarning, notesAt } from "./notes";
 import { useRef, useState } from "preact/hooks";
 import type { Problem } from "../validate";
 import {
@@ -13,7 +15,6 @@ import {
   MASH_RESTS,
   mashingOf,
   newMashRest,
-  outsideTypicalRange,
   typicalTemperature,
   withMashRest,
   type MashRest,
@@ -37,6 +38,7 @@ function RestRows(props: {
   id: MashRestId;
   rest: MashRest | undefined;
   problems: Problem[];
+  warnings: Warning[];
   open: boolean;
   onToggle: () => void;
   onChange: (rest: MashRest | undefined) => void;
@@ -46,7 +48,10 @@ function RestRows(props: {
   const planned = rest !== undefined;
   const at = `mashing.${id}`;
   const invalid = (field: string) => props.problems.some((p) => p.path === `${at}.${field}`);
-  const warn = planned && outsideTypicalRange(id, rest.temperature);
+  // A field's errors and warnings, next to its typical value (EDT-033, EDT-062).
+  const notes = (field: string) => (planned ? notesAt({ problems: props.problems, warnings: props.warnings }, `${at}.${field}`) : []);
+  const warn = hasWarning(notes("temperature"));
+  const warnMinutes = hasWarning(notes("minutes"));
   const checkbox = `mash-${id}`;
   const about = `mash-about-${id}`;
   const typicalId = (field: string) => `mash-typical-${id}-${field}`;
@@ -105,11 +110,7 @@ function RestRows(props: {
         <td class={CELL}>
           <div class={VALUE}>
             {typical("temperature", typicalTemperature(id), warn)}
-            {warn && (
-              <span class="text-[11px] leading-snug font-medium text-amber-700 sm:text-xs dark:text-brass-light" data-mash-warning>
-                ⚠ Outside the typical range
-              </span>
-            )}
+            <FieldNotes notes={notes("temperature")} />
           </div>
         </td>
         <td class={`${CELL} w-12 sm:w-20`}>
@@ -120,13 +121,17 @@ function RestRows(props: {
               integer
               value={rest.minutes}
               invalid={invalid("minutes")}
+              warn={warnMinutes}
               describedBy={typicalId("minutes")}
               onChange={(v) => props.onChange({ ...rest, minutes: v })}
             />
           )}
         </td>
         <td class={CELL}>
-          <div class={VALUE}>{typical("minutes", info.duration)}</div>
+          <div class={VALUE}>
+            {typical("minutes", info.duration, warnMinutes)}
+            <FieldNotes notes={notes("minutes")} />
+          </div>
         </td>
         <td class={`${CELL} w-7 text-right sm:w-10`}>
           <button
@@ -166,7 +171,7 @@ function RestRows(props: {
   );
 }
 
-export function MashingTab(props: { recipe: Recipe; problems: Problem[]; onChange: (recipe: Recipe) => void }) {
+export function MashingTab(props: { recipe: Recipe; problems: Problem[]; warnings: Warning[]; onChange: (recipe: Recipe) => void }) {
   const plan = mashingOf(props.recipe);
   const [open, setOpen] = useState<MashRestId>();
   const table = useRef<HTMLTableElement>(null);
@@ -214,6 +219,7 @@ export function MashingTab(props: { recipe: Recipe; problems: Problem[]; onChang
                     id={id}
                     rest={rest === undefined ? undefined : isObject(rest) ? (rest as MashRest) : {}}
                     problems={props.problems}
+                    warnings={props.warnings}
                     open={open === id}
                     onToggle={() => setOpen(open === id ? undefined : id)}
                     onChange={(next) => props.onChange(withMashRest(props.recipe, id, next))}

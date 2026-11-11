@@ -1,7 +1,8 @@
 /**
  * Reordering a list's items by drag and drop with a handle, or with the arrow keys on the focused handle (EDT-012,
  * EDT-046): the goals of the mash process and the malt and hop tables. Pointer events, so mouse, pen and touch all
- * work. The container's first `count` children are the items (a table may have more rows after them).
+ * work. The container's first `count` children are the items (a table may have more rows after them); a row of an
+ * item's notes (`data-row-note`, EDT-062) belongs to the item before it and is not counted.
  */
 
 import { useEffect, useRef, useState } from "preact/hooks";
@@ -11,7 +12,7 @@ export function useReorder<E extends HTMLElement>(count: number, onMove: (from: 
   const container = useRef<E>(null);
   const [drag, setDrag] = useState<{ from: number; slot: number }>();
   const [focusHandle, setFocusHandle] = useState<number>();
-  const items = () => [...(container.current?.children ?? [])].slice(0, count);
+  const items = () => [...(container.current?.children ?? [])].filter((el) => !el.hasAttribute("data-row-note")).slice(0, count);
 
   // Keyboard reordering: the moved item's handle keeps the focus.
   useEffect(() => {

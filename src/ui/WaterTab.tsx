@@ -8,6 +8,8 @@
 
 import type { ComponentChildren } from "preact";
 import type { Problem } from "../validate";
+import type { Warning } from "../warnings";
+import { FieldNotes, hasWarning, notesAt } from "./notes";
 import {
   WATER_FIELDS,
   WATER_LABELS,
@@ -51,10 +53,12 @@ const BATCH_FIELDS: Record<BatchField, { label: string; unit: string; hint: stri
   final_plato: { label: "Final gravity", unit: "°P", hint: "The beer's gravity after fermentation." },
 };
 
-export function WaterTab(props: { recipe: Recipe; problems: Problem[]; onChange: (recipe: Recipe) => void }) {
+export function WaterTab(props: { recipe: Recipe; problems: Problem[]; warnings: Warning[]; onChange: (recipe: Recipe) => void }) {
   const water = waterOf(props.recipe);
   const batch = batchOf(props.recipe);
   const invalid = (path: string) => props.problems.some((p) => p.path === path);
+  // A field's errors and warnings, under its hint (EDT-062).
+  const notes = (path: string) => notesAt({ problems: props.problems, warnings: props.warnings }, path);
   const total = totalWater(props.recipe);
   const thickness = mashThickness(props.recipe);
   const alcohol = alcoholOf(props.recipe);
@@ -65,9 +69,13 @@ export function WaterTab(props: { recipe: Recipe; problems: Problem[]; onChange:
         unit={BATCH_FIELDS[field].unit}
         value={batch[field]}
         invalid={invalid(`batch.${field}`)}
+        warn={hasWarning(notes(`batch.${field}`))}
         onChange={(v) => props.onChange(withBatchField(props.recipe, field, v))}
       />
-      <span class={HINT}>{BATCH_FIELDS[field].hint}</span>
+      <span class={HINT}>
+        {BATCH_FIELDS[field].hint}
+        <FieldNotes notes={notes(`batch.${field}`)} class="mt-0.5" />
+      </span>
     </div>
   );
   return (
@@ -84,9 +92,13 @@ export function WaterTab(props: { recipe: Recipe; problems: Problem[]; onChange:
                 unit="L"
                 value={water[field]}
                 invalid={invalid(`water.${field}`)}
+                warn={hasWarning(notes(`water.${field}`))}
                 onChange={(v) => props.onChange(withWaterField(props.recipe, field, v))}
               />
-              <span class={HINT}>{WATER_LABELS[field].hint}</span>
+              <span class={HINT}>
+                {WATER_LABELS[field].hint}
+                <FieldNotes notes={notes(`water.${field}`)} class="mt-0.5" />
+              </span>
             </div>
           ))}
           {/* The batch's knockout volume (EDT-050): entered here only; the Malt and Boiling tabs use it. */}

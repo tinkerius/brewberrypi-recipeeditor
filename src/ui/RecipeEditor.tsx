@@ -16,6 +16,8 @@ import { Tabs } from "./Tabs";
 import { moveItem } from "./reorder";
 import { useReorder } from "./useReorder";
 import { BUTTON_STYLES, CARD_STYLE, HINT_STYLE, LINK_STYLE } from "./styles";
+import { warningsOf } from "../warnings";
+import { ERROR_TEXT, WARNING_TEXT, notesAt, type Issues } from "./notes";
 
 const PATH_LABELS: Record<string, string> = {
   id: "File name",
@@ -61,6 +63,14 @@ function isMashing(path: string): boolean {
   return path === MASHING_PATH || path.startsWith(`${MASHING_PATH}.`);
 }
 
+/** The tab a problem or warning is on (EDT-063); none for the recipe's name, file name and format version. */
+function tabOf(path: string): RecipeTab | undefined {
+  if (path === "mashing_process" || path.startsWith("mashing_process.")) {
+    return "mash";
+  }
+  return isMashing(path) ? "mashing" : ingredientsTab(path);
+}
+
 function describePath(path: string): string {
   const goal = goalOf(path);
   if (goal !== undefined) {
@@ -79,8 +89,10 @@ function describePath(path: string): string {
 }
 
 /**
- * The problems (EDT-020); a goal's problem opens that goal when its "Goal n" is clicked, a problem of the mashing
- * plan opens the Mashing tab (EDT-035), one of the malts, hops, batch or water its tab (EDT-045, EDT-051).
+ * The problems and the warnings (EDT-020, QE-54): the errors in red, which must be fixed before saving or downloading,
+ * and the warnings in amber, values outside their typical range (EDT-064). A goal's entry opens that goal when its
+ * "Goal n" is clicked, one of the mashing plan the Mashing tab (EDT-035), one of the malts, hops, batch or water its
+ * tab (EDT-045, EDT-051).
  */
 export function ProblemList(props: {
   doc: Doc;
@@ -89,6 +101,39 @@ export function ProblemList(props: {
   onIngredients?: (tab: "malts" | "hops" | "water") => void;
 }) {
   const problems = problemsOf(props.doc);
+  const warnings = props.doc.loadError ? [] : warningsOf(props.doc.recipe);
+  /** An entry: where it is (a link to its tab or goal where there is one), then its message. */
+  const entry = (path: string, message: string, i: number) => {
+    const goal = goalOf(path);
+    return (
+      <li key={i}>
+        {goal !== undefined && props.onGoal ? (
+          <button type="button" class={LINK_STYLE} onClick={() => props.onGoal!(goal)}>
+            {describePath(path)}
+          </button>
+        ) : isMashing(path) && props.onMashing ? (
+          <button type="button" class={LINK_STYLE} onClick={props.onMashing}>
+            {describePath(path)}
+          </button>
+        ) : ingredientsTab(path) && props.onIngredients ? (
+          <button type="button" class={LINK_STYLE} onClick={() => props.onIngredients!(ingredientsTab(path)!)}>
+            {describePath(path)}
+          </button>
+        ) : (
+          <span class="font-medium">{describePath(path)}</span>
+        )}
+        : {message}
+        {path === "id" && " Rename it with the recipe's menu (⋯) in the list."}
+      </li>
+    );
+  };
+  const warningList =
+    warnings.length === 0 ? null : (
+      <div class="rounded-lg bg-amber-50 p-3 text-sm ring-1 ring-amber-200 dark:bg-brass-light/10 dark:ring-brass-light/20" role="status" data-warning-list>
+        <p class={`font-medium ${WARNING_TEXT}`}>⚠ Warnings — outside the typical range; the recipe stays valid:</p>
+        <ul class="mt-1 list-disc pl-5 text-stone-700 dark:text-stone-300">{warnings.map((w, i) => entry(w.path, w.message, i))}</ul>
+      </div>
+    );
   if (props.doc.loadError) {
     return (
       <p class="rounded-lg bg-red-50 p-3 text-sm text-red-700 dark:bg-red-500/10 dark:text-red-300" role="alert">
@@ -98,43 +143,24 @@ export function ProblemList(props: {
   }
   if (problems.length === 0) {
     return (
-      <p class="rounded-lg bg-leaf/10 p-3 text-sm text-leaf dark:bg-leaf-light/10 dark:text-leaf-light">
-        {goalsOf(props.doc.recipe).length === 0
-          ? "✓ Valid recipe file. It has no goals yet, so BrewberryPi lists it but can't brew it."
-          : "✓ Complete: BrewberryPi can load this recipe."}
-      </p>
+      <>
+        <p class="rounded-lg bg-leaf/10 p-3 text-sm text-leaf dark:bg-leaf-light/10 dark:text-leaf-light">
+          {goalsOf(props.doc.recipe).length === 0
+            ? "✓ Valid recipe file. It has no goals yet, so BrewberryPi lists it but can't brew it."
+            : "✓ Complete: BrewberryPi can load this recipe."}
+        </p>
+        {warningList}
+      </>
     );
   }
   return (
-    <div class="rounded-lg bg-brass/10 p-3 text-sm dark:bg-brass-light/10" role="status">
-      <p class="font-medium text-ink dark:text-ink-light">Incomplete — fix these before saving or downloading:</p>
-      <ul class="mt-1 list-disc pl-5 text-stone-700 dark:text-stone-300">
-        {problems.map((p, i) => {
-          const goal = goalOf(p.path);
-          return (
-            <li key={i}>
-              {goal !== undefined && props.onGoal ? (
-                <button type="button" class={LINK_STYLE} onClick={() => props.onGoal!(goal)}>
-                  {describePath(p.path)}
-                </button>
-              ) : isMashing(p.path) && props.onMashing ? (
-                <button type="button" class={LINK_STYLE} onClick={props.onMashing}>
-                  {describePath(p.path)}
-                </button>
-              ) : ingredientsTab(p.path) && props.onIngredients ? (
-                <button type="button" class={LINK_STYLE} onClick={() => props.onIngredients!(ingredientsTab(p.path)!)}>
-                  {describePath(p.path)}
-                </button>
-              ) : (
-                <span class="font-medium">{describePath(p.path)}</span>
-              )}
-              : {p.message}
-              {p.path === "id" && " Rename it with the recipe's menu (⋯) in the list."}
-            </li>
-          );
-        })}
-      </ul>
-    </div>
+    <>
+      <div class="rounded-lg bg-red-50 p-3 text-sm ring-1 ring-red-200 dark:bg-red-500/10 dark:ring-red-400/20" role="status" data-error-list>
+        <p class={`font-medium ${ERROR_TEXT}`}>⊘ Incomplete — fix these before saving or downloading:</p>
+        <ul class="mt-1 list-disc pl-5 text-stone-700 dark:text-stone-300">{problems.map((p, i) => entry(p.path, p.message, i))}</ul>
+      </div>
+      {warningList}
+    </>
   );
 }
 
@@ -151,6 +177,19 @@ type RecipeTab = (typeof RECIPE_TABS)[number]["id"];
 export function RecipeEditor(props: { doc: Doc; onChange: (recipe: Recipe) => void; actions?: ComponentChildren; status?: ComponentChildren }) {
   const { doc } = props;
   const problems = problemsOf(doc);
+  const warnings = warningsOf(doc.recipe);
+  const issues: Issues = { problems, warnings };
+  // Each tab's errors and warnings, as a badge on the tab (EDT-063).
+  const badges: Partial<Record<RecipeTab, { errors: number; warnings: number }>> = {};
+  const count = (path: string, kind: "errors" | "warnings") => {
+    const t = tabOf(path);
+    if (t) {
+      const b = (badges[t] ??= { errors: 0, warnings: 0 });
+      b[kind] += 1;
+    }
+  };
+  problems.forEach((p) => count(p.path, "errors"));
+  warnings.forEach((w) => count(w.path, "warnings"));
   const [adding, setAdding] = useState(false);
   const [tab, setTab] = useState<RecipeTab>("malts");
   const setRecipe = (recipe: Recipe) => props.onChange(recipe);
@@ -190,6 +229,7 @@ export function RecipeEditor(props: { doc: Doc; onChange: (recipe: Recipe) => vo
             docKey={doc.key}
             name={doc.recipe.name}
             invalid={has("name")}
+            notes={notesAt(issues, "name")}
             onChange={(name) => setRecipe({ ...doc.recipe, name })}
           />
         </div>
@@ -197,13 +237,21 @@ export function RecipeEditor(props: { doc: Doc; onChange: (recipe: Recipe) => vo
       </div>
 
 
-      <Tabs label="Recipe sections" tabs={RECIPE_TABS} selected={tab} onSelect={setTab}>
+      <Tabs label="Recipe sections" tabs={RECIPE_TABS} selected={tab} onSelect={setTab} badges={badges}>
         {tab === "water" ? (
-          <WaterTab recipe={doc.recipe} problems={problems} onChange={setRecipe} />
+          <WaterTab recipe={doc.recipe} problems={problems} warnings={warnings} onChange={setRecipe} />
         ) : tab === "malts" || tab === "hops" ? (
-          <IngredientsTab key={tab} kind={tab} recipe={doc.recipe} problems={problems} onChange={setRecipe} onWater={() => setTab("water")} />
+          <IngredientsTab
+            key={tab}
+            kind={tab}
+            recipe={doc.recipe}
+            problems={problems}
+            warnings={warnings}
+            onChange={setRecipe}
+            onWater={() => setTab("water")}
+          />
         ) : tab === "mashing" ? (
-          <MashingTab recipe={doc.recipe} problems={problems} onChange={setRecipe} />
+          <MashingTab recipe={doc.recipe} problems={problems} warnings={warnings} onChange={setRecipe} />
         ) : (
           <>
             <p class={HINT_STYLE}>The goals in brewing order.</p>

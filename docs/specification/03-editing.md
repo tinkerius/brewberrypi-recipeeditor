@@ -72,8 +72,22 @@ Applies signed out (drafts, §4) and signed in (Drive recipes, §5) alike, unles
 
 ## 3.4 Problems and notices
 
-- `EDT-020` Problems (`FMT-004`) are listed below the goals, each with where it is; fields with a problem are
-  marked. A goal's problem names the goal ("Goal 2"); clicking that opens the goal (`EDT-011`). For an invalid file name the message says to rename it from the recipe's menu.
+- `EDT-020` The editor tells **errors** from **warnings** (`QE-54`). An error is missing or wrong data, a problem
+  of the file (`FMT-004`): until it is fixed the recipe can't be saved or downloaded (`FMT-010`). A warning is a value
+  outside its typical range (`EDT-064`): the recipe stays complete and can be saved and downloaded. Below the tabs the
+  errors are listed in red under "⊘ Incomplete — fix these before saving or downloading:", then the warnings in
+  amber under "⚠ Warnings — outside the typical range; the recipe stays valid:" (also below "✓ Complete …"), each
+  with where it is. A goal's entry names the goal ("Goal 2"); clicking that opens the goal (`EDT-011`); an entry of
+  another tab opens that tab. For an invalid file name the message says to rename it from the recipe's menu.
+- `EDT-062` Each error and warning is also shown **at its field** (`QE-54`): the field gets a red ring for an error, an
+  amber one for a warning, and the message is next to it — an error in red after "⊘", a warning in amber after "⚠".
+  On the Water tab it is under the field's hint; on the Mashing tab after the field's typical value; in a goal
+  under the field; the recipe name's under the title. In the Malt and Boil Ingredients tables a row's errors and
+  warnings are in a line right below the row, errors first, the row's own name left out ("⊘ Addition 2 needs an
+  amount in grams.", "⚠ α typically 2–20 %"). A value that is an error gets no warning as well.
+- `EDT-063` Each **tab** shows how many errors and warnings it has, next to its name: a red count of the errors and
+  an amber "⚠ n" of the warnings, nothing while it has none (for screen readers "(1 error, 2 warnings)"). The
+  recipe's name, file name and format version belong to no tab.
 - `EDT-021` When the editor changed a file while reading it (`FMT-003`), it says what it changed until the recipe
   is downloaded or saved.
 
@@ -140,7 +154,7 @@ Applies signed out (drafts, §4) and signed in (Drive recipes, §5) alike, unles
   rest from the plan, with its values.
 - `EDT-033` A planned rest whose temperature is outside its "warning outside" range (inclusive) shows a warning:
   its temperature field and its typical range are marked amber, and "⚠ Outside the typical range" follows that
-  range. It is only a warning: the recipe stays complete and can be saved and
+  range (`EDT-062`). It is only a warning (`EDT-020`): the recipe stays complete and can be saved and
   downloaded (`FMT-010`).
 - `EDT-034` The plan holds only ticked rests. When no rest is ticked, the recipe file has no `mashing`; a file read
   with an empty `mashing` (`{}`) keeps it until a rest is ticked and unticked.
@@ -167,8 +181,9 @@ Applies signed out (drafts, §4) and signed in (Drive recipes, §5) alike, unles
   beside it.
 - `EDT-037` A rest's band and label show its name, range, enzymes, effect and when it is useful as a tooltip;
   clicking one (or Enter on it) opens that rest's texts in the table (`EDT-031`).
-- `EDT-038` The schedule's **warnings** are listed below the ladder; they are warnings, not problems: the recipe
-  stays complete (`FMT-010`). A warning is given for:
+- `EDT-038` The schedule's **warnings** are listed below the ladder, and with the others (`EDT-020`) and at their rest's
+  temperature or duration field (`EDT-062`; the duration's: "⚠ Outside the typical duration"); they are warnings,
+  not problems: the recipe stays complete (`FMT-010`). A warning is given for:
   - a step whose temperature is lower than the step before it (the steps should rise);
   - a step above 78 °C;
   - a plan with steps but none that converts the starch (Combined rest or Saccharification rest; flag
@@ -363,3 +378,19 @@ temperature of their own. The typical durations of `EDT-038` and the flags:
   = ABW · SG(AE) / 0.7907), one decimal ("5.1 % vol"), and the **Apparent attenuation** ((OE − AE) / OE, "79 %").
   Without both gravities they show "–" and say what to enter; a final gravity not below the original gravity says
   "The final gravity must be below the original gravity.".
+
+## 3.9 Typical ranges (`QE-54`)
+
+- `EDT-064` Besides the mashing plan's (`EDT-033`, `EDT-038`), a **warning** (`EDT-020`, `EDT-062`) is given for a
+  valid value outside its typical range; the limits themselves are typical:
+
+| Value | Typical | At the field | Warning |
+|---|---|---|---|
+| Mash thickness (`EDT-052`) | 2.5–4 L/kg | Mash water | "A mash thickness of 6.3 L/kg is outside the typical 2.5–4 L/kg." |
+| Original gravity | 7–22 °P | Original gravity (target) | "An original gravity of 25 °P is outside the typical 7–22 °P." |
+| Final gravity | 1–5 °P | Final gravity | "A final gravity of 6 °P is outside the typical 1–5 °P." |
+| Apparent attenuation (`EDT-057`) | 65–85 % | Final gravity | "An apparent attenuation of 93 % is outside the typical 65–85 %." |
+| A hop's alpha acid | 2–20 % | α % ("⚠ α typically 2–20 %") | "An alpha acid of 25 % is outside the typical 2–20 %." |
+| A hop addition's cooking time | up to 90 min | its cooking time ("⚠ Addition 2: typically up to 90 min") | "Addition 2: a cooking time of 120 min is above the typical 90 min." |
+
+  Other additions have no typical cooking time.

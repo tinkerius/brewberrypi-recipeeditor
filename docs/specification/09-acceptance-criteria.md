@@ -217,6 +217,23 @@ a release that changes sign-in or Drive behaviour.
   gets its own as the first addition unless the same one is there, another addition likewise, with the notice
   "Converted: hop 1 "Hallertauer": its own amount and cooking time are moved into its additions."; the result is
   valid. A kept draft so converted shows 114 g for 15 g and 99 g, then 20 g after the second becomes 5 g.
+- `ACC-090` (EDT-062, QE-54) A hop Hallertauer 20 g, 25 %, 120 min with a second, empty addition: the line below its
+  row has "⊘ Addition 2 needs an amount in grams." in red, then "⚠ α typically 2–20 %" and "⚠ Addition 1: typically
+  up to 90 min" in amber; the empty amount has a red ring, α and the cooking time amber ones; fixed, the line goes.
+  An original gravity of 25 °P shows its warning under the field's hint, 41 °P its error instead. A recipe without a
+  name shows "⊘ The recipe needs a name." under the title.
+- `ACC-091` (EDT-063) No tab has a badge for a valid recipe in its typical ranges; a hop without an amount and with
+  25 % alpha acid gives Boiling a red "1" and "⚠ 1" ("(1 error, 1 warning)"), the Malt tab none; an original
+  gravity of 25 °P and a final gravity of 0.5 °P give Water "⚠ 3" (both gravities and the attenuation); fixed, the
+  badge goes.
+- `ACC-092` (EDT-020) The errors are listed under "⊘ Incomplete — fix these before saving or downloading:", the
+  warnings apart under "⚠ Warnings — outside the typical range; the recipe stays valid:"; with only warnings the
+  recipe is "Complete", the warnings stay listed, their entries open their tab, and it can be downloaded.
+- `ACC-093` (EDT-064, EDT-033, EDT-038) Warnings outside, none at the limits: mash thickness 2.5 and 4 L/kg none,
+  6.3 L/kg at the mash water; original gravity 7 and 22 °P none, 6.5 and 25 °P; final gravity 1 and 5 °P none, 6 °P;
+  attenuation 76 % none, 93 % at the final gravity; alpha acid 2 and 20 % none, 1.5 and 25 %; a hop addition of 90 min
+  none, 120 min; another addition's 120 min none; a Maltose rest at 70 °C for 90 min at both fields; a gravity of 41 °P
+  or alpha acid of 101 % is an error and no warning; the recipe stays valid.
 
 ## 9.3 Browser drafts
 

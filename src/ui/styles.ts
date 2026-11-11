@@ -37,7 +37,8 @@ export const INPUT_STYLE =
   "placeholder:text-stone-400 focus-visible:outline-2 focus-visible:outline-berry-light " +
   "dark:bg-white/10 dark:text-ink-light dark:ring-white/10 dark:focus-visible:outline-berry-light";
 
-export const INVALID_INPUT = "ring-red-400 dark:ring-red-400/60";
+/** Missing or wrong data (EDT-062): a red ring, like the warning's amber one. */
+export const INVALID_INPUT = "ring-2! ring-red-500! dark:ring-red-400!";
 
 /** A value worth a second look, but valid (EDT-033). */
 export const WARN_INPUT = "ring-2! ring-amber-500! dark:ring-brass-light!";

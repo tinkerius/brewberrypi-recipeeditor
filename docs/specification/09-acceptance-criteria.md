@@ -147,7 +147,8 @@ a release that changes sign-in or Drive behaviour.
 - `ACC-073` (EDT-048, EDT-050) The beer colour is "–" with "Add malts with their amounts."; with Pilsner malt 4500 g
   3.5 EBC and Munich malt 500 g without EBC, "Enter the EBC of malt 2 and the knockout volume on the Water tab."
   (the link opens the Water tab; the Malt tab has no volume field); with Munich malt 15 EBC and 20 L on the Water tab
-  it is "9 EBC" with the swatch #FFBF42 and the hint names "the knockout volume (20 L, Water tab)". An EBC of −1 is "Malt 2: the colour must be a number of
+  it is "9 EBC" with the swatch #FFBF42, no hint, and an ⓘ button that shows "Morey's formula, from each malt's EBC
+  and the knockout volume (20 L, Water tab)." (the bitterness likewise, `ACC-074`). An EBC of −1 is "Malt 2: the colour must be a number of
   at least 0 EBC."
 - `ACC-074` (EDT-049, EDT-050) The bitterness of Hallertauer Tradition 30 g, 5.5 %, 60 min in 20 l at 12.6 °P is
   "19 IBU"; until the boil time, volume and gravity are entered it is "–" with "Enter the alpha acid and boil time
@@ -179,18 +180,19 @@ a release that changes sign-in or Drive behaviour.
   `"batch": { "plato": 12, "final_plato": 2.5 }`; a final gravity of 12 says "The final gravity must be below the
   original gravity."; 41 is a problem whose entry opens the Water tab.
 - `ACC-082` (EDT-056) Hallertauer Tradition 30 g, 5.5 %, 60 min, 20 L, 12.6 °P: the bitterness scale has Weissbier,
-  Helles, Pils, Pale Ale, IPA and says "In the range of: Helles, Märzen, Dunkel.", and "BU:GU 0.37: balanced
-  (bitterness against the original gravity)."; 200 g give 126 IBU, "More bitter than a typical IPA." and "very
-  bitter". No scale without a bitterness.
+  Helles, Pils, Pale Ale, IPA and no "In the range of" line (its label still names Helles, Märzen, Dunkel), and the
+  heading line "BU:GU: 0.37 balanced"; 200 g give 126 IBU, the marker at the scale's end and "very bitter". No scale
+  without a bitterness.
 - `ACC-083` (EDT-058) Pilsner malt 3.5 EBC and chocolate malt 900 EBC show swatches #FFD878 and #36080A next to their
   EBC fields (tooltip "About the colour of 3.5 EBC"); a malt without EBC shows none.
 - `ACC-084` (EDT-059) At BU:GU 0.37 the balance bar has the bands malty, balanced, bitter, very bitter, the limits
   0, 0.35, 0.55, 0.80, 1.0+, "balanced" in bold and the marker in the balanced band's malty half; at 126 IBU "very
   bitter" is bold and the marker at the end. No bar without BU:GU.
-- `ACC-085` (EDT-060, QE-42) On the Boiling tab (so named), with Hallertauer Tradition 30 g 5.5 % 60 min (19 IBU):
-  below the hops the label "Other additions — not in the shares or the bitterness"; + Add other addition adds a row
-  with the focus on its name and no α field; Irish Moss 10 g 15 min leaves 19 IBU, the hop's 100 %, one donut slice
-  and "Total hops 30 g", with "Total ingredients 40 g" below it; the schedule adds it at 45 min as a grey square; the file has
+- `ACC-085` (EDT-060, QE-42, QE-44) On the Boiling tab (so named), with Hallertauer Tradition 30 g 5.5 % 60 min (19 IBU):
+  below the Hops table a table Other additions (heading "Other additions — not in the shares or the
+  bitterness"; Name, Cooking time (min), Absolute amount (g); "No other addition yet."); + Add other addition adds a
+  row with the focus on its name and no α field; Irish Moss 10 g 15 min leaves 19 IBU, the hop's 100 %, one donut slice
+  and the hops' "Total 30 g"; its own table's Total is 10 g, and there is no total of both; the schedule adds it at 45 min as a grey square; the file has
   `"others": [ { "name": "Irish Moss", "grams": 10, "minutes": 15 } ]` after `hops`; without grams it is
   "Other addition 1: Other addition 1 needs an amount in grams.", whose entry opens the Boiling tab.
 

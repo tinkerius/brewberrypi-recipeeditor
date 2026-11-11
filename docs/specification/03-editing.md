@@ -240,22 +240,24 @@ temperature of their own. The typical durations of `EDT-038` and the flags:
   MCU^0.6859, EBC = SRM · 1.97, each malt's EBC as °L = (EBC · 0.508 + 0.76) / 1.3546), rounded to a whole number
   ("9 EBC"), with a swatch of that colour (the SRM colour chart). It needs the EBC of every malt with an amount and
   the knockout volume (from the Water tab); until then it shows "–" and says what to enter ("Enter the EBC of malt 2
-  and the knockout volume on the Water tab.", "Water tab" a link that opens it). With a colour, the hint names the
-  volume used: "Morey's formula, from each malt's EBC and the knockout volume (20 L, Water tab)."; below the figure
-  the colour scale (`EDT-055`).
+  and the knockout volume on the Water tab.", "Water tab" a link that opens it). With a colour, an ⓘ button next to
+  it ("How the beer colour is calculated", `QE-44`) shows and hides how it is calculated and the volume used:
+  "Morey's formula, from each malt's EBC and the knockout volume (20 L, Water tab)."; below the figure the colour
+  scale (`EDT-055`).
 - `EDT-049` The Boiling tab shows the **bitterness** in IBU by Tinseth's formula (per hop, 1.65 · 0.000125^(SG − 1) ·
   (1 − e^(−0.04 · min)) / 4.15 · alpha/100 · g · 1000 / l, SG from the original gravity in °P), rounded to a whole
   number ("19 IBU"). It needs the alpha acid and boil time of every hop with an amount, the knockout volume and
   the original gravity (both from the Water tab); until then it shows "–" and says what to enter ("… and the
-  knockout volume and the original gravity on the Water tab."). With a bitterness, the hint names both values used
-  ("the original gravity (12.6 °P, Water tab)"); below the figure the bitterness scale and BU:GU (`EDT-056`).
+  knockout volume and the original gravity on the Water tab."). With a bitterness, an ⓘ button next to it shows and
+  hides how it is calculated and both values used ("… the original gravity (12.6 °P, Water tab)."; `QE-44`); below
+  the figure the bitterness scale and BU:GU (`EDT-056`).
 - `EDT-050` The **batch** fields (app `RCP-014`) are entered on the Water tab only (`EDT-051`, `EDT-057`; `QE-37`,
   `QE-38`): the **Knockout volume** (L, the wort at the end of the boil, the target for the fermenter; `QE-36`), the
   target **Original gravity** and the **Final gravity** (°P). The Malt and Boiling tabs use them and name them in their
   hints (`EDT-048`, `EDT-049`); they have no batch fields. A field left empty is left out of the
   file, and `batch` too when both are.
 - `EDT-054` The **Boil Schedule** (`QE-41`, `QE-42`) works back from the cooking times of the hops and the other
-  additions (`EDT-060`): the **total boil time** is the longest cooking time of those with an amount ("Total boil time: 60 min (the longest cooking time)"), and each hop goes
+  additions (`EDT-060`): the **total boil time** is the longest cooking time of those with an amount ("Total boil time: 60 min"; `QE-44`), and each hop goes
   in at that time minus its own cooking time, counted from the start of the boil (a 60-minute hop at "0 min
   (start)", a 10-minute hop at "50 min", a 0-minute hop at "60 min (flame-out)"); ties keep the table order. A
   timeline over the boil from its start ("start", left) to its end ("end", right), axis "min after the start of the
@@ -282,11 +284,10 @@ temperature of their own. The typical durations of `EDT-038` and the flags:
 
 - `EDT-056` Below the bitterness, a **bitterness scale** like the colour scale (`EDT-055`): a bar from 0 to 100 IBU
   ("100+") in hop greens, light to dark, a marker at the bitterness, the styles Weissbier, Helles, Pils, Pale Ale and
-  IPA at their typical bitterness, and "In the range of: …" (the styles whose range holds the rounded IBU), "More
-  bitter than a typical IPA." above 100 IBU, else "Between the common styles.". Below it **BU:GU**, the bitterness
-  against the original gravity (IBU / ((SG − 1) · 1000)), with two decimals and how it reads: below 0.35 "malty",
-  up to 0.55 "balanced", up to 0.8 "bitter", above "very bitter" ("BU:GU 0.37: balanced (bitterness against the
-  original gravity)."). The styles' bitterness (IBU, BJCP 2021):
+  IPA at their typical bitterness (no "In the range of" line, unlike the colour scale; `QE-44`). Below it **BU:GU**,
+  the bitterness against the original gravity (IBU / ((SG − 1) · 1000)), as a heading line like the bitterness's
+  ("BU:GU: **0.37** balanced", `QE-44`) with two decimals and how it reads: below 0.35 "malty", up to 0.55
+  "balanced", up to 0.8 "bitter", above "very bitter". The styles' bitterness (IBU, BJCP 2021):
 
 | Style | IBU | On the scale |
 |---|---|---|
@@ -309,11 +310,11 @@ temperature of their own. The typical durations of `EDT-038` and the flags:
   overlap too much to help.
 
 - `EDT-060` **Other additions** (app `RCP-013` `others`, `QE-42`) — Irish moss, spices, yeast nutrient — are like
-  hops without alpha acid: in the Boiling tab's table below the hops' add row, under the label "Other additions — not
-  in the shares or the bitterness", their rows (Name, Cooking time, Absolute amount; no α %, no share) and the add row
-  **+ Add other addition**; sorted by drag and drop among themselves (`EDT-046`). They are not in the shares, the
-  donut, the hop total ("Total hops") or the bitterness; a second total line below it, **Total ingredients**, sums
-  the hops and the other additions (grams only, no share; `QE-43`). They are in the Boil Schedule (a grey square instead of a dot).
+  hops without alpha acid. Under **Boil Ingredients** there are two tables (`QE-44`), each with its own small heading
+  and **Total**: **Hops** (`EDT-042`), then **Other additions** ("— not in the shares or the bitterness"; columns
+  Name, Cooking time (min), Absolute amount (g); no α %, no share; "No other addition yet."; add row **+ Add other
+  addition**; sorted by drag and drop, `EDT-046`). They are not in the shares, the donut, the hops' Total or the
+  bitterness, but in the Boil Schedule (a grey square instead of a dot).
   Their problems read "Other addition n" and open the Boiling tab.
 
 ## 3.8 Water (`QE-36`)

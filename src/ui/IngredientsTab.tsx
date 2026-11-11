@@ -50,7 +50,7 @@ export const seriesColour = (i: number) => (i < SERIES ? `var(--series-${i + 1})
 /** A number field of a row (EDT-042): the grams, a malt's EBC, a hop's alpha acid and boil time. */
 type Column = { field: "grams" | "ebc" | "alpha" | "minutes"; head: string; label: string; integer: boolean; width: string };
 /** In this order after the name (EDT-042, QE-40): the absolute amount last, just before the relative one. */
-const COLUMNS: Record<"malts" | "hops", Column[]> = {
+const COLUMNS: Record<IngredientKind, Column[]> = {
   malts: [
     { field: "ebc", head: "EBC", label: "Colour (EBC)", integer: false, width: "w-24 sm:w-28" },
     { field: "grams", head: "Absolute amount (g)", label: "Absolute amount (g)", integer: true, width: "w-16 sm:w-28" },
@@ -60,7 +60,14 @@ const COLUMNS: Record<"malts" | "hops", Column[]> = {
     { field: "minutes", head: "Cooking time (min)", label: "Cooking time (min)", integer: true, width: "w-14 sm:w-24" },
     { field: "grams", head: "Absolute amount (g)", label: "Absolute amount (g)", integer: true, width: "w-14 sm:w-24" },
   ],
+  others: [
+    { field: "minutes", head: "Cooking time (min)", label: "Cooking time (min)", integer: true, width: "w-14 sm:w-24" },
+    { field: "grams", head: "Absolute amount (g)", label: "Absolute amount (g)", integer: true, width: "w-14 sm:w-24" },
+  ],
 };
+
+/** Whether a kind's rows have shares of the total weight (EDT-043): malts and hops; other additions don't (EDT-060). */
+const HAS_SHARES: Record<IngredientKind, boolean> = { malts: true, hops: true, others: false };
 
 /** Each row's share of the total weight as a donut, with a legend (EDT-047). */
 function ShareDonut(props: { kind: IngredientKind; list: Ingredient[] }) {
@@ -192,6 +199,9 @@ function missingText(kind: IngredientKind, figure: Figure, onWater?: () => void)
  */
 function FigureLine(props: { kind: IngredientKind; recipe: Recipe; onWater?: () => void }) {
   const malts = props.kind === "malts";
+  // How the figure is computed, behind an ⓘ button next to it (QE-44).
+  const [about, setAbout] = useState(false);
+  const aboutId = `figure-about-${props.kind}`;
   const figure = malts ? beerColourOf(props.recipe) : bitternessOf(props.recipe);
   const label = malts ? "Beer colour" : "Bitterness";
   const { liters, plato } = batchOf(props.recipe);
@@ -231,34 +241,63 @@ function FigureLine(props: { kind: IngredientKind; recipe: Recipe; onWater?: () 
             {Math.round(figure.value)} IBU
           </span>
         )}
+        {figure.value !== undefined && (
+          <button
+            type="button"
+            data-figure-info
+            class={
+              "inline-flex size-5 items-center justify-center rounded-full text-xs font-semibold ring-1 ring-inset " +
+              "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-berry-light " +
+              (about
+                ? "bg-ink text-paper ring-ink dark:bg-ink-light dark:text-ink dark:ring-ink-light"
+                : "text-stone-600 ring-stone-300 hover:bg-stone-100 dark:text-stone-300 dark:ring-white/20 dark:hover:bg-white/10")
+            }
+            aria-expanded={about}
+            aria-controls={aboutId}
+            aria-label={`How the ${label.toLowerCase()} is calculated`}
+            title="How it is calculated"
+            onClick={() => setAbout(!about)}
+          >
+            i
+          </button>
+        )}
       </p>
+      {figure.value !== undefined && about && (
+        // Right below its ⓘ button.
+        <p
+          id={aboutId}
+          class="mt-2 rounded-md bg-white p-2.5 text-xs text-stone-700 ring-1 ring-line dark:bg-white/5 dark:text-stone-300 dark:ring-white/10"
+          data-figure-about
+        >
+          {malts ? (
+            <>Morey's formula, from each malt's EBC and {knockout}.</>
+          ) : (
+            <>Tinseth's formula, from each hop's alpha acid and boil time, {knockout} and {gravity}.</>
+          )}
+        </p>
+      )}
       {malts && figure.value !== undefined && <BeerColourScale ebc={figure.value} />}
       {!malts && figure.value !== undefined && <BitternessScale ibu={figure.value} />}
       {ratio !== undefined && (
-        <div class="mt-3">
-          <p class="text-xs text-stone-600 dark:text-stone-300" data-bu-gu>
-            BU:GU {ratio.toFixed(2)}: {balanceOf(ratio)} (bitterness against the original gravity).
+        <div class="mt-4">
+          {/* A heading line like the bitterness's (QE-44): the ratio and how it reads. */}
+          <p class="flex items-center gap-2 text-sm font-medium text-ink dark:text-ink-light" data-bu-gu>
+            BU:GU:
+            <span class="text-base font-semibold tabular-nums">{ratio.toFixed(2)}</span>
+            <span class="text-stone-600 dark:text-stone-300">{balanceOf(ratio)}</span>
           </p>
           <BalanceScale ratio={ratio} />
         </div>
       )}
-      <p class={`${HINT_STYLE} mt-1`} data-figure-hint>
-        {figure.value === undefined ? (
-          missingText(props.kind, figure, props.onWater)
-        ) : malts ? (
-          <>Morey's formula, from each malt's EBC and {knockout}.</>
-        ) : (
-          <>
-            Tinseth's formula, from each hop's alpha acid and boil time, {knockout} and {gravity}.
-          </>
-        )}
-      </p>
+      {figure.value === undefined && (
+        // What is missing stays visible: it says what to enter.
+        <p class={`${HINT_STYLE} mt-1`} data-figure-hint>
+          {missingText(props.kind, figure, props.onWater)}
+        </p>
+      )}
     </div>
   );
 }
-
-/** The kinds of rows a tab's table holds (EDT-060): the malts; the hops, then the other boil additions. */
-const TABLE_GROUPS: Record<"malts" | "hops", IngredientKind[]> = { malts: ["malts"], hops: ["hops", "others"] };
 
 /**
  * One kind of rows in a table (EDT-042, EDT-060), in its own `<tbody>`: its rows, sorted by drag and drop within the
@@ -275,7 +314,7 @@ function IngredientGroup(props: {
 }) {
   const { kind, columns } = props;
   const { one } = INGREDIENT_LABELS[kind];
-  const span = columns.length + 4;
+  const span = columns.length + (props.shares ? 4 : 3);
   const fields = ["grams", ...INGREDIENT_EXTRA_FIELDS[kind]];
   const list = ingredientsOf(props.recipe, kind);
   const set = (next: Ingredient[]) => props.onChange(withIngredients(props.recipe, kind, next));
@@ -361,8 +400,8 @@ function IngredientGroup(props: {
                 </td>
               ),
             )}
-            <td class={`${CELL} ${NUMBER} text-stone-600 dark:text-stone-300`} data-ingredient-share>
-              {props.shares && (
+            {props.shares && (
+              <td class={`${CELL} ${NUMBER} text-stone-600 dark:text-stone-300`} data-ingredient-share>
                 <span class="inline-flex items-center justify-end gap-1.5">
                   {share !== undefined && (
                     // On a phone the legend carries the colours, so the columns fit.
@@ -370,8 +409,8 @@ function IngredientGroup(props: {
                   )}
                   {share === undefined ? "–" : formatShare(share)}
                 </span>
-              )}
-            </td>
+              </td>
+            )}
             <td class={`${CELL} text-right`}>
               <button
                 type="button"
@@ -386,7 +425,7 @@ function IngredientGroup(props: {
           </tr>
         );
       })}
-      {list.length === 0 && props.shares && (
+      {list.length === 0 && (
         <tr class="border-t border-line dark:border-white/10">
           <td colSpan={span} class={`${CELL} ${HINT_STYLE}`}>
             No {one.toLowerCase()} yet.
@@ -408,16 +447,18 @@ function IngredientGroup(props: {
   );
 }
 
-/** A tab's table (EDT-042): the column heads, its groups of rows (EDT-060), and the Total of the first group. */
-function IngredientTable(props: { kind: "malts" | "hops"; recipe: Recipe; problems: Problem[]; onChange: (recipe: Recipe) => void }) {
+/**
+ * A table of one kind (EDT-042): the malts, the hops, or the other boil additions (EDT-060), with its column heads, its
+ * rows and add row (`IngredientGroup`) and its Total.
+ */
+function IngredientTable(props: { kind: IngredientKind; recipe: Recipe; problems: Problem[]; onChange: (recipe: Recipe) => void }) {
   const { kind } = props;
   const columns = COLUMNS[kind];
-  const span = columns.length + 4;
-  const groups = TABLE_GROUPS[kind];
+  const shares = HAS_SHARES[kind];
   const total = totalGrams(ingredientsOf(props.recipe, kind));
   return (
     <div class="relative overflow-x-auto rounded-lg ring-1 ring-line dark:ring-white/10" data-ingredients={kind}>
-      <table aria-label={kind === "malts" ? "Malt" : "Boil ingredients"} class="w-full border-collapse text-sm">
+      <table aria-label={INGREDIENT_LABELS[kind].title} class="w-full border-collapse text-sm">
         <thead class="bg-stone-50 dark:bg-white/5">
           <tr>
             <th class={`${HEAD} w-8`}>
@@ -429,39 +470,24 @@ function IngredientTable(props: { kind: "malts" | "hops"; recipe: Recipe; proble
                 {c.head}
               </th>
             ))}
-            <th class={`${HEAD} w-14 text-right sm:w-24`}>Relative amount (%)</th>
+            {shares && <th class={`${HEAD} w-14 text-right sm:w-24`}>Relative amount (%)</th>}
             <th class={`${HEAD} w-10`}>
               <span class="sr-only">Remove</span>
             </th>
           </tr>
         </thead>
-        {groups.map((group, k) => (
-          <Fragment key={group}>
-            {k > 0 && (
-              // The group's name (EDT-060): its rows follow, then its add row.
-              <tbody>
-                <tr class="border-t-2 border-line bg-stone-50/60 dark:border-white/15 dark:bg-white/[0.03]" data-group-label={group}>
-                  <td colSpan={span} class={`${CELL} text-xs font-semibold text-stone-600 dark:text-stone-300`}>
-                    {INGREDIENT_LABELS[group].title}
-                    <span class="font-normal text-stone-500 dark:text-stone-400"> — not in the shares or the bitterness</span>
-                  </td>
-                </tr>
-              </tbody>
-            )}
-            <IngredientGroup
-              kind={group}
-              columns={columns}
-              shares={k === 0}
-              recipe={props.recipe}
-              problems={props.problems}
-              onChange={props.onChange}
-            />
-          </Fragment>
-        ))}
+        <IngredientGroup
+          kind={kind}
+          columns={columns}
+          shares={shares}
+          recipe={props.recipe}
+          problems={props.problems}
+          onChange={props.onChange}
+        />
         <tfoot class="border-t-2 border-line font-semibold text-ink dark:border-white/20 dark:text-ink-light">
           <tr data-ingredient-total>
             <td class={CELL} />
-            <td class={CELL}>{kind === "malts" ? "Total" : "Total hops"}</td>
+            <td class={CELL}>Total</td>
             {columns.map((c) =>
               c.field === "grams" ? (
                 <td key={c.field} class={`${CELL} ${NUMBER}`} data-total-grams>
@@ -471,27 +497,9 @@ function IngredientTable(props: { kind: "malts" | "hops"; recipe: Recipe; proble
                 <td key={c.field} class={CELL} />
               ),
             )}
-            <td class={`${CELL} ${NUMBER}`}>{total > 0 ? "100 %" : ""}</td>
+            {shares && <td class={`${CELL} ${NUMBER}`}>{total > 0 ? "100 %" : ""}</td>}
             <td class={CELL} />
           </tr>
-          {kind === "hops" && (
-            // Everything that goes into the boil (EDT-060, QE-43): hops and other additions; no share.
-            <tr data-ingredient-total-all class="border-t border-line dark:border-white/10">
-              <td class={CELL} />
-              <td class={CELL}>Total ingredients</td>
-              {columns.map((c) =>
-                c.field === "grams" ? (
-                  <td key={c.field} class={`${CELL} ${NUMBER}`}>
-                    {total + totalGrams(ingredientsOf(props.recipe, "others"))} g
-                  </td>
-                ) : (
-                  <td key={c.field} class={CELL} />
-                ),
-              )}
-              <td class={CELL} />
-              <td class={CELL} />
-            </tr>
-          )}
         </tfoot>
       </table>
     </div>
@@ -564,8 +572,7 @@ function HopSchedule(props: { hops: Ingredient[]; others: Ingredient[] }) {
   return (
     <div ref={box} data-hop-schedule>
       <p class="mb-2 text-sm text-ink dark:text-ink-light" data-boil-time>
-        <span class="font-medium">Total boil time:</span> <span class="font-semibold tabular-nums">{boil} min</span>{" "}
-        <span class={HINT_STYLE}>(the longest cooking time)</span>
+        <span class="font-medium">Total boil time:</span> <span class="font-semibold tabular-nums">{boil} min</span>
       </p>
       <div class="rounded-lg bg-stone-50 ring-1 ring-line dark:bg-white/5 dark:ring-white/10">
         <svg
@@ -669,12 +676,7 @@ export function IngredientsTab(props: {
   const list = ingredientsOf(props.recipe, kind);
   return (
     <>
-      <p class={HINT_STYLE}>
-        {kind === "malts"
-          ? "The malts of the brew with their amounts and colours. The shares are of the total malt weight."
-          : "The hops and other additions of the boil with their amounts and cooking times. The shares and the bitterness are of the hops."}
-      </p>
-      <section class="mt-4" aria-labelledby={`${kind}-overview-title`}>
+      <section aria-labelledby={`${kind}-overview-title`}>
         <h3 id={`${kind}-overview-title`} class={`${SECTION_TITLE_STYLE} mb-2`}>
           {kind === "malts" ? "Malt Overview" : "Hops Overview"}
         </h3>
@@ -703,7 +705,22 @@ export function IngredientsTab(props: {
         <h3 id={`${kind}-table-title`} class={`${SECTION_TITLE_STYLE} mb-2`}>
           {kind === "malts" ? "Malt" : "Boil Ingredients"}
         </h3>
-        <IngredientTable kind={kind} recipe={props.recipe} problems={props.problems} onChange={props.onChange} />
+        {kind === "malts" ? (
+          <IngredientTable kind="malts" recipe={props.recipe} problems={props.problems} onChange={props.onChange} />
+        ) : (
+          // Two tables (EDT-060, QE-44): the hops, then the other additions, each with its own heading and Total.
+          (["hops", "others"] as const).map((k) => (
+            <div key={k} class="mt-3 first:mt-0" data-boil-table={k}>
+              <h4 class="mb-1.5 text-sm font-semibold text-ink dark:text-ink-light">
+                {INGREDIENT_LABELS[k].title}
+                {k === "others" && (
+                  <span class="font-normal text-stone-500 dark:text-stone-400"> — not in the shares or the bitterness</span>
+                )}
+              </h4>
+              <IngredientTable kind={k} recipe={props.recipe} problems={props.problems} onChange={props.onChange} />
+            </div>
+          ))
+        )}
       </section>
     </>
   );

@@ -22,7 +22,7 @@ import {
 } from "../model";
 import { NumberField } from "./fields";
 import { MashLadder } from "./MashLadder";
-import { HINT_STYLE, SECTION_TITLE_STYLE } from "./styles";
+import { SECTION_TITLE_STYLE } from "./styles";
 
 function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -177,11 +177,7 @@ export function MashingTab(props: { recipe: Recipe; problems: Problem[]; onChang
   };
   return (
     <>
-      <p class={HINT_STYLE}>
-        Tick the rests of your mash and set their temperature and duration. The plan is kept in the recipe file; it
-        doesn't change the goals of the mash process.
-      </p>
-      <section class="mt-4" aria-labelledby="mash-ladder-title">
+      <section aria-labelledby="mash-ladder-title">
         <h3 id="mash-ladder-title" class={`${SECTION_TITLE_STYLE} mb-2`}>
           Temperature Ladder
         </h3>

@@ -72,8 +72,7 @@ export function WaterTab(props: { recipe: Recipe; problems: Problem[]; onChange:
   );
   return (
     <>
-      <p class={HINT_STYLE}>The water and the gravity of the brewing day.</p>
-      <section class="mt-4" aria-labelledby="water-title">
+      <section aria-labelledby="water-title">
         <h3 id="water-title" class={`${SECTION_TITLE_STYLE} mb-3`}>
           Water
         </h3>

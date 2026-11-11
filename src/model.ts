@@ -5,7 +5,7 @@
  * the optional mashing plan (app Q-37, RCP-012): the rests the brewer plans, keyed by rest id; the app doesn't use it.
  */
 
-import { beerColourEbc, bitternessIbu } from "./brewMath";
+import { alcoholByVolume, apparentAttenuation, beerColourEbc, bitternessIbu } from "./brewMath";
 import { MASH_RESTS, MASH_REST_IDS, type MashRestId } from "./mashRests";
 
 export * from "./mashRests";
@@ -136,7 +136,7 @@ export const validBoilMinutes = (v: unknown): v is number => finite(v) && Number
 export const validLiters = (v: unknown): v is number => finite(v) && v > 0;
 export const validPlato = (v: unknown): v is number => finite(v) && v >= 0 && v <= 40;
 
-export type BatchField = "liters" | "plato";
+export type BatchField = "liters" | "plato" | "final_plato";
 
 export function batchOf(recipe: Recipe): Record<string, unknown> {
   return isObject(recipe.batch) ? recipe.batch : {};
@@ -151,7 +151,7 @@ export function withBatchField(recipe: Recipe, field: BatchField, value: unknown
     batch[field] = value;
   }
   const ordered: Record<string, unknown> = {};
-  for (const key of ["liters", "plato"]) {
+  for (const key of ["liters", "plato", "final_plato"]) {
     if (key in batch) {
       ordered[key] = batch[key];
     }
@@ -217,6 +217,24 @@ export function mashThickness(recipe: Recipe): { value: number } | { missing: ("
     missing.push("malts");
   }
   return missing.length > 0 ? { missing } : { value: (mash as number) / kg };
+}
+
+/**
+ * The alcohol (EDT-057) from the target original gravity and the final gravity on the Water tab: alcohol by volume
+ * and apparent attenuation in percent; or what is missing, or that the final gravity is not below the original.
+ */
+export function alcoholOf(
+  recipe: Recipe,
+): { abv: number; attenuation: number } | { missing: ("plato" | "final_plato")[]; notBelow?: undefined } | { notBelow: true; missing?: undefined } {
+  const { plato, final_plato: final } = batchOf(recipe);
+  const missing = (["plato", "final_plato"] as const).filter((f) => !validPlato(f === "plato" ? plato : final));
+  if (missing.length > 0) {
+    return { missing: [...missing] };
+  }
+  if ((final as number) >= (plato as number)) {
+    return { notBelow: true };
+  }
+  return { abv: alcoholByVolume(plato as number, final as number), attenuation: apparentAttenuation(plato as number, final as number) };
 }
 
 /**

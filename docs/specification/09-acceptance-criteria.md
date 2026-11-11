@@ -150,11 +150,11 @@ a release that changes sign-in or Drive behaviour.
   at least 0 EBC."
 - `ACC-074` (EDT-049, EDT-050) The bitterness of Hallertauer Tradition 30 g, 5.5 %, 60 min in 20 l at 12.6 °P is
   "19 IBU"; until the boil time, volume and gravity are entered it is "–" with "Enter the alpha acid and boil time
-  of hop 1 and the knockout volume on the Water tab and the original gravity."; a hop of 0 min adds nothing. 101 % and 2.5 min are
+  of hop 1 and the knockout volume and the original gravity on the Water tab."; a hop of 0 min adds nothing. 101 % and 2.5 min are
   problems.
-- `ACC-075` (EDT-050, EDT-045, FMT-006) The Malt tab has no batch field, the Hops tab only Original gravity; the
-  knockout volume is entered on the Water tab; 20 l and 12.6 °P are written as `"batch": { "liters": 20, "plato": 12.6 }`; 0 l and
-  41 °P are problems whose entries open the Water and the Hops tab; clearing both removes `batch`.
+- `ACC-075` (EDT-050, EDT-045, FMT-006) The Malt and Hops tabs have no batch fields; the knockout volume and the
+  original gravity are entered on the Water tab; 20 l and 12.6 °P are written as `"batch": { "liters": 20, "plato": 12.6 }`; 0 l and
+  41 °P are problems whose entries open the Water tab; clearing both removes `batch`.
 - `ACC-076` (EDT-041, QE-36) The Malt tab has the heading Malt before its table; the Hops tab Hops before its table
   and Hop Schedule after it.
 - `ACC-077` (EDT-054) Hops Saaz 10 g 0 min, Hallertauer Tradition 30 g 60 min, Tettnanger 20 g 10 min and Cascade
@@ -162,7 +162,7 @@ a release that changes sign-in or Drive behaviour.
   Saaz 10 g, with dots from left to right in the hops' donut colours and tooltips ("… 60 min before the end of the
   boil", "Saaz: 10 g, flame-out"), and says "No boil time yet: hop 4."; without boil times it asks for them.
 - `ACC-078` (EDT-051, EDT-053, FMT-006) The Water tab has the heading Water and the fields Mash water, Sparge water,
-  Top-up water and Knockout volume (L) with their hints; 16, 14 and 2 are written as
+  Top-up water and Knockout volume (L) with their hints (then the Gravity fields, `ACC-081`); 16, 14 and 2 are written as
   `"water": { "mash": 16, "sparge": 14, "top_up": 2 }`; −1 is a problem whose entry opens the Water tab; clearing
   all three removes `water`.
 - `ACC-079` (EDT-052, EDT-050) With 5000 g of malt: total water "–", then 14 L, then with 16 L mash and 2.5 L
@@ -171,6 +171,17 @@ a release that changes sign-in or Drive behaviour.
 - `ACC-080` (EDT-055) At 9 EBC the colour scale has the styles Pils, Pale Ale, Märzen, Dunkel, Stout, the marker
   between Pils and Pale Ale and "In the range of: Helles, Weissbier."; with roasted barley above 80 EBC the marker
   is at the scale's end and it says "Darker than a typical stout."; no scale without a colour.
+- `ACC-081` (EDT-057, EDT-045, FMT-006) The Water tab has the headings Water and Gravity; Gravity has Original
+  gravity (target) and Final gravity (°P). The alcohol is "–" with "Enter the original gravity and the final
+  gravity."; 12 °P and 2.5 °P give 5.1 % vol and 79 % apparent attenuation and are written as
+  `"batch": { "plato": 12, "final_plato": 2.5 }`; a final gravity of 12 says "The final gravity must be below the
+  original gravity."; 41 is a problem whose entry opens the Water tab.
+- `ACC-082` (EDT-056) Hallertauer Tradition 30 g, 5.5 %, 60 min, 20 L, 12.6 °P: the bitterness scale has Weissbier,
+  Helles, Pils, Pale Ale, IPA and says "In the range of: Helles, Märzen, Dunkel.", and "BU:GU 0.37: balanced
+  (bitterness against the original gravity)."; 200 g give 126 IBU, "More bitter than a typical IPA." and "very
+  bitter". No scale without a bitterness.
+- `ACC-083` (EDT-058) Pilsner malt 3.5 EBC and chocolate malt 900 EBC show swatches #FFD878 and #36080A next to their
+  EBC fields (tooltip "About the colour of 3.5 EBC"); a malt without EBC shows none.
 
 ## 9.3 Browser drafts
 

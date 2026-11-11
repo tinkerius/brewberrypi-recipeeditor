@@ -13,7 +13,7 @@ recipes in their Google Drive, `BrewberryPi/recipes/<id>.json`, with scope `driv
   `{"version": 3, "name", "mashing_process": {"goals"}, "mashing", "ingredients", "batch", "water"}`, goals possibly
   empty `Q-34`, the mashing plan `mashing` keyed by rest id `RCP-012`/`Q-37`, the `ingredients` `malts` (`name`, `grams`,
   `ebc`) and `hops` (`name`, `grams`, `alpha`, `minutes`) `RCP-013`/`Q-38`/`Q-39`, the `batch` (`liters` = knockout
-  volume, `plato`) `RCP-014`, the `water` (`mash`, `sparge`, `top_up`, litres) `RCP-015`/`Q-40`, version and migration
+  volume, `plato`, `final_plato`) `RCP-014`, the `water` (`mash`, `sparge`, `top_up`, litres) `RCP-015`/`Q-40`, version and migration
   `RCP-007..011`),
   `04-goal-types.md`, and `data/recipe.schema.json`. The samples are exactly the app's shipped recipes (`RCP-002`).
 - `tinkerius/brewberrypi`: the website brewberrypi.org and the brand (`brand/README.md`: colours, logo, font).

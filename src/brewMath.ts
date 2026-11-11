@@ -74,3 +74,53 @@ export function stylesOfColour(ebc: number): string[] {
   return BEER_STYLES.filter((s) => shown >= s.min && shown <= s.max).map((s) => s.name);
 }
 
+
+/**
+ * Alcohol by volume in percent from the original and the final (apparent) gravity in °P, by Balling's formula
+ * (EDT-057): real extract RE = 0.1808 · OE + 0.8192 · AE, alcohol by weight ABW = (OE − RE) / (2.0665 − 0.010665 ·
+ * OE), ABV = ABW · SG(AE) / 0.7907.
+ */
+export function alcoholByVolume(originalPlato: number, finalPlato: number): number {
+  const real = 0.1808 * originalPlato + 0.8192 * finalPlato;
+  const abw = (originalPlato - real) / (2.0665 - 0.010665 * originalPlato);
+  return (abw * platoToSg(finalPlato)) / 0.7907;
+}
+
+/** The apparent attenuation in percent (EDT-057): how much of the original gravity the yeast fermented. */
+export function apparentAttenuation(originalPlato: number, finalPlato: number): number {
+  return ((originalPlato - finalPlato) / originalPlato) * 100;
+}
+
+/** The bitterness against the gravity, BU:GU (EDT-056): IBU over the gravity points, (SG − 1) · 1000. */
+export function buGu(ibu: number, plato: number): number {
+  return ibu / ((platoToSg(plato) - 1) * 1000);
+}
+
+/** How BU:GU is commonly read (EDT-056). */
+export function balanceOf(ratio: number): string {
+  return ratio < 0.35 ? "malty" : ratio <= 0.55 ? "balanced" : ratio <= 0.8 ? "bitter" : "very bitter";
+}
+
+/**
+ * Common beer styles and their bitterness in IBU (BJCP 2021), for the bitterness scale (EDT-056); `scale`: labelled on
+ * the scale.
+ */
+export const BITTERNESS_STYLES: { name: string; min: number; max: number; scale: boolean }[] = [
+  { name: "Weissbier", min: 8, max: 15, scale: true },
+  { name: "Helles", min: 16, max: 22, scale: true },
+  { name: "Märzen", min: 18, max: 24, scale: false },
+  { name: "Dunkel", min: 18, max: 28, scale: false },
+  { name: "Pils", min: 22, max: 40, scale: true },
+  { name: "Stout", min: 25, max: 45, scale: false },
+  { name: "Pale Ale", min: 30, max: 50, scale: true },
+  { name: "IPA", min: 40, max: 70, scale: true },
+];
+
+/** The end of the bitterness scale (EDT-056). */
+export const BITTERNESS_SCALE_MAX = 100;
+
+/** The styles whose bitterness range holds this IBU (rounded, as shown). */
+export function stylesOfBitterness(ibu: number): string[] {
+  const shown = Math.round(ibu);
+  return BITTERNESS_STYLES.filter((s) => shown >= s.min && shown <= s.max).map((s) => s.name);
+}

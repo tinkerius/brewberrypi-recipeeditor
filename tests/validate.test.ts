@@ -127,6 +127,12 @@ const CASES: [string, unknown][] = [
   ["batch liters a string", { ...valid, batch: { liters: "20" } }],
   ["batch plato negative", { ...valid, batch: { plato: -1 } }],
   ["batch plato above 40", { ...valid, batch: { plato: 40.5 } }],
+  // The final gravity (app RCP-014, Q-41)
+  ["batch final_plato", { ...valid, batch: { plato: 12.6, final_plato: 2.5 } }],
+  ["batch final_plato 0", { ...valid, batch: { final_plato: 0 } }],
+  ["batch final_plato above 40", { ...valid, batch: { final_plato: 40.5 } }],
+  ["batch final_plato negative", { ...valid, batch: { final_plato: -0.1 } }],
+  ["batch final_plato a string", { ...valid, batch: { final_plato: "2.5" } }],
   // The water (app RCP-015, Q-40)
   ["water", { ...valid, water: { mash: 16, sparge: 14, top_up: 2 } }],
   ["water empty", { ...valid, water: {} }],

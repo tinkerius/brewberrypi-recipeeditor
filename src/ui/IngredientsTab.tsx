@@ -8,7 +8,7 @@
 import { Fragment, type ComponentChildren } from "preact";
 import { useEffect, useState } from "preact/hooks";
 import type { Problem } from "../validate";
-import { beerColourHex } from "../brewMath";
+import { balanceOf, beerColourHex, buGu } from "../brewMath";
 import {
   INGREDIENT_LABELS,
   batchOf,
@@ -20,10 +20,10 @@ import {
   totalGrams,
   validBoilMinutes,
   validGrams,
+  validEbc,
   validLiters,
-  withBatchField,
+  validPlato,
   withIngredients,
-  type BatchField,
   type Figure,
   type Ingredient,
   type IngredientKind,
@@ -33,7 +33,7 @@ import { ADD_ROW_LINE, AddRowButton } from "./AddRow";
 import { DragHandle, DropLine } from "./DragHandle";
 import { NumberField, TextField } from "./fields";
 import { moveItem } from "./reorder";
-import { BeerColourScale } from "./BeerColourScale";
+import { BeerColourScale, BitternessScale } from "./StyleScale";
 import { BUTTON_STYLES, HINT_STYLE, LINK_STYLE, SECTION_TITLE_STYLE } from "./styles";
 import { useReorder } from "./useReorder";
 import { useWidth } from "./useWidth";
@@ -51,7 +51,7 @@ type Column = { field: "grams" | "ebc" | "alpha" | "minutes"; head: string; labe
 const COLUMNS: Record<IngredientKind, Column[]> = {
   malts: [
     { field: "grams", head: "g", label: "Amount (g)", integer: true, width: "w-16 sm:w-28" },
-    { field: "ebc", head: "EBC", label: "Colour (EBC)", integer: false, width: "w-14 sm:w-20" },
+    { field: "ebc", head: "EBC", label: "Colour (EBC)", integer: false, width: "w-24 sm:w-28" },
   ],
   hops: [
     { field: "grams", head: "g", label: "Amount (g)", integer: true, width: "w-12 sm:w-24" },
@@ -161,15 +161,13 @@ function missingText(kind: IngredientKind, figure: Figure, onWater?: () => void)
     const rows = figure.rows.length === 1 ? `${one.toLowerCase()} ${figure.rows[0]}` : `${one.toLowerCase()}s ${figure.rows.join(", ")}`;
     needs.push(`${what} of ${rows}`);
   }
-  for (const field of figure.batch ?? []) {
+  // The knockout volume and the original gravity are entered on the Water tab (EDT-050).
+  const onWaterTab = (figure.batch ?? []).map((f) => (f === "liters" ? "the knockout volume" : "the original gravity"));
+  if (onWaterTab.length > 0) {
     needs.push(
-      field === "liters" ? (
-        <>
-          the knockout volume on the <WaterLink onWater={onWater} />
-        </>
-      ) : (
-        "the original gravity"
-      ),
+      <>
+        {onWaterTab.join(" and ")} on the <WaterLink onWater={onWater} />
+      </>,
     );
   }
   return (
@@ -194,13 +192,20 @@ function FigureLine(props: { kind: IngredientKind; recipe: Recipe; onWater?: () 
   const malts = props.kind === "malts";
   const figure = malts ? beerColourOf(props.recipe) : bitternessOf(props.recipe);
   const label = malts ? "Beer colour" : "Bitterness";
-  const liters = batchOf(props.recipe).liters;
+  const { liters, plato } = batchOf(props.recipe);
   const knockout = (
     <>
       the knockout volume ({validLiters(liters) ? `${liters} L, ` : ""}
       <WaterLink onWater={props.onWater} />)
     </>
   );
+  const gravity = (
+    <>
+      the original gravity ({validPlato(plato) ? `${plato} °P, ` : ""}
+      <WaterLink onWater={props.onWater} />)
+    </>
+  );
+  const ratio = !malts && figure.value !== undefined && validPlato(plato) && plato > 0 ? buGu(figure.value, plato) : undefined;
   return (
     <div data-figure={props.kind}>
       <p class="flex items-center gap-2 text-sm font-medium text-ink dark:text-ink-light">
@@ -226,35 +231,23 @@ function FigureLine(props: { kind: IngredientKind; recipe: Recipe; onWater?: () 
         )}
       </p>
       {malts && figure.value !== undefined && <BeerColourScale ebc={figure.value} />}
+      {!malts && figure.value !== undefined && <BitternessScale ibu={figure.value} />}
+      {ratio !== undefined && (
+        <p class="mt-1 text-xs text-stone-600 dark:text-stone-300" data-bu-gu>
+          BU:GU {ratio.toFixed(2)}: {balanceOf(ratio)} (bitterness against the original gravity).
+        </p>
+      )}
       <p class={`${HINT_STYLE} mt-1`} data-figure-hint>
         {figure.value === undefined ? (
           missingText(props.kind, figure, props.onWater)
         ) : malts ? (
           <>Morey's formula, from each malt's EBC and {knockout}.</>
         ) : (
-          <>Tinseth's formula, from each hop's alpha acid and boil time, {knockout} and the original gravity.</>
+          <>
+            Tinseth's formula, from each hop's alpha acid and boil time, {knockout} and {gravity}.
+          </>
         )}
       </p>
-    </div>
-  );
-}
-
-/** The batch fields on a tab (EDT-050): the original gravity on the Hops tab (the knockout volume is on Water). */
-export function BatchFields(props: { fields: BatchField[]; recipe: Recipe; problems: Problem[]; onChange: (recipe: Recipe) => void }) {
-  const batch = batchOf(props.recipe);
-  const invalid = (field: string) => props.problems.some((p) => p.path === `batch.${field}`);
-  return (
-    <div class="grid grid-cols-[auto_1fr] items-center gap-x-2 gap-y-2" data-batch-fields>
-      {props.fields.map((field) => (
-        <NumberField
-          key={field}
-          label={field === "liters" ? "Knockout volume" : "Original gravity"}
-          unit={field === "liters" ? "L" : "°P"}
-          value={batch[field]}
-          invalid={invalid(field)}
-          onChange={(v) => props.onChange(withBatchField(props.recipe, field, v))}
-        />
-      ))}
     </div>
   );
 }
@@ -335,17 +328,32 @@ function IngredientTable(props: { kind: IngredientKind; recipe: Recipe; problems
                 {columns.map((c) => (
                   <td
                     key={c.field}
-                    class={`${CELL} min-w-14 sm:min-w-0 [&_input]:w-full! [&_input]:px-1.5! sm:[&_input]:px-3! [&_span]:justify-end`}
+                    class={`${CELL} ${c.field === "ebc" ? "min-w-22" : "min-w-14"} sm:min-w-0 [&_input]:w-full! [&_input]:px-1.5! sm:[&_input]:px-3! [&_span]:justify-end`}
                     data-ingredient-field={c.field}
                   >
-                    <NumberField
-                      label={`${c.label}, ${one} ${i + 1}`}
-                      compact
-                      integer={c.integer}
-                      value={entry[c.field]}
-                      invalid={invalid(i, c.field)}
-                      onChange={(v) => setField(i, c.field, v)}
-                    />
+                    <div class="flex items-center gap-1.5">
+                      {/* A malt's own colour, from its EBC (EDT-058). */}
+                      {c.field === "ebc" && (
+                        <span
+                          aria-hidden="true"
+                          data-malt-swatch
+                          title={validEbc(entry.ebc) ? `About the colour of ${entry.ebc} EBC` : undefined}
+                          class={
+                            "size-4 shrink-0 rounded-sm ring-1 ring-black/10 dark:ring-white/20 " +
+                            (validEbc(entry.ebc) ? "" : "invisible")
+                          }
+                          style={validEbc(entry.ebc) ? { background: beerColourHex(entry.ebc) } : undefined}
+                        />
+                      )}
+                      <NumberField
+                        label={`${c.label}, ${one} ${i + 1}`}
+                        compact
+                        integer={c.integer}
+                        value={entry[c.field]}
+                        invalid={invalid(i, c.field)}
+                        onChange={(v) => setField(i, c.field, v)}
+                      />
+                    </div>
                   </td>
                 ))}
                 <td class={`${CELL} ${NUMBER} text-stone-600 dark:text-stone-300`} data-ingredient-share>
@@ -546,7 +554,6 @@ export function IngredientsTab(props: {
         )}
         <div class="min-w-0 flex-1 space-y-3 rounded-lg bg-stone-50 p-3 ring-1 ring-line dark:bg-white/5 dark:ring-white/10">
           <FigureLine kind={kind} recipe={props.recipe} onWater={props.onWater} />
-          {kind === "hops" && <BatchFields fields={["plato"]} recipe={props.recipe} problems={props.problems} onChange={props.onChange} />}
         </div>
       </div>
       <section class="mt-6" aria-labelledby={`${kind}-table-title`}>

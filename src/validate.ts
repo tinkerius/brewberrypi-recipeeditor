@@ -214,7 +214,7 @@ function checkIngredients(ingredients: unknown, problems: Problem[]) {
 /** The batch (app RCP-014): the wort volume above 0 litres and the original gravity from 0 to 40 °P. */
 function checkBatch(batch: unknown, problems: Problem[]) {
   if (!isObject(batch)) {
-    problems.push({ path: BATCH_PATH, message: "The batch must be an object with liters and plato." });
+    problems.push({ path: BATCH_PATH, message: "The batch must be an object with liters, plato and final_plato." });
     return;
   }
   for (const [key, value] of Object.entries(batch)) {
@@ -224,9 +224,10 @@ function checkBatch(batch: unknown, problems: Problem[]) {
       if (!number || value <= 0) {
         problems.push({ path: at, message: "The knockout volume must be a number above 0 litres." });
       }
-    } else if (key === "plato") {
+    } else if (key === "plato" || key === "final_plato") {
       if (!number || value < 0 || value > 40) {
-        problems.push({ path: at, message: "The original gravity must be a number from 0 to 40 °P." });
+        const what = key === "plato" ? "original" : "final";
+        problems.push({ path: at, message: `The ${what} gravity must be a number from 0 to 40 °P.` });
       }
     } else {
       problems.push({ path: at, message: `The batch has no field "${key}".` });

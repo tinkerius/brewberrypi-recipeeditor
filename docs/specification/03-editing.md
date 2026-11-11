@@ -244,11 +244,13 @@ temperature of their own. The typical durations of `EDT-038` and the flags:
 - `EDT-049` The Hops tab shows the **bitterness** in IBU by Tinseth's formula (per hop, 1.65 · 0.000125^(SG − 1) ·
   (1 − e^(−0.04 · min)) / 4.15 · alpha/100 · g · 1000 / l, SG from the original gravity in °P), rounded to a whole
   number ("19 IBU"). It needs the alpha acid and boil time of every hop with an amount, the knockout volume and
-  the original gravity; until then it shows "–" and says what to enter.
-- `EDT-050` The **batch** fields (app `RCP-014`): the **Knockout volume** (L, the wort at the end of the boil, the
-  target for the fermenter; `QE-36`) is entered on the Water tab only (`EDT-051`, `QE-37`); the Malt and Hops tabs
-  use it and name it in their hints (`EDT-048`, `EDT-049`). The **Original gravity** (°P) is a field in the figure's
-  box on the Hops tab. A field left empty is left out of the
+  the original gravity (both from the Water tab); until then it shows "–" and says what to enter ("… and the
+  knockout volume and the original gravity on the Water tab."). With a bitterness, the hint names both values used
+  ("the original gravity (12.6 °P, Water tab)"); below the figure the bitterness scale and BU:GU (`EDT-056`).
+- `EDT-050` The **batch** fields (app `RCP-014`) are entered on the Water tab only (`EDT-051`, `EDT-057`; `QE-37`,
+  `QE-38`): the **Knockout volume** (L, the wort at the end of the boil, the target for the fermenter; `QE-36`), the
+  target **Original gravity** and the **Final gravity** (°P). The Malt and Hops tabs use them and name them in their
+  hints (`EDT-048`, `EDT-049`); they have no batch fields. A field left empty is left out of the
   file, and `batch` too when both are.
 - `EDT-054` The **Hop Schedule** lists the hops with an amount and a boil time by when they go into the boil,
   longest boil first (ties in table order): a timeline over the boil, from its start (the longest boil time) at the
@@ -274,9 +276,32 @@ temperature of their own. The typical durations of `EDT-038` and the flags:
 | Dunkel | 33–55 | yes |
 | Stout | 49–79 | yes |
 
+- `EDT-056` Below the bitterness, a **bitterness scale** like the colour scale (`EDT-055`): a bar from 0 to 100 IBU
+  ("100+") in hop greens, light to dark, a marker at the bitterness, the styles Weissbier, Helles, Pils, Pale Ale and
+  IPA at their typical bitterness, and "In the range of: …" (the styles whose range holds the rounded IBU), "More
+  bitter than a typical IPA." above 100 IBU, else "Between the common styles.". Below it **BU:GU**, the bitterness
+  against the original gravity (IBU / ((SG − 1) · 1000)), with two decimals and how it reads: below 0.35 "malty",
+  up to 0.55 "balanced", up to 0.8 "bitter", above "very bitter" ("BU:GU 0.37: balanced (bitterness against the
+  original gravity)."). The styles' bitterness (IBU, BJCP 2021):
+
+| Style | IBU | On the scale |
+|---|---|---|
+| Weissbier | 8–15 | yes |
+| Helles | 16–22 | yes |
+| Märzen | 18–24 | |
+| Dunkel | 18–28 | |
+| Pils | 22–40 | yes |
+| Stout | 25–45 | |
+| Pale Ale | 30–50 | yes |
+| IPA | 40–70 | yes |
+
+- `EDT-058` Next to each malt's EBC field, a swatch shows the malt's colour (the SRM chart colour of its EBC, as for
+  the beer, `EDT-048`), with the tooltip "About the colour of 200 EBC"; none while the EBC is empty or invalid.
+
 ## 3.8 Water (`QE-36`)
 
-- `EDT-051` The tab **Water** (`GUI-032`) holds the brewing-day water (app `RCP-015`) under the heading **Water**:
+- `EDT-051` The tab **Water** (`GUI-032`) holds the brewing-day water (app `RCP-015`) under the heading **Water**,
+  and the gravity under the heading **Gravity** (`EDT-057`). Under Water:
   **Mash water** (strike water, mashed in with the malt), **Sparge water** (rinses the sugar out of the grain while
   lautering) and **Top-up water** (added after lautering to reach the original gravity), in litres, each a number
   ≥ 0 with a one-line hint, and the **Knockout volume** (`EDT-050`, entered only here; the Malt and Hops tabs use it). A
@@ -288,3 +313,9 @@ temperature of their own. The typical durations of `EDT-038` and the flags:
   malts it shows "–" and what to enter ("Enter the mash water.", "Enter the malts on the Malt tab.").
 - `EDT-053` The names are the English brewing terms: mash water (German Hauptguss), sparge water (Nachguss), top-up
   water (Verdünnungswasser), knockout volume (Ausschlagwürze).
+- `EDT-057` Under **Gravity**: the **Original gravity (target)** and the **Final gravity** (°P, each 0–40, app
+  `RCP-014` `plato` and `final_plato`) with one-line hints, and computed, never stored: the **Alcohol** in % vol by
+  Balling's formula (real extract RE = 0.1808 · OE + 0.8192 · AE, ABW = (OE − RE) / (2.0665 − 0.010665 · OE), ABV
+  = ABW · SG(AE) / 0.7907), one decimal ("5.1 % vol"), and the **Apparent attenuation** ((OE − AE) / OE, "79 %").
+  Without both gravities they show "–" and say what to enter; a final gravity not below the original gravity says
+  "The final gravity must be below the original gravity.".

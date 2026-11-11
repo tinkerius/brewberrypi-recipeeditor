@@ -34,7 +34,7 @@ commit (`NFR-030`).
   a list other than `malts` and `hops`, a list that is not a list, an entry that is not an object, without a name
   (or an empty one) or without grams, grams that are not a whole number ≥ 1, a malt's EBC below 0, a hop's alpha
   acid outside 0–100 or boil time that is not a whole number ≥ 0, any other field of an entry; in the batch (app
-  `RCP-014`): not an object, a volume not above 0, a gravity outside 0–40 °P, any other field; in the water (app `RCP-015`): not an
+  `RCP-014`): not an object, a volume not above 0, an original or final gravity outside 0–40 °P, any other field; in the water (app `RCP-015`): not an
   object, a volume that is not a number ≥ 0, any other field; any other key. An entry is named by its table and number ("Malt 2"). A rest is named by its short name
   ("Mashing, Maltose rest"). A temperature outside a rest's typical range is not a problem (`EDT-033`).
   Messages name goal types by their display name (e.g. "A Heat Up goal needs a temperature."), never by the type
@@ -44,7 +44,7 @@ commit (`NFR-030`).
 - `FMT-006` Written files (download, Drive) are formatted like the app's shipped recipes: `version` first, then
   `name`, then `mashing_process` with one goal per line, then `mashing` (if any) with one rest per line in the
   order of the rest table (`EDT-031`), then `ingredients` (if any) with `malts` before `hops` and one entry per
-  line in the brewer's order, then `batch` (if any) on one line, `liters` before `plato`, then `water` (if any) on one line, `mash`,
+  line in the brewer's order, then `batch` (if any) on one line, `liters`, `plato`, `final_plato`, then `water` (if any) on one line, `mash`,
   `sparge`, `top_up`; no `$schema`. Reading a written file gives the same recipe.
 - `FMT-007` The samples are exactly the app's shipped recipes (app `RCP-002`; today `BENIWEISS` and `WaterBoil`);
   `EDT-016` uses `BENIWEISS`.

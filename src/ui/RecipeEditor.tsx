@@ -28,6 +28,7 @@ const PATH_LABELS: Record<string, string> = {
   [BATCH_PATH]: "Batch",
   [`${BATCH_PATH}.liters`]: "Knockout volume",
   [`${BATCH_PATH}.plato`]: "Original gravity",
+  [`${BATCH_PATH}.final_plato`]: "Final gravity",
   [WATER_PATH]: "Water",
   [`${WATER_PATH}.mash`]: "Mash water",
   [`${WATER_PATH}.sparge`]: "Sparge water",
@@ -42,14 +43,14 @@ function goalOf(path: string): number | undefined {
 
 /**
  * The tab a problem of the ingredients, the batch or the water is on (EDT-045, EDT-051): the hops and the gravity on
- * Hops, the water and the knockout volume on Water (where it is entered), else Malt.
+ * Water (where they are entered): the water, the knockout volume and the gravities; else Malt or Hops.
  */
 function ingredientsTab(path: string): "malts" | "hops" | "water" | undefined {
   const about = (prefix: string) => path === prefix || path.startsWith(`${prefix}.`);
-  if (path.startsWith(`${INGREDIENTS_PATH}.hops`) || path === `${BATCH_PATH}.plato`) {
+  if (path.startsWith(`${INGREDIENTS_PATH}.hops`)) {
     return "hops";
   }
-  if (about(WATER_PATH) || path === `${BATCH_PATH}.liters`) {
+  if (about(WATER_PATH) || about(BATCH_PATH)) {
     return "water";
   }
   return about(INGREDIENTS_PATH) || about(BATCH_PATH) ? "malts" : undefined;

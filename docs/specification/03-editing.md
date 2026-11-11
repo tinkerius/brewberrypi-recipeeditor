@@ -298,6 +298,12 @@ temperature of their own. The typical durations of `EDT-038` and the flags:
 - `EDT-058` Next to each malt's EBC field, a swatch shows the malt's colour (the SRM chart colour of its EBC, as for
   the beer, `EDT-048`), with the tooltip "About the colour of 200 EBC"; none while the EBC is empty or invalid.
 
+- `EDT-059` Below the BU:GU line, a slim **balance bar** of its bands (`EDT-056`): malty 0–0.35, balanced
+  0.35–0.55, bitter 0.55–0.8 and very bitter from 0.8 (drawn to 1.0, "1.0+"), coloured from malt amber through a
+  neutral grey (balanced) to light and dark hop green, with 2 px gaps; the band names above (the beer's band in bold),
+  the limits below, and a marker at the beer's BU:GU (above 1.0 at the end). No style names: BU:GU ranges of styles
+  overlap too much to help.
+
 ## 3.8 Water (`QE-36`)
 
 - `EDT-051` The tab **Water** (`GUI-032`) holds the brewing-day water (app `RCP-015`) under the heading **Water**,

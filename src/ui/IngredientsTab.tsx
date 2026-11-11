@@ -33,7 +33,7 @@ import { ADD_ROW_LINE, AddRowButton } from "./AddRow";
 import { DragHandle, DropLine } from "./DragHandle";
 import { NumberField, TextField } from "./fields";
 import { moveItem } from "./reorder";
-import { BeerColourScale, BitternessScale } from "./StyleScale";
+import { BalanceScale, BeerColourScale, BitternessScale } from "./StyleScale";
 import { BUTTON_STYLES, HINT_STYLE, LINK_STYLE, SECTION_TITLE_STYLE } from "./styles";
 import { useReorder } from "./useReorder";
 import { useWidth } from "./useWidth";
@@ -233,9 +233,12 @@ function FigureLine(props: { kind: IngredientKind; recipe: Recipe; onWater?: () 
       {malts && figure.value !== undefined && <BeerColourScale ebc={figure.value} />}
       {!malts && figure.value !== undefined && <BitternessScale ibu={figure.value} />}
       {ratio !== undefined && (
-        <p class="mt-1 text-xs text-stone-600 dark:text-stone-300" data-bu-gu>
-          BU:GU {ratio.toFixed(2)}: {balanceOf(ratio)} (bitterness against the original gravity).
-        </p>
+        <div class="mt-3">
+          <p class="text-xs text-stone-600 dark:text-stone-300" data-bu-gu>
+            BU:GU {ratio.toFixed(2)}: {balanceOf(ratio)} (bitterness against the original gravity).
+          </p>
+          <BalanceScale ratio={ratio} />
+        </div>
       )}
       <p class={`${HINT_STYLE} mt-1`} data-figure-hint>
         {figure.value === undefined ? (

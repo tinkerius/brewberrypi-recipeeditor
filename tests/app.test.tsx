@@ -1308,6 +1308,31 @@ describe("App, the Malt and Hops tabs (QE-34, QE-35)", () => {
     expect(recipe().querySelector("[data-bu-gu]")!.textContent).toContain("very bitter");
   });
 
+  it("ACC-084 shows BU:GU on a bar of its bands with a marker; the current band is highlighted", async () => {
+    await open();
+    await showTab("hops");
+    await add("hops", "Hallertauer Tradition", "30", { alpha: "5.5", minutes: "60" });
+    await setKnockout("20", "hops");
+    expect(recipe().querySelector("[data-balance-scale]")).toBeNull(); // no gravity, no BU:GU
+    await setOnWater("Original gravity", "12.6", "hops");
+    const scale = () => recipe().querySelector("[data-balance-scale]")!;
+    const bands = () => [...scale().querySelectorAll<SVGGElement>("[data-balance-band]")];
+    expect(bands().map((g) => g.dataset.balanceBand)).toEqual(["malty", "balanced", "bitter", "very bitter"]);
+    expect([...scale().querySelectorAll("svg > text")].map((t) => t.textContent)).toEqual(["0", "0.35", "0.55", "0.80", "1.0+"]);
+    const current = () => bands().filter((g) => g.querySelector("text")!.getAttribute("class")!.includes("font-semibold")).map((g) => g.dataset.balanceBand);
+    expect(current()).toEqual(["balanced"]);
+    const markerX = () => Number(scale().querySelector("[data-balance-marker] line")!.getAttribute("x1"));
+    // 0.37 lies in the balanced band, near its malty edge.
+    const band = (name: string) => scale().querySelector(`[data-balance-band="${name}"] rect`)!;
+    const start = Number(band("balanced").getAttribute("x"));
+    expect(markerX()).toBeGreaterThan(start);
+    expect(markerX()).toBeLessThan(start + Number(band("balanced").getAttribute("width")) / 2);
+    expect(scale().querySelector("svg")!.getAttribute("aria-label")).toBe("BU:GU 0.37, balanced, on a scale from malty to very bitter");
+    await type(field("hops", 0, "grams"), "200");
+    expect(current()).toEqual(["very bitter"]);
+    expect(markerX()).toBe(640 - 10); // above 1.0: at the end
+  });
+
   it("ACC-083 shows each malt's colour from its EBC next to the field", async () => {
     await open();
     await add("malts", "Pilsner malt", "4500", { ebc: "3.5" });

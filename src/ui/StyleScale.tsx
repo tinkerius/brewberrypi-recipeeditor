@@ -4,7 +4,18 @@
  * (staggered onto a second row where they would collide), and the styles whose range holds it.
  */
 
-import { BEER_STYLES, BITTERNESS_SCALE_MAX, BITTERNESS_STYLES, COLOUR_SCALE_MAX, SRM_COLOURS, stylesOfBitterness, stylesOfColour } from "../brewMath";
+import {
+  BALANCE_BANDS,
+  BALANCE_SCALE_MAX,
+  BEER_STYLES,
+  BITTERNESS_SCALE_MAX,
+  BITTERNESS_STYLES,
+  COLOUR_SCALE_MAX,
+  SRM_COLOURS,
+  balanceOf,
+  stylesOfBitterness,
+  stylesOfColour,
+} from "../brewMath";
 import { useWidth } from "./useWidth";
 
 type Style = { name: string; min: number; max: number; scale: boolean };
@@ -64,7 +75,8 @@ function StyleScale(props: {
         ))}
         {labels.map(({ name, at, row }) => (
           <g key={name} data-scale-style={name}>
-            <line x1={at} x2={at} y1={barY + barH + 14} y2={barY + barH + 18 + row * 12} class="stroke-stone-400 dark:stroke-stone-500" />
+            {/* A short tick for both rows, so a second-row tick never crosses a first-row label. */}
+            <line x1={at} x2={at} y1={barY + barH + 14} y2={barY + barH + 18} class="stroke-stone-400 dark:stroke-stone-500" />
             <text x={at} y={barY + barH + 28 + row * 12} text-anchor="middle" class="fill-stone-600 text-[10px] dark:fill-stone-300">
               {name}
             </text>
@@ -128,3 +140,70 @@ export function BitternessScale(props: { ibu: number }) {
     />
   );
 }
+
+/** The bands' colours (EDT-059): malt amber, a neutral grey for balanced, then light and dark hop green. */
+const BAND_FILLS = [
+  "fill-brass dark:fill-brass-light",
+  "fill-stone-300 dark:fill-stone-500",
+  "fill-leaf-light",
+  "fill-leaf dark:fill-[#5f9e55]",
+];
+
+/**
+ * BU:GU on a slim bar of its bands (EDT-059): malty, balanced, bitter and very bitter, from malt amber to hop green,
+ * the band names above, the limits below, and a marker at the beer's value (above 1.0 at the end).
+ */
+export function BalanceScale(props: { ratio: number }) {
+  const { box, width } = useWidth();
+  const pad = 10;
+  const barY = 19;
+  const barH = 8;
+  const x = (r: number) => pad + (Math.min(Math.max(r, 0), BALANCE_SCALE_MAX) / BALANCE_SCALE_MAX) * (width - 2 * pad);
+  const marker = x(props.ratio);
+  const limits = [...BALANCE_BANDS.map((b) => b.from), BALANCE_SCALE_MAX];
+  return (
+    <div ref={box} class="mt-1" data-balance-scale>
+      <svg
+        width={width}
+        height={44}
+        viewBox={`0 0 ${width} 44`}
+        role="img"
+        aria-label={`BU:GU ${props.ratio.toFixed(2)}, ${balanceOf(props.ratio)}, on a scale from malty to very bitter`}
+        class="block max-w-full"
+      >
+        {BALANCE_BANDS.map((band, k) => {
+          // A 2px gap of the surface between the bands.
+          const x1 = x(band.from) + (k > 0 ? 1 : 0);
+          const x2 = x(band.to) - (k < BALANCE_BANDS.length - 1 ? 1 : 0);
+          const current = balanceOf(props.ratio) === band.name;
+          return (
+            <g key={band.name} data-balance-band={band.name}>
+              <rect x={x1} y={barY} width={Math.max(0, x2 - x1)} height={barH} rx={2} class={BAND_FILLS[k]} />
+              <text
+                x={(x1 + x2) / 2}
+                y={10}
+                text-anchor="middle"
+                class={
+                  "text-[10px] " +
+                  (current ? "fill-ink font-semibold dark:fill-ink-light" : "fill-stone-500 dark:fill-stone-400")
+                }
+              >
+                {band.name}
+              </text>
+            </g>
+          );
+        })}
+        {limits.map((l) => (
+          <text key={l} x={x(l)} y={barY + barH + 12} text-anchor="middle" class="fill-stone-500 text-[9px] dark:fill-stone-400">
+            {l === BALANCE_SCALE_MAX ? `${l.toFixed(1)}+` : l === 0 ? "0" : l.toFixed(2)}
+          </text>
+        ))}
+        <g data-balance-marker>
+          <path d={`M ${marker - 4} ${barY - 6} L ${marker + 4} ${barY - 6} L ${marker} ${barY - 1} Z`} class="fill-ink dark:fill-ink-light" />
+          <line x1={marker} x2={marker} y1={barY - 1} y2={barY + barH + 1} stroke-width={2} class="stroke-ink dark:stroke-ink-light" />
+        </g>
+      </svg>
+    </div>
+  );
+}
+

@@ -182,6 +182,9 @@ a release that changes sign-in or Drive behaviour.
   bitter". No scale without a bitterness.
 - `ACC-083` (EDT-058) Pilsner malt 3.5 EBC and chocolate malt 900 EBC show swatches #FFD878 and #36080A next to their
   EBC fields (tooltip "About the colour of 3.5 EBC"); a malt without EBC shows none.
+- `ACC-084` (EDT-059) At BU:GU 0.37 the balance bar has the bands malty, balanced, bitter, very bitter, the limits
+  0, 0.35, 0.55, 0.80, 1.0+, "balanced" in bold and the marker in the balanced band's malty half; at 126 IBU "very
+  bitter" is bold and the marker at the end. No bar without BU:GU.
 
 ## 9.3 Browser drafts
 

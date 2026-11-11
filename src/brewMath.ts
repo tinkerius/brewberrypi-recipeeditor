@@ -96,7 +96,17 @@ export function buGu(ibu: number, plato: number): number {
   return ibu / ((platoToSg(plato) - 1) * 1000);
 }
 
-/** How BU:GU is commonly read (EDT-056). */
+/** How BU:GU is commonly read (EDT-056, EDT-059): bands from malty to very bitter; the last one is open-ended. */
+export const BALANCE_BANDS: { name: string; from: number; to: number }[] = [
+  { name: "malty", from: 0, to: 0.35 },
+  { name: "balanced", from: 0.35, to: 0.55 },
+  { name: "bitter", from: 0.55, to: 0.8 },
+  { name: "very bitter", from: 0.8, to: 1 },
+];
+
+/** The end of the balance scale (EDT-059): a higher BU:GU is shown at its end. */
+export const BALANCE_SCALE_MAX = 1;
+
 export function balanceOf(ratio: number): string {
   return ratio < 0.35 ? "malty" : ratio <= 0.55 ? "balanced" : ratio <= 0.8 ? "bitter" : "very bitter";
 }

@@ -10,6 +10,7 @@ import {
   additionsOf,
   alcoholOf,
   batchOf,
+  fermentationOf,
   ingredientsOf,
   isMashRestId,
   mashThickness,
@@ -38,6 +39,7 @@ export const TYPICAL = {
   attenuation: { min: 65, max: 85 }, // %
   alpha: { min: 2, max: 20 }, // %
   hopMinutes: { max: 90 },
+  co2: { min: 3.5, max: 7.5 }, // g/L
 } as const;
 
 const outside = (value: number, range: { min: number; max: number }) => value < range.min || value > range.max;
@@ -90,6 +92,13 @@ export function warningsOf(recipe: Recipe): Warning[] {
     const { min, max } = TYPICAL.attenuation;
     const message = `An apparent attenuation of ${Math.round(alcohol.attenuation)} % is outside the typical ${min}–${max} %.`;
     warnings.push({ path: "batch.final_plato", message, short: `⚠ ${message}` });
+  }
+  // The carbonation (EDT-066): the CO₂ target.
+  const co2 = fermentationOf(recipe).co2;
+  if (finite(co2) && co2 > 0 && outside(co2, TYPICAL.co2)) {
+    const { min, max } = TYPICAL.co2;
+    const message = `A CO₂ target of ${co2} g/L is outside the typical ${min}–${max} g/L.`;
+    warnings.push({ path: "fermentation.co2", message, short: `⚠ ${message}` });
   }
   // The hops (EDT-049, EDT-061): the alpha acid, and each addition's cooking time.
   ingredientsOf(recipe, "hops").forEach((hop, i) => {

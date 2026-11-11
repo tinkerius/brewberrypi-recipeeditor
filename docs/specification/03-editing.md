@@ -246,8 +246,8 @@ temperature of their own. The typical durations of `EDT-038` and the flags:
   be saved or downloaded; the field with the problem is marked. The same name may appear twice. An EBC below 0, an
   alpha acid outside 0–100 % or a boil time that is not a whole number ≥ 0 is a problem too.
 - `EDT-045` Problems of the ingredients and the batch are listed with the others (`EDT-020`) as "Malt n", "Hop n",
-  "Knockout volume" or "Original gravity"; clicking that opens its tab (the knockout volume: Water; the gravity:
-  Hops).
+  "Knockout volume" or "Original gravity"; clicking that opens its tab (the knockout volume: Water; the gravities:
+  Fermentation).
 - `EDT-046` The rows of each table are reordered like the goals (`EDT-012`): by dragging the handle, with a line
   where the row will be dropped, or with the arrow keys on the focused handle (the handle keeps the focus). The
   shares move with their rows; the file keeps the new order.
@@ -271,14 +271,16 @@ temperature of their own. The typical durations of `EDT-038` and the flags:
   scale (`EDT-055`).
 - `EDT-049` The Boiling tab shows the **bitterness** in IBU by Tinseth's formula (per hop addition, `EDT-061`, 1.65 · 0.000125^(SG − 1) ·
   (1 − e^(−0.04 · min)) / 4.15 · alpha/100 · g · 1000 / l, SG from the original gravity in °P), rounded to a whole
-  number ("19 IBU"). It needs the alpha acid and boil time of every hop with an amount, the knockout volume and
-  the original gravity (both from the Water tab); until then it shows "–" and says what to enter ("… and the
-  knockout volume and the original gravity on the Water tab."). With a bitterness, an ⓘ button next to it shows and
-  hides how it is calculated and both values used ("… the original gravity (12.6 °P, Water tab)."; `QE-44`); below
+  number ("19 IBU"). It needs the alpha acid and boil time of every hop with an amount, the knockout volume (from the
+  Water tab) and the original gravity (from the Fermentation tab, `QE-56`); until then it shows "–" and says what to
+  enter ("… and the knockout volume on the Water tab and the original gravity on the Fermentation tab.", each tab's
+  name a link that opens it). With a bitterness, an ⓘ button next to it shows and hides how it is calculated and both
+  values used ("… the knockout volume (20 L, Water tab) and the original gravity (12.6 °P, Fermentation tab)."; `QE-44`); below
   the figure the bitterness scale and BU:GU (`EDT-056`).
-- `EDT-050` The **batch** fields (app `RCP-014`) are entered on the Water tab only (`EDT-051`, `EDT-057`; `QE-37`,
-  `QE-38`): the **Knockout volume (target)** (L, the wort at the end of the boil, the target for the fermenter; `QE-36`), the
-  target **Original gravity** and the **Final gravity** (°P). The Malt and Boiling tabs use them and name them in their
+- `EDT-050` The **batch** fields (app `RCP-014`) are entered in one place each (`QE-37`, `QE-38`, `QE-56`): the
+  **Knockout volume (target)** (L, the wort at the end of the boil, the target for the fermenter; `QE-36`) on the
+  Water tab (`EDT-051`), the target **Original gravity** and the **Final gravity** (°P) on the Fermentation tab
+  (`EDT-057`). The Malt and Boiling tabs use them and name them in their
   hints (`EDT-048`, `EDT-049`); they have no batch fields. A field left empty is left out of the
   file, and `batch` too when both are.
 - `EDT-054` The **Boil Schedule** (`QE-41`, `QE-42`) works back from the cooking times of the hops and the other
@@ -357,10 +359,10 @@ temperature of their own. The typical durations of `EDT-038` and the flags:
   use it. The bitterness counts each addition with its own cooking time; the Boil Schedule has one entry per addition
   (the hop's colour and icon on each). Problems name the addition ("Hop 1, addition 2 needs an amount in grams.").
 
-## 3.8 Water (`QE-36`)
+## 3.8 Water and fermentation (`QE-36`, `QE-56`)
 
-- `EDT-051` The tab **Water** (`GUI-032`) holds the brewing-day water (app `RCP-015`) under the heading **Water**,
-  and the gravity under the heading **Gravity** (`EDT-057`). Under Water:
+- `EDT-051` The tab **Water** (`GUI-032`) holds the brewing-day water (app `RCP-015`) under the heading **Water**
+  (the gravity is on the Fermentation tab, `EDT-057`, `QE-56`):
   **Mash water** (strike water, mashed in with the malt), **Sparge water** (rinses the sugar out of the grain while
   lautering) and **Top-up water** (added after lautering to reach the original gravity), in litres, each a number
   ≥ 0 with a one-line hint, and the **Knockout volume (target)** (`EDT-050`, `QE-50`, entered only here; the Malt and Boiling tabs use it). A
@@ -372,12 +374,21 @@ temperature of their own. The typical durations of `EDT-038` and the flags:
   malts it shows "–" and what to enter ("Enter the mash water.", "Enter the malts on the Malt tab.").
 - `EDT-053` The names are the English brewing terms: mash water (German Hauptguss), sparge water (Nachguss), top-up
   water (Verdünnungswasser), knockout volume (Ausschlagwürze).
-- `EDT-057` Under **Gravity**: the **Original gravity (target)** and the **Final gravity** (°P, each 0–40, app
+- `EDT-057` The tab **Fermentation** (`GUI-032`, `QE-56`), after Water, starts with the heading **Gravity**: the
+  **Original gravity (target)** and the **Final gravity** (°P, each 0–40, app
   `RCP-014` `plato` and `final_plato`) with one-line hints, and computed, never stored: the **Alcohol** in % vol by
   Balling's formula (real extract RE = 0.1808 · OE + 0.8192 · AE, ABW = (OE − RE) / (2.0665 − 0.010665 · OE), ABV
   = ABW · SG(AE) / 0.7907), one decimal ("5.1 % vol"), and the **Apparent attenuation** ((OE − AE) / OE, "79 %").
   Without both gravities they show "–" and say what to enter; a final gravity not below the original gravity says
   "The final gravity must be below the original gravity.".
+
+- `EDT-066` Below the gravity, on the Fermentation tab (`QE-57`, app `RCP-017`): under **Yeast** its **Name** (text,
+  e.g. "Fermentis WB-06") and **Amount** (g, decimals allowed, e.g. 11.5), and under **Carbonation** the **CO₂
+  target** (g of CO₂ per litre of beer, hint "typical 3.5–7.5 g/L"), each with a one-line hint. They are written as
+  `"fermentation": { "yeast": { "name", "grams" }, "co2" }`; an empty field is left out, the yeast when both of its
+  are, and `fermentation` when nothing is left. A yeast amount without a name is an error ("The yeast needs a
+  name."), as are an amount or a CO₂ target not above 0; problems read "Yeast" or "CO₂ target" and open the
+  Fermentation tab.
 
 ## 3.9 Typical ranges (`QE-54`)
 
@@ -392,5 +403,14 @@ temperature of their own. The typical durations of `EDT-038` and the flags:
 | Apparent attenuation (`EDT-057`) | 65–85 % | Final gravity | "An apparent attenuation of 93 % is outside the typical 65–85 %." |
 | A hop's alpha acid | 2–20 % | α % ("⚠ α typically 2–20 %") | "An alpha acid of 25 % is outside the typical 2–20 %." |
 | A hop addition's cooking time | up to 90 min | its cooking time ("⚠ Addition 2: typically up to 90 min") | "Addition 2: a cooking time of 120 min is above the typical 90 min." |
+| CO₂ target (`EDT-066`) | 3.5–7.5 g/L | CO₂ target | "A CO₂ target of 8 g/L is outside the typical 3.5–7.5 g/L." |
 
   Other additions have no typical cooking time.
+
+## 3.10 Overview (`QE-55`)
+
+- `EDT-065` The tab **Overview** (`GUI-032`), the first one and open when a recipe is opened, holds the recipe's
+  **Description** (app `RCP-016`): the brewer's free text about the recipe, in a box of eight lines that can be made
+  taller, with as many lines as needed. It is written as `"description"` right after `name` (its line breaks as
+  `\n`); an empty description is left out of the file. A description that is not text is an error ("The
+  description must be text.") on the Overview tab.

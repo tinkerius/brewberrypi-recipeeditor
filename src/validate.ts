@@ -29,7 +29,7 @@ export interface Problem {
   message: string;
 }
 
-const TOP_LEVEL = new Set(["$schema", "version", "name", "mashing_process", "mashing", "ingredients", "batch", "water"]);
+const TOP_LEVEL = new Set(["$schema", "version", "name", "description", "mashing_process", "mashing", "ingredients", "batch", "water", "fermentation"]);
 export const GOALS_PATH = "mashing_process.goals";
 export const MASHING_PATH = "mashing";
 export const INGREDIENTS_PATH = "ingredients";
@@ -281,6 +281,40 @@ function checkWater(water: unknown, problems: Problem[]) {
   }
 }
 
+/** The fermentation (app RCP-017, Q-45): the yeast with its name and maybe grams, the target carbonation. */
+function checkFermentation(fermentation: unknown, problems: Problem[]) {
+  if (!isObject(fermentation)) {
+    problems.push({ path: "fermentation", message: "The fermentation must be an object with the yeast and the CO₂ target." });
+    return;
+  }
+  const positive = (value: unknown) => typeof value === "number" && Number.isFinite(value) && value > 0;
+  for (const [key, value] of Object.entries(fermentation)) {
+    if (key === "co2") {
+      if (!positive(value)) {
+        problems.push({ path: "fermentation.co2", message: "The CO₂ target must be a number above 0 g/L." });
+      }
+    } else if (key === "yeast") {
+      if (!isObject(value)) {
+        problems.push({ path: "fermentation.yeast", message: "The yeast must be an object with a name." });
+        continue;
+      }
+      for (const field of Object.keys(value)) {
+        if (field !== "name" && field !== "grams") {
+          problems.push({ path: `fermentation.yeast.${field}`, message: `The yeast has no field "${field}".` });
+        }
+      }
+      if (typeof value.name !== "string" || value.name.length === 0) {
+        problems.push({ path: "fermentation.yeast.name", message: "The yeast needs a name." });
+      }
+      if (value.grams !== undefined && !positive(value.grams)) {
+        problems.push({ path: "fermentation.yeast.grams", message: "The yeast's amount must be a number above 0 g." });
+      }
+    } else {
+      problems.push({ path: `fermentation.${key}`, message: `The fermentation has no field "${key}".` });
+    }
+  }
+}
+
 /** All problems of a recipe; an empty list means the app will load it. */
 export function validateRecipe(recipe: unknown): Problem[] {
   const problems: Problem[] = [];
@@ -303,6 +337,10 @@ export function validateRecipe(recipe: unknown): Problem[] {
   if (typeof recipe.name !== "string" || recipe.name.length === 0) {
     problems.push({ path: "name", message: "The recipe needs a name." });
   }
+  // The brewer's free text (app RCP-016, Q-44): any text, also several lines or empty.
+  if ("description" in recipe && typeof recipe.description !== "string") {
+    problems.push({ path: "description", message: "The description must be text." });
+  }
   if ("mashing" in recipe) {
     checkMashing(recipe.mashing, problems);
   }
@@ -314,6 +352,9 @@ export function validateRecipe(recipe: unknown): Problem[] {
   }
   if ("water" in recipe) {
     checkWater(recipe.water, problems);
+  }
+  if ("fermentation" in recipe) {
+    checkFermentation(recipe.fermentation, problems);
   }
   const process = recipe.mashing_process;
   if (!isObject(process)) {

@@ -67,8 +67,9 @@ a release that changes sign-in or Drive behaviour.
   it.
 - `ACC-047` (QE-27, GUI-001, GUI-004) The top bar shows "BrewberryPi" as a link to https://brewberrypi.org/, "Recipe
   Editor" and Cloud Sync; the footer links to brewberrypi.org, the privacy policy, the terms and the source code.
-- `ACC-048` (QE-28, QE-34, QE-35, GUI-032) Below the recipe's title is a tab list with the tabs **Malt**, **Mashing**,
-  **Boiling**, **Water** and **Mash Process**, in this order, Malt selected (it shows the malt table); the Mash Process panel holds the goals and, as the list's last row, + Add goal; the problems are below the panel, not in it.
+- `ACC-048` (QE-28, QE-34, QE-35, QE-55, QE-56, GUI-032) Below the recipe's title is a tab list with the tabs
+  **Overview**, **Malt**, **Mashing**, **Boiling**, **Water**, **Fermentation** and **Mash Process**, in this order,
+  Overview selected (it shows the description); Malt shows the malt table; the Mash Process panel holds the goals and, as the list's last row, + Add goal; the problems are below the panel, not in it.
 - `ACC-049` (QE-29, GUI-024, NFR-002) "Hide sidebar" collapses the recipe list to a strip with "Show sidebar" and
   New recipe, the recipe stays shown, and the browser remembers it (also after the page is shown again); with a
   recipe not downloaded, the strip shows "1 recipe not downloaded". Ctrl+B expands it again and the browser forgets
@@ -154,11 +155,12 @@ a release that changes sign-in or Drive behaviour.
   at least 0 EBC."
 - `ACC-074` (EDT-049, EDT-050) The bitterness of Hallertauer Tradition 30 g, 5.5 %, 60 min in 20 l at 12.6 °P is
   "19 IBU"; until the boil time, volume and gravity are entered it is "–" with "Enter the alpha acid and boil time
-  of hop 1 and the knockout volume and the original gravity on the Water tab."; a hop of 0 min adds nothing. 101 % and 2.5 min are
+  of hop 1 and the knockout volume on the Water tab and the original gravity on the Fermentation tab."; a hop of 0 min adds nothing. 101 % and 2.5 min are
   problems.
-- `ACC-075` (EDT-050, EDT-045, FMT-006) The Malt and Boiling tabs have no batch fields; the knockout volume and the
-  original gravity are entered on the Water tab; 20 l and 12.6 °P are written as `"batch": { "liters": 20, "plato": 12.6 }`; 0 l and
-  41 °P are problems whose entries open the Water tab; clearing both removes `batch`.
+- `ACC-075` (EDT-050, EDT-045, FMT-006) The Malt and Boiling tabs have no batch fields; the knockout volume is
+  entered on the Water tab, the original gravity on the Fermentation tab; 20 l and 12.6 °P are written as
+  `"batch": { "liters": 20, "plato": 12.6 }`; 0 l and 41 °P are problems whose entries open the Water and the
+  Fermentation tab; clearing both removes `batch`.
 - `ACC-076` (EDT-041, QE-36, QE-42) The Malt tab has the headings Malt Overview (above the donut and figure) and Malt
   (above the table); the Boiling tab Hops Overview, Boil Schedule and Boil Ingredients, in this order (`QE-43`).
 - `ACC-077` (EDT-054, QE-47, QE-48, QE-51) Hops Saaz 10 g 0 min, Hallertauer Tradition 30 g 60 min, Tettnanger 20 g 10 min and Cascade
@@ -168,7 +170,7 @@ a release that changes sign-in or Drive behaviour.
   "end", in the hops' greens (their donut colours; a 4th hop's in the muted tone), with tooltips ("…, add at 0 min
   (start), cooks 60 min"); it says "No cooking time yet: hop 4."; without cooking times it asks for them.
 - `ACC-078` (EDT-051, EDT-053, FMT-006) The Water tab has the heading Water and the fields Mash water, Sparge water,
-  Top-up water and Knockout volume (target) (L) with their hints (then the Gravity fields, `ACC-081`); 16, 14 and 2 are written as
+  Top-up water and Knockout volume (target) (L) with their hints, and no gravity (`ACC-081`); 16, 14 and 2 are written as
   `"water": { "mash": 16, "sparge": 14, "top_up": 2 }`; −1 is a problem whose entry opens the Water tab; clearing
   all three removes `water`.
 - `ACC-079` (EDT-052, EDT-050) With 5000 g of malt: total water "–", then 14 L, then with 16 L mash and 2.5 L
@@ -177,11 +179,12 @@ a release that changes sign-in or Drive behaviour.
 - `ACC-080` (EDT-055) At 9 EBC the colour scale has the styles Pils, Pale Ale, Märzen, Dunkel, Stout, the marker
   between Pils and Pale Ale, the label "9 EBC on a scale from 0 to 80 EBC, like Helles, Weissbier" and no line
   naming the styles; with roasted barley above 80 EBC the marker is at the scale's end; no scale without a colour.
-- `ACC-081` (EDT-057, EDT-045, FMT-006) The Water tab has the headings Water and Gravity; Gravity has Original
+- `ACC-081` (EDT-057, EDT-045, FMT-006, QE-56) The Water tab has only the heading Water; the Fermentation tab the
+  headings Gravity, Yeast and Carbonation; Gravity has Original
   gravity (target) and Final gravity (°P). The alcohol is "–" with "Enter the original gravity and the final
   gravity."; 12 °P and 2.5 °P give 5.1 % vol and 79 % apparent attenuation and are written as
   `"batch": { "plato": 12, "final_plato": 2.5 }`; a final gravity of 12 says "The final gravity must be below the
-  original gravity."; 41 is a problem whose entry opens the Water tab.
+  original gravity."; 41 is a problem whose entry opens the Fermentation tab.
 - `ACC-082` (EDT-056) Hallertauer Tradition 30 g, 5.5 %, 60 min, 20 L, 12.6 °P: the bitterness scale has Weissbier,
   Helles, Pils, Pale Ale, IPA and no "In the range of" line (its label still names Helles, Märzen, Dunkel), and the
   heading line "BU:GU: 0.37 balanced"; 200 g give 126 IBU, the marker at the scale's end and "very bitter". No scale
@@ -233,7 +236,19 @@ a release that changes sign-in or Drive behaviour.
   6.3 L/kg at the mash water; original gravity 7 and 22 °P none, 6.5 and 25 °P; final gravity 1 and 5 °P none, 6 °P;
   attenuation 76 % none, 93 % at the final gravity; alpha acid 2 and 20 % none, 1.5 and 25 %; a hop addition of 90 min
   none, 120 min; another addition's 120 min none; a Maltose rest at 70 °C for 90 min at both fields; a gravity of 41 °P
-  or alpha acid of 101 % is an error and no warning; the recipe stays valid.
+  or alpha acid of 101 % is an error and no warning; a CO₂ target of 3.5 and 7.5 g/L none, 3 and 8 g/L, 0 an error;
+  the recipe stays valid.
+- `ACC-094` (EDT-065, GUI-032, QE-55) A recipe opens on the Overview tab, the first one, with the heading
+  Description and a box of eight lines; "A cloudy wheat beer." and "Banana and clove." on two lines are written as
+  `"description": "A cloudy wheat beer.\nBanana and clove."` right after `"name"`; cleared, `description` leaves
+  the file. A description that is not text is "Description: The description must be text.", with the Overview tab's
+  error count 1.
+- `ACC-095` (EDT-066, QE-57, FMT-006) On the Fermentation tab a yeast amount of 11.5 g alone is "Yeast: The yeast
+  needs a name." (also at the field); with the name Fermentis WB-06 and a CO₂ target of 6.5 g/L the file ends with
+  `"fermentation": { "yeast": { "name": "Fermentis WB-06", "grams": 11.5 }, "co2": 6.5 }` after `"water"`; a CO₂
+  target of 0 is "CO₂ target: The CO₂ target must be a number above 0 g/L.", 8 g/L a warning at the field; an
+  amount of 0 is "Yeast: The yeast's amount must be a number above 0 g.", whose entry opens the Fermentation tab;
+  clearing all three removes `fermentation`.
 
 ## 9.3 Browser drafts
 

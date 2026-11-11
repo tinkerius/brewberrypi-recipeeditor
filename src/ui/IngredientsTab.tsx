@@ -182,19 +182,23 @@ function ShareDonut(props: { kind: IngredientKind; list: Ingredient[] }) {
   );
 }
 
-/** A link to the Water tab, where the knockout volume is entered (EDT-050). */
-function WaterLink(props: { onWater?: () => void }) {
-  return props.onWater ? (
-    <button type="button" class={LINK_STYLE} data-water-link onClick={props.onWater}>
-      Water tab
+/** The tabs the batch is entered on (EDT-050): the knockout volume on Water, the original gravity on Fermentation. */
+export type BatchTab = "water" | "fermentation";
+const BATCH_TAB_NAMES: Record<BatchTab, string> = { water: "Water tab", fermentation: "Fermentation tab" };
+
+/** A link to the tab where a batch value is entered (EDT-050, QE-56). */
+function TabLink(props: { tab: BatchTab; onTab?: (tab: BatchTab) => void }) {
+  return props.onTab ? (
+    <button type="button" class={LINK_STYLE} data-tab-link={props.tab} onClick={() => props.onTab!(props.tab)}>
+      {BATCH_TAB_NAMES[props.tab]}
     </button>
   ) : (
-    <>Water tab</>
+    <>{BATCH_TAB_NAMES[props.tab]}</>
   );
 }
 
 /** Why a figure can't be computed yet (EDT-048, EDT-049), as a hint: what to enter, and where. */
-function missingText(kind: IngredientKind, figure: Figure, onWater?: () => void): ComponentChildren {
+function missingText(kind: IngredientKind, figure: Figure, onTab?: (tab: BatchTab) => void): ComponentChildren {
   const { one } = INGREDIENT_LABELS[kind];
   if (figure.noEntries) {
     return kind === "malts" ? "Add malts with their amounts." : "Add hops with their amounts.";
@@ -205,12 +209,19 @@ function missingText(kind: IngredientKind, figure: Figure, onWater?: () => void)
     const rows = figure.rows.length === 1 ? `${one.toLowerCase()} ${figure.rows[0]}` : `${one.toLowerCase()}s ${figure.rows.join(", ")}`;
     needs.push(`${what} of ${rows}`);
   }
-  // The knockout volume and the original gravity are entered on the Water tab (EDT-050).
-  const onWaterTab = (figure.batch ?? []).map((f) => (f === "liters" ? "the knockout volume" : "the original gravity"));
-  if (onWaterTab.length > 0) {
+  // The knockout volume is entered on the Water tab, the original gravity on the Fermentation tab (EDT-050, QE-56).
+  const batch = figure.batch ?? [];
+  if (batch.includes("liters")) {
     needs.push(
       <>
-        {onWaterTab.join(" and ")} on the <WaterLink onWater={onWater} />
+        the knockout volume on the <TabLink tab="water" onTab={onTab} />
+      </>,
+    );
+  }
+  if (batch.includes("plato")) {
+    needs.push(
+      <>
+        the original gravity on the <TabLink tab="fermentation" onTab={onTab} />
       </>,
     );
   }
@@ -230,9 +241,10 @@ function missingText(kind: IngredientKind, figure: Figure, onWater?: () => void)
 
 /**
  * The computed figure next to the donut (EDT-048, EDT-049): the beer colour with its swatch and its place among
- * common beers (EDT-055), or the bitterness; the knockout volume comes from the Water tab.
+ * common beers (EDT-055), or the bitterness; the knockout volume comes from the Water tab, the original gravity from
+ * the Fermentation tab.
  */
-function FigureLine(props: { kind: IngredientKind; recipe: Recipe; onWater?: () => void }) {
+function FigureLine(props: { kind: IngredientKind; recipe: Recipe; onTab?: (tab: BatchTab) => void }) {
   const malts = props.kind === "malts";
   // How the figure is computed, behind an ⓘ button next to it (QE-44).
   const [about, setAbout] = useState(false);
@@ -243,13 +255,13 @@ function FigureLine(props: { kind: IngredientKind; recipe: Recipe; onWater?: () 
   const knockout = (
     <>
       the knockout volume ({validLiters(liters) ? `${liters} L, ` : ""}
-      <WaterLink onWater={props.onWater} />)
+      <TabLink tab="water" onTab={props.onTab} />)
     </>
   );
   const gravity = (
     <>
       the original gravity ({validPlato(plato) ? `${plato} °P, ` : ""}
-      <WaterLink onWater={props.onWater} />)
+      <TabLink tab="fermentation" onTab={props.onTab} />)
     </>
   );
   const ratio = !malts && figure.value !== undefined && validPlato(plato) && plato > 0 ? buGu(figure.value, plato) : undefined;
@@ -327,7 +339,7 @@ function FigureLine(props: { kind: IngredientKind; recipe: Recipe; onWater?: () 
       {figure.value === undefined && (
         // What is missing stays visible: it says what to enter.
         <p class={`${HINT_STYLE} mt-1`} data-figure-hint>
-          {missingText(props.kind, figure, props.onWater)}
+          {missingText(props.kind, figure, props.onTab)}
         </p>
       )}
     </div>
@@ -893,8 +905,8 @@ export function IngredientsTab(props: {
   problems: Problem[];
   warnings: Warning[];
   onChange: (recipe: Recipe) => void;
-  /** Opens the Water tab (the knockout volume, EDT-050). */
-  onWater?: () => void;
+  /** Opens the Water tab (the knockout volume) or the Fermentation tab (the original gravity; EDT-050). */
+  onTab?: (tab: BatchTab) => void;
 }) {
   const { kind } = props;
   const list = ingredientsOf(props.recipe, kind);
@@ -912,7 +924,7 @@ export function IngredientsTab(props: {
             </div>
           )}
           <div class="min-w-0 flex-1 space-y-3 rounded-lg bg-stone-50 p-3 ring-1 ring-line dark:bg-white/5 dark:ring-white/10">
-            <FigureLine kind={kind} recipe={props.recipe} onWater={props.onWater} />
+            <FigureLine kind={kind} recipe={props.recipe} onTab={props.onTab} />
           </div>
         </div>
       </section>

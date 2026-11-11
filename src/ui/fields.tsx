@@ -71,6 +71,8 @@ export function TextField(props: {
   value: unknown;
   invalid: boolean;
   multiline?: boolean;
+  /** A multi-line field's height in lines (default 2). */
+  rows?: number;
   placeholder?: string;
   /** In a table cell (EDT-042): the label is only for screen readers. */
   compact?: boolean;
@@ -84,7 +86,7 @@ export function TextField(props: {
       {props.multiline ? (
         <textarea
           class={cls}
-          rows={2}
+          rows={props.rows ?? 2}
           value={value}
           placeholder={props.placeholder}
           onInput={(e) => props.onChange(e.currentTarget.value)}

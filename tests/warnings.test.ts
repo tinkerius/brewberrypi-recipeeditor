@@ -51,6 +51,14 @@ describe("warnings: values outside their typical range (EDT-064, QE-54)", () => 
     expect(paths(hop(1.5, 60))).toEqual(["ingredients.hops[0].alpha"]);
     // Other additions have no typical cooking time.
     expect(paths(recipe({ ingredients: { others: [{ name: "Irish moss", additions: [{ minutes: 120, grams: 5 }] }] } }))).toEqual([]);
+    // The CO₂ target 3.5–7.5 g/L (EDT-066).
+    expect(paths(recipe({ fermentation: { co2: 3.5 } }))).toEqual([]);
+    expect(paths(recipe({ fermentation: { co2: 7.5 } }))).toEqual([]);
+    expect(warningsOf(recipe({ fermentation: { co2: 8 } })).map((w) => [w.path, w.message])).toEqual([
+      ["fermentation.co2", "A CO₂ target of 8 g/L is outside the typical 3.5–7.5 g/L."],
+    ]);
+    expect(paths(recipe({ fermentation: { co2: 3 } }))).toEqual(["fermentation.co2"]);
+    expect(paths(recipe({ fermentation: { co2: 0 } }))).toEqual([]); // an error, no warning
     // A mash rest's temperature and duration, at their fields (EDT-033, EDT-038).
     const rest = (temperature: number, minutes: number) => recipe({ mashing: { MaltoseRest: { temperature, minutes } } });
     // (A maltose rest alone does not convert all the starch: that is the whole plan's warning, "mashing".)

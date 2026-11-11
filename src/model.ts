@@ -39,6 +39,8 @@ export interface MashingProcess {
 export interface Recipe {
   version?: unknown;
   name: string;
+  /** The brewer's free text, possibly several lines (app RCP-016); absent while empty. */
+  description?: unknown;
   mashing_process: MashingProcess;
   /** The mashing plan (app RCP-012); absent while no rest is planned. */
   mashing?: unknown;
@@ -48,6 +50,8 @@ export interface Recipe {
   batch?: unknown;
   /** The brewing-day water in litres (app RCP-015); absent while none is set. */
   water?: unknown;
+  /** The yeast and the target carbonation (app RCP-017); absent while neither is set. */
+  fermentation?: unknown;
   [key: string]: unknown;
 }
 
@@ -240,6 +244,44 @@ export function waterOf(recipe: Recipe): Record<string, unknown> {
 }
 
 /** The recipe with a water volume set, or removed when `value` is undefined; empty water leaves the file (EDT-051). */
+/** The fermentation (app RCP-017, EDT-066): the yeast and the target carbonation. */
+export function fermentationOf(recipe: Recipe): Record<string, unknown> {
+  return isObject(recipe.fermentation) ? recipe.fermentation : {};
+}
+
+/** The fermentation's yeast, `{}` while there is none. */
+export function yeastOf(recipe: Recipe): Record<string, unknown> {
+  const yeast = fermentationOf(recipe).yeast;
+  return isObject(yeast) ? yeast : {};
+}
+
+/**
+ * The recipe with the fermentation's yeast field (`name`, `grams`) or `co2` set, or removed when cleared: an empty
+ * yeast is left out, and `fermentation` too while it holds nothing (EDT-066). Kept in the file's order: yeast (name,
+ * grams), then co2; any other key as found.
+ */
+export function withFermentationField(recipe: Recipe, field: "name" | "grams" | "co2", value: unknown): Recipe {
+  const { yeast: _yeast, co2: _co2, ...more } = fermentationOf(recipe);
+  const yeast: Record<string, unknown> = { ...yeastOf(recipe) };
+  let co2 = fermentationOf(recipe).co2;
+  if (field === "co2") {
+    co2 = value;
+  } else if (value === undefined || value === "") {
+    delete yeast[field];
+  } else {
+    yeast[field] = value;
+  }
+  const { name, grams, ...yeastMore } = yeast;
+  const orderedYeast = { ...(name !== undefined ? { name } : {}), ...(grams !== undefined ? { grams } : {}), ...yeastMore };
+  const next: Record<string, unknown> = {
+    ...(Object.keys(orderedYeast).length > 0 ? { yeast: orderedYeast } : {}),
+    ...(co2 !== undefined ? { co2 } : {}),
+    ...more,
+  };
+  const { fermentation: _old, ...others } = recipe;
+  return Object.keys(next).length === 0 ? (others as Recipe) : { ...others, fermentation: next };
+}
+
 export function withWaterField(recipe: Recipe, field: WaterField, value: unknown): Recipe {
   const water = { ...waterOf(recipe) };
   if (value === undefined) {
@@ -604,9 +646,27 @@ export function readRecipe(json: unknown): ReadRecipe {
   return { recipe, converted: changes.length > 0 ? `Converted: ${changes.join("; ")}.` : undefined };
 }
 
+/** The recipe with its description (EDT-065, app RCP-016): an empty one is left out of the file. */
+export function withDescription(recipe: Recipe, text: string): Recipe {
+  const { description: _old, ...rest } = recipe;
+  return text === "" ? (rest as Recipe) : { ...rest, description: text };
+}
+
 /** readRecipe for recipes known to be in the current format (samples, tests). */
 export function toRecipe(json: unknown): Recipe {
   return readRecipe(json).recipe ?? emptyRecipe();
+}
+
+/** A value on one line, objects and lists with spaces inside their brackets: `{ "a": 1, "b": [ 2 ] }`. */
+function oneLine(value: unknown): string {
+  if (Array.isArray(value)) {
+    return value.length === 0 ? "[]" : `[ ${value.map(oneLine).join(", ")} ]`;
+  }
+  if (isObject(value)) {
+    const entries = Object.entries(value).filter(([, v]) => v !== undefined);
+    return entries.length === 0 ? "{}" : `{ ${entries.map(([k, v]) => `${JSON.stringify(k)}: ${oneLine(v)}`).join(", ")} }`;
+  }
+  return JSON.stringify(value);
 }
 
 const indentGoal = (goal: Goal) =>
@@ -648,13 +708,18 @@ function formatEntry(entry: Record<string, unknown>): string {
  * ignored by the app).
  */
 export function serializeRecipe(recipe: Recipe): string {
-  const { $schema: _schema, version, name, mashing_process: process, mashing, ingredients, batch, water, ...rest } = recipe;
+  const { $schema: _schema, version, name, description, mashing_process: process, mashing, ingredients, batch, water, fermentation, ...rest } =
+    recipe;
   const { goals, ...processRest } = process;
   const lines: string[] = [];
   if (version !== undefined) {
     lines.push(`  "version": ${JSON.stringify(version)},`);
   }
   lines.push(`  "name": ${JSON.stringify(name)},`);
+  // The description after the name (FMT-006), on one line: its line breaks as \n.
+  if (description !== undefined) {
+    lines.push(`  "description": ${JSON.stringify(description)},`);
+  }
   const processLines: string[] = [];
   if (goals.length === 0) {
     processLines.push(`    "goals": []`);
@@ -721,6 +786,11 @@ export function serializeRecipe(recipe: Recipe): string {
     lines[lines.length - 1] += ",";
     const one = isObject(water) && Object.keys(water).length > 0 ? indentGoal(water as Goal) : JSON.stringify(water);
     lines.push(`  "water": ${one}`);
+  }
+  if (fermentation !== undefined) {
+    // One line: { "yeast": { "name": "WB-06", "grams": 11.5 }, "co2": 6.5 } (FMT-006).
+    lines[lines.length - 1] += ",";
+    lines.push(`  "fermentation": ${oneLine(fermentation)}`);
   }
   for (const [key, value] of Object.entries(rest)) {
     lines[lines.length - 1] += ",";

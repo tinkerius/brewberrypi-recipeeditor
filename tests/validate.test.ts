@@ -163,6 +163,27 @@ const CASES: [string, unknown][] = [
   ["water negative", { ...valid, water: { mash: -1 } }],
   ["water a string", { ...valid, water: { sparge: "14" } }],
   ["water null", { ...valid, water: { top_up: null } }],
+  // The description (app RCP-016, Q-44)
+  ["description", { ...valid, description: "A wheat beer." }],
+  ["description multi-line", { ...valid, description: "Line one.\nLine two." }],
+  ["description empty", { ...valid, description: "" }],
+  ["description a number", { ...valid, description: 1 }],
+  ["description null", { ...valid, description: null }],
+  // The fermentation (app RCP-017, Q-45)
+  ["fermentation", { ...valid, fermentation: { yeast: { name: "WB-06", grams: 11.5 }, co2: 6.5 } }],
+  ["fermentation empty", { ...valid, fermentation: {} }],
+  ["fermentation yeast without grams", { ...valid, fermentation: { yeast: { name: "WB-06" } } }],
+  ["fermentation co2 only", { ...valid, fermentation: { co2: 5 } }],
+  ["fermentation not an object", { ...valid, fermentation: [] }],
+  ["fermentation extra field", { ...valid, fermentation: { temperature: 18 } }],
+  ["fermentation yeast without name", { ...valid, fermentation: { yeast: { grams: 11.5 } } }],
+  ["fermentation yeast empty name", { ...valid, fermentation: { yeast: { name: "" } } }],
+  ["fermentation yeast grams 0", { ...valid, fermentation: { yeast: { name: "WB-06", grams: 0 } } }],
+  ["fermentation yeast grams a string", { ...valid, fermentation: { yeast: { name: "WB-06", grams: "11.5" } } }],
+  ["fermentation yeast extra field", { ...valid, fermentation: { yeast: { name: "WB-06", kind: "dry" } } }],
+  ["fermentation yeast a string", { ...valid, fermentation: { yeast: "WB-06" } }],
+  ["fermentation co2 0", { ...valid, fermentation: { co2: 0 } }],
+  ["fermentation co2 a string", { ...valid, fermentation: { co2: "6.5" } }],
 ];
 
 describe("validateRecipe", () => {

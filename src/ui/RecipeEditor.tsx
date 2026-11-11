@@ -10,6 +10,8 @@ import { GoalEditor } from "./GoalEditor";
 import { GoalTypeDialog } from "./GoalTypeDialog";
 import { IngredientsTab } from "./IngredientsTab";
 import { MashingTab } from "./MashingTab";
+import { OverviewTab } from "./OverviewTab";
+import { FermentationTab } from "./FermentationTab";
 import { WaterTab } from "./WaterTab";
 import { RecipeTitle } from "./RecipeTitle";
 import { Tabs } from "./Tabs";
@@ -22,6 +24,7 @@ import { ERROR_TEXT, WARNING_TEXT, notesAt, type Issues } from "./notes";
 const PATH_LABELS: Record<string, string> = {
   id: "File name",
   name: "Recipe name",
+  description: "Description",
   version: "Format version",
   mashing_process: "Mashing process",
   [GOALS_PATH]: "Goals",
@@ -35,6 +38,11 @@ const PATH_LABELS: Record<string, string> = {
   [`${WATER_PATH}.mash`]: "Mash water",
   [`${WATER_PATH}.sparge`]: "Sparge water",
   [`${WATER_PATH}.top_up`]: "Top-up water",
+  fermentation: "Fermentation",
+  "fermentation.yeast": "Yeast",
+  "fermentation.yeast.name": "Yeast",
+  "fermentation.yeast.grams": "Yeast",
+  "fermentation.co2": "CO₂ target",
 };
 
 /** The goal a problem is about, if any (its index). */
@@ -43,19 +51,26 @@ function goalOf(path: string): number | undefined {
   return goal ? Number(goal[1]) : undefined;
 }
 
+/** The tabs the ingredients, the batch and the water are entered on. */
+type DesignTab = "malts" | "hops" | "water" | "fermentation";
+
 /**
- * The tab a problem of the ingredients, the batch or the water is on (EDT-045, EDT-051): the hops and the gravity on
- * Water (where they are entered): the water, the knockout volume and the gravities; else Malt or Hops.
+ * The tab a problem of the ingredients, the batch or the water is on (EDT-045, EDT-051, QE-56), where it is entered:
+ * the hops and other additions on Boiling; the water and the knockout volume on Water; the gravities on
+ * Fermentation; else Malt.
  */
-function ingredientsTab(path: string): "malts" | "hops" | "water" | undefined {
+function ingredientsTab(path: string): DesignTab | undefined {
   const about = (prefix: string) => path === prefix || path.startsWith(`${prefix}.`);
   if (path.startsWith(`${INGREDIENTS_PATH}.hops`) || path.startsWith(`${INGREDIENTS_PATH}.others`)) {
     return "hops";
   }
+  if (about(`${BATCH_PATH}.plato`) || about(`${BATCH_PATH}.final_plato`) || about("fermentation")) {
+    return "fermentation";
+  }
   if (about(WATER_PATH) || about(BATCH_PATH)) {
     return "water";
   }
-  return about(INGREDIENTS_PATH) || about(BATCH_PATH) ? "malts" : undefined;
+  return about(INGREDIENTS_PATH) ? "malts" : undefined;
 }
 
 /** Whether a problem is about the mashing plan (the Mashing tab). */
@@ -65,6 +80,9 @@ function isMashing(path: string): boolean {
 
 /** The tab a problem or warning is on (EDT-063); none for the recipe's name, file name and format version. */
 function tabOf(path: string): RecipeTab | undefined {
+  if (path === "description") {
+    return "overview";
+  }
   if (path === "mashing_process" || path.startsWith("mashing_process.")) {
     return "mash";
   }
@@ -98,7 +116,7 @@ export function ProblemList(props: {
   doc: Doc;
   onGoal?: (index: number) => void;
   onMashing?: () => void;
-  onIngredients?: (tab: "malts" | "hops" | "water") => void;
+  onIngredients?: (tab: DesignTab) => void;
 }) {
   const problems = problemsOf(props.doc);
   const warnings = props.doc.loadError ? [] : warningsOf(props.doc.recipe);
@@ -166,10 +184,12 @@ export function ProblemList(props: {
 
 /** The recipe's tabs (GUI-032, QE-28, QE-32, QE-34, QE-35); more come later. */
 const RECIPE_TABS = [
+  { id: "overview", label: "Overview" },
   { id: "malts", label: "Malt" },
   { id: "mashing", label: "Mashing" },
   { id: "hops", label: "Boiling" },
   { id: "water", label: "Water" },
+  { id: "fermentation", label: "Fermentation" },
   { id: "mash", label: "Mash Process" },
 ] as const;
 type RecipeTab = (typeof RECIPE_TABS)[number]["id"];
@@ -191,7 +211,7 @@ export function RecipeEditor(props: { doc: Doc; onChange: (recipe: Recipe) => vo
   problems.forEach((p) => count(p.path, "errors"));
   warnings.forEach((w) => count(w.path, "warnings"));
   const [adding, setAdding] = useState(false);
-  const [tab, setTab] = useState<RecipeTab>("malts");
+  const [tab, setTab] = useState<RecipeTab>("overview");
   const setRecipe = (recipe: Recipe) => props.onChange(recipe);
   const setGoals = (goals: Goal[]) => setRecipe(withGoals(doc.recipe, goals));
   const goals = goalsOf(doc.recipe);
@@ -238,7 +258,11 @@ export function RecipeEditor(props: { doc: Doc; onChange: (recipe: Recipe) => vo
 
 
       <Tabs label="Recipe sections" tabs={RECIPE_TABS} selected={tab} onSelect={setTab} badges={badges}>
-        {tab === "water" ? (
+        {tab === "overview" ? (
+          <OverviewTab recipe={doc.recipe} problems={problems} onChange={setRecipe} />
+        ) : tab === "fermentation" ? (
+          <FermentationTab recipe={doc.recipe} problems={problems} warnings={warnings} onChange={setRecipe} />
+        ) : tab === "water" ? (
           <WaterTab recipe={doc.recipe} problems={problems} warnings={warnings} onChange={setRecipe} />
         ) : tab === "malts" || tab === "hops" ? (
           <IngredientsTab
@@ -248,7 +272,7 @@ export function RecipeEditor(props: { doc: Doc; onChange: (recipe: Recipe) => vo
             problems={problems}
             warnings={warnings}
             onChange={setRecipe}
-            onWater={() => setTab("water")}
+            onTab={setTab}
           />
         ) : tab === "mashing" ? (
           <MashingTab recipe={doc.recipe} problems={problems} warnings={warnings} onChange={setRecipe} />

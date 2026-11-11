@@ -266,7 +266,7 @@ describe("App, the website's top bar and footer (QE-27)", () => {
 });
 
 describe("App, the recipe's tabs (QE-28)", () => {
-  it("ACC-048 shows the tabs Malt, selected, Mashing, Boiling, Water and Mash Process with the goals; the problems are below them", async () => {
+  it("ACC-048 shows the tabs Overview, selected, Malt, Mashing, Boiling, Water, Fermentation and Mash Process with the goals; the problems are below them", async () => {
     const store = new MemoryStore();
     await store.put(newDoc("Kept", { version: 3, name: "Kept", mashing_process: { goals: [{ type: "HeatUp" }] } }));
     await show(store);
@@ -274,16 +274,20 @@ describe("App, the recipe's tabs (QE-28)", () => {
     const tabs = () => [...recipe.querySelectorAll<HTMLElement>("[role=tablist] [role=tab]")];
     // The tab's name (a badge may follow it, EDT-063).
     expect(tabs().map((t) => [t.firstChild!.textContent, t.getAttribute("aria-selected")])).toEqual([
-      ["Malt", "true"],
+      ["Overview", "true"],
+      ["Malt", "false"],
       ["Mashing", "false"],
       ["Boiling", "false"],
       ["Water", "false"],
+      ["Fermentation", "false"],
       ["Mash Process", "false"],
     ]);
+    expect(recipe.querySelector("[role=tabpanel] [data-description] textarea")).not.toBeNull();
+    await act(async () => tabs()[1].click());
     expect(recipe.querySelector("[role=tabpanel] [data-ingredients=malts]")).not.toBeNull();
-    await act(async () => tabs()[4].click());
+    await act(async () => tabs()[6].click());
     const panel = recipe.querySelector<HTMLElement>("[role=tabpanel]")!;
-    expect(panel.getAttribute("aria-labelledby")).toBe(tabs()[4].id);
+    expect(panel.getAttribute("aria-labelledby")).toBe(tabs()[6].id);
     expect(panel.querySelector("ol [data-goal-line]")).not.toBeNull();
     const addGoal = [...panel.querySelectorAll("button")].find((b) => b.textContent?.trim() === "+ Add goal")!;
     expect(addGoal.hasAttribute("data-add-row")).toBe(true);
@@ -995,17 +999,22 @@ describe("App, the Malt and Hops tabs (QE-34, QE-35)", () => {
   const hint = () => recipe().querySelector("[data-figure-hint]")!.textContent;
   const batchField = (label: string) =>
     [...recipe().querySelectorAll<HTMLLabelElement>("[data-batch-fields] label")].find((l) => l.textContent?.startsWith(label))!.querySelector("input")!;
+  /** Opens a recipe on its Malt tab (the Overview tab is open first, EDT-065). */
   async function open(content: Recipe = { version: 3, name: "Brew", mashing_process: { goals: [{ type: "MashIn" }] } }) {
     const store = new MemoryStore();
     await store.put(newDoc("Brew", content));
     await show(store);
+    await showTab("malts");
   }
-  async function showTab(kind: "malts" | "hops" | "water") {
+  async function showTab(kind: "malts" | "hops" | "water" | "fermentation") {
     await act(async () => recipe().querySelector<HTMLElement>(`#tab-${kind}`)!.click());
   }
-  /** Enters a field of the Water tab (the knockout volume, the gravities; EDT-050) and goes back to `back`. */
+  /**
+   * Enters a batch field where it is entered (EDT-050): the knockout volume on the Water tab, the gravities on the
+   * Fermentation tab (QE-56); then goes back to `back`.
+   */
   async function setOnWater(field: string, value: string, back: "malts" | "hops") {
-    await showTab("water");
+    await showTab(/gravity/i.test(field) ? "fermentation" : "water");
     const label = [...recipe().querySelectorAll("[role=tabpanel] label")].find((l) => l.textContent?.startsWith(field))!;
     await type(label.querySelector("input")!, value);
     await showTab(back);
@@ -1230,7 +1239,7 @@ describe("App, the Malt and Hops tabs (QE-34, QE-35)", () => {
     expect(recipe().querySelector("[data-batch-fields]")).toBeNull(); // the volume is entered on the Water tab
     await type(field("malts", 1, "ebc"), "15");
     expect(hint()).toBe("Enter the knockout volume on the Water tab.");
-    await act(async () => recipe().querySelector<HTMLButtonElement>("[data-figure-hint] [data-water-link]")!.click());
+    await act(async () => recipe().querySelector<HTMLButtonElement>("[data-figure-hint] [data-tab-link=water]")!.click());
     expect(recipe().querySelector("#tab-water")!.getAttribute("aria-selected")).toBe("true");
     await setKnockout("20", "malts");
     expect(figure()).toBe("9 EBC");
@@ -1253,7 +1262,7 @@ describe("App, the Malt and Hops tabs (QE-34, QE-35)", () => {
     expect([figure(), hint()]).toEqual(["–", "Add hops with their amounts."]);
     await add("hops", "Hallertauer Tradition", "30", { alpha: "5.5" });
     expect(hint()).toBe(
-      "Enter the alpha acid and boil time of hop 1 and the knockout volume and the original gravity on the Water tab.",
+      "Enter the alpha acid and boil time of hop 1 and the knockout volume on the Water tab and the original gravity on the Fermentation tab.",
     );
     await type(field("hops", 0, "minutes"), "60");
     await setKnockout("20", "hops");
@@ -1262,7 +1271,7 @@ describe("App, the Malt and Hops tabs (QE-34, QE-35)", () => {
     expect(recipe().querySelector("[data-figure-hint]")).toBeNull();
     await act(async () => recipe().querySelector<HTMLButtonElement>("[data-figure-info]")!.click());
     expect(recipe().querySelector("[data-figure-about]")!.textContent).toBe(
-      "Tinseth's formula, from each hop's alpha acid and boil time, the knockout volume (20 L, Water tab) and the original gravity (12.6 °P, Water tab).",
+      "Tinseth's formula, from each hop's alpha acid and boil time, the knockout volume (20 L, Water tab) and the original gravity (12.6 °P, Fermentation tab).",
     );
     await act(async () => recipe().querySelector<HTMLButtonElement>("[data-figure-info]")!.click());
     expect(recipe().querySelector("[data-figure-about]")).toBeNull();
@@ -1274,7 +1283,7 @@ describe("App, the Malt and Hops tabs (QE-34, QE-35)", () => {
     expect(recipe().textContent).toContain("Hop 2, addition 1: the boil time must be a whole number of minutes, at least 0.");
   });
 
-  it("ACC-075 the knockout volume and the gravity come from the Water tab; an empty batch leaves the file", async () => {
+  it("ACC-075 the knockout volume comes from the Water tab, the gravity from the Fermentation tab; an empty batch leaves the file", async () => {
     await open();
     expect(recipe().querySelector("[role=tabpanel] [data-figure] input")).toBeNull();
     await showTab("hops");
@@ -1288,7 +1297,7 @@ describe("App, the Malt and Hops tabs (QE-34, QE-35)", () => {
     expect(recipe().textContent).toContain("Original gravity: The original gravity must be a number from 0 to 40 °P.");
     await act(async () => recipe().querySelector<HTMLElement>("#tab-mash")!.click());
     await act(async () => button("Original gravity").click());
-    expect(recipe().querySelector("#tab-water")!.getAttribute("aria-selected")).toBe("true");
+    expect(recipe().querySelector("#tab-fermentation")!.getAttribute("aria-selected")).toBe("true");
     await showTab("hops");
     await act(async () => button("Knockout volume").click());
     expect(recipe().querySelector("#tab-water")!.getAttribute("aria-selected")).toBe("true");
@@ -1579,9 +1588,9 @@ describe("App, the Malt and Hops tabs (QE-34, QE-35)", () => {
     await type(field("hops", 0, "alpha"), "5");
     await type(field("hops", 0, "minutes"), "60");
     expect(rows("hops")[0].nextElementSibling!.hasAttribute("data-row-note")).toBe(false);
-    // On the Water tab under the field's hint.
+    // On the Fermentation tab under the field's hint.
     await setOnWater("Original gravity", "25", "hops");
-    await showTab("water");
+    await showTab("fermentation");
     const plato = recipe().querySelector("[data-batch-field=plato]")!;
     expect(plato.querySelector("[data-field-warning]")!.textContent).toBe("⚠ An original gravity of 25 °P is outside the typical 7–22 °P.");
     await type(plato.querySelector("input")!, "41");
@@ -1611,7 +1620,8 @@ describe("App, the Malt and Hops tabs (QE-34, QE-35)", () => {
     expect(badge("malts")).toBeNull();
     await setOnWater("Original gravity", "25", "hops");
     await setOnWater("Final gravity", "0.5", "hops");
-    expect(counts("water")).toEqual([undefined, "⚠ 3"]); // the original and final gravity, and the attenuation
+    expect(counts("fermentation")).toEqual([undefined, "⚠ 3"]); // the original and final gravity, and the attenuation
+    expect(badge("water")).toBeNull();
     await type(field("hops", 0, "grams"), "20");
     await type(field("hops", 0, "alpha"), "5");
     expect(badge("hops")).toBeNull();
@@ -1638,6 +1648,63 @@ describe("App, the Malt and Hops tabs (QE-34, QE-35)", () => {
     expect(recipe().querySelector("#tab-hops")!.getAttribute("aria-selected")).toBe("true");
     // A warning doesn't stop the download.
     expect(await download()).toContain('"alpha": 25');
+  });
+
+  it("ACC-094 the Overview tab, first and open, holds the description: several lines, written after the name", async () => {
+    const store = new MemoryStore();
+    await store.put(newDoc("Brew", { version: 3, name: "Brew", mashing_process: { goals: [{ type: "MashIn" }] } }));
+    await show(store);
+    expect(recipe().querySelector("[role=tab][aria-selected=true]")!.id).toBe("tab-overview");
+    expect(recipe().querySelector("[role=tabpanel] h3")!.textContent?.trim()).toBe("Description");
+    const text = recipe().querySelector<HTMLTextAreaElement>("[data-description] textarea")!;
+    expect(text.getAttribute("rows")).toBe("8");
+    await act(async () => {
+      text.value = "A cloudy wheat beer.\nBanana and clove.";
+      text.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    expect(await download()).toContain('  "name": "Brew",\n  "description": "A cloudy wheat beer.\\nBanana and clove.",\n  "mashing_process"');
+    await act(async () => {
+      text.value = "";
+      text.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    expect(await download()).not.toContain("description");
+  });
+
+  it("ACC-094 a description that is not text is an error on the Overview tab", async () => {
+    await open({ version: 3, name: "Brew", description: 7, mashing_process: { goals: [] } } as unknown as Recipe);
+    expect(recipe().textContent).toContain("Description: The description must be text.");
+    expect(recipe().querySelector("#tab-overview [data-tab-errors]")!.textContent).toBe("1");
+  });
+
+  it("ACC-095 the Fermentation tab has the yeast (name, grams) and the CO₂ target, written after the water", async () => {
+    await open({ version: 3, name: "Brew", mashing_process: { goals: [] }, water: { mash: 16 } });
+    await showTab("fermentation");
+    const input = (field: string) => recipe().querySelector<HTMLInputElement>(`${field} input`)!;
+    await type(input("[data-yeast-field=grams]"), "11.5");
+    expect(recipe().textContent).toContain("Yeast: The yeast needs a name.");
+    expect(recipe().querySelector("[data-yeast-field=name] ~ * [data-field-error], [data-yeast-fields] [data-field-error]")!.textContent).toBe(
+      "⊘ The yeast needs a name.",
+    );
+    await type(recipe().querySelector<HTMLInputElement>("[data-yeast-field=name] input")!, "Fermentis WB-06");
+    await type(input("[data-co2]"), "6.5");
+    expect(await download()).toContain(
+      '  "water": { "mash": 16 },\n  "fermentation": { "yeast": { "name": "Fermentis WB-06", "grams": 11.5 }, "co2": 6.5 }\n}',
+    );
+    await type(input("[data-co2]"), "0");
+    expect(recipe().textContent).toContain("CO₂ target: The CO₂ target must be a number above 0 g/L.");
+    await type(input("[data-co2]"), "8");
+    expect(recipe().querySelector("[data-co2] [data-field-warning]")!.textContent).toBe("⚠ A CO₂ target of 8 g/L is outside the typical 3.5–7.5 g/L.");
+    await type(input("[data-yeast-field=grams]"), "0");
+    expect(recipe().textContent).toContain("Yeast: The yeast's amount must be a number above 0 g.");
+    // Its entry opens the Fermentation tab.
+    await showTab("malts");
+    await act(async () => button("Yeast").click());
+    expect(recipe().querySelector("#tab-fermentation")!.getAttribute("aria-selected")).toBe("true");
+    for (const field of ["[data-yeast-field=grams]", "[data-co2]"]) {
+      await type(input(field), "");
+    }
+    await type(recipe().querySelector<HTMLInputElement>("[data-yeast-field=name] input")!, "");
+    expect(await download()).not.toContain("fermentation");
   });
 
   it("ACC-083 shows each malt's colour from its EBC next to the field", async () => {
@@ -1748,7 +1815,7 @@ describe("App, the Water tab (QE-36)", () => {
     expect(recipe().querySelector("#tab-water")!.getAttribute("aria-selected")).toBe("true");
     expect(recipe().querySelector("[role=tabpanel] h3")!.textContent?.trim()).toBe("Water");
     const labels = [...recipe().querySelectorAll("[role=tabpanel] label")].map((l) => l.textContent);
-    expect(labels).toEqual(["Mash waterL", "Sparge waterL", "Top-up waterL", "Knockout volume (target)L", "Original gravity (target)°P", "Final gravity°P"]);
+    expect(labels).toEqual(["Mash waterL", "Sparge waterL", "Top-up waterL", "Knockout volume (target)L"]); // the gravity: Fermentation
     for (const hint of ["strike water", "while lautering", "after lautering to reach the original gravity", "end of the boil"]) {
       expect(recipe().textContent).toContain(hint);
     }
@@ -1799,9 +1866,11 @@ describe("App, the Water tab (QE-36)", () => {
     ]);
   });
 
-  it("ACC-081 the Gravity section has the target original gravity and the final gravity, with the alcohol", async () => {
+  it("ACC-081 the Fermentation tab's Gravity section has the target original gravity and the final gravity, with the alcohol", async () => {
     await open();
-    expect([...recipe().querySelectorAll("[role=tabpanel] h3")].map((h) => h.textContent?.trim())).toEqual(["Water", "Gravity"]);
+    expect([...recipe().querySelectorAll("[role=tabpanel] h3")].map((h) => h.textContent?.trim())).toEqual(["Water"]);
+    await act(async () => recipe().querySelector<HTMLElement>("#tab-fermentation")!.click());
+    expect([...recipe().querySelectorAll("[role=tabpanel] h3")].map((h) => h.textContent?.trim())).toEqual(["Gravity", "Yeast", "Carbonation"]);
     const alcohol = () => [recipe().querySelector("[data-alcohol]")!.textContent, recipe().querySelector("[data-alcohol-hint]")!.textContent];
     expect(alcohol()).toEqual(["–", "Enter the original gravity and the final gravity."]);
     await type(input("Original gravity (target)"), "12");
@@ -1815,6 +1884,6 @@ describe("App, the Water tab (QE-36)", () => {
     expect(recipe().textContent).toContain("Final gravity: The final gravity must be a number from 0 to 40 °P.");
     await act(async () => recipe().querySelector<HTMLElement>("#tab-mash")!.click());
     await act(async () => button("Final gravity").click());
-    expect(recipe().querySelector("#tab-water")!.getAttribute("aria-selected")).toBe("true");
+    expect(recipe().querySelector("#tab-fermentation")!.getAttribute("aria-selected")).toBe("true");
   });
 });

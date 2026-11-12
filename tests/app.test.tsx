@@ -780,7 +780,7 @@ describe("App, the Mashing tab (QE-32)", () => {
     });
   }
 
-  it("ACC-058 lists the 9 rests as table rows with the typical values in the °C and min columns, and expands what each does", async () => {
+  it("ACC-058 lists the 9 rests as table rows, the typical range beside the name and the duration after min, and expands what each does", async () => {
     await openMashing();
     expect(recipe().querySelector("#tab-mashing")!.getAttribute("aria-selected")).toBe("true");
     const rows = [...panel().querySelectorAll<HTMLElement>("[data-mash-rest]")];
@@ -794,11 +794,11 @@ describe("App, the Mashing tab (QE-32)", () => {
       expect(r.textContent).toContain(info.label);
       const typical = (f: string) => r.querySelector(`[data-mash-typical=${f}]`)!;
       expect([typical("temperature").textContent, typical("minutes").textContent]).toEqual([
-        `${info.tempMin}–${info.tempMax} °C`,
+        `(${info.tempMin}–${info.tempMax} °C)`,
         info.duration,
       ]);
-      expect(typical("temperature").closest("td")!.cellIndex).toBe(3); // Typical, after °C
-      expect(typical("minutes").closest("td")!.cellIndex).toBe(5); // Typical, after min
+      expect(typical("temperature").closest("td")!.cellIndex).toBe(1); // beside the name (QE-73)
+      expect(typical("minutes").closest("td")!.cellIndex).toBe(4); // Typical, after min
       expect(r.querySelector<HTMLInputElement>("input[type=checkbox]")!.checked).toBe(false);
       expect(r.querySelector("input:not([type=checkbox])")).toBeNull();
       const about = r.querySelector<HTMLButtonElement>("button[aria-expanded]")!;
@@ -815,16 +815,16 @@ describe("App, the Mashing tab (QE-32)", () => {
     await act(async () => row("MashOut").querySelector<HTMLButtonElement>("button[aria-expanded]")!.click());
     expect(panel().querySelector("[data-mash-about]")).toBeNull();
     expect(rows[5].textContent).toContain("Maltose rest (beta-amylase rest)");
-    expect(rows[5].textContent).toContain("60–65 °C");
+    // The name (short on a phone, long from tablet width on), then its typical range in grey.
+    expect(rows[5].cells[1].textContent).toBe("Maltose rest" + "Maltose rest (beta-amylase rest)" + " (60–65 °C)");
     const heads = [...panel().querySelectorAll("thead th")].map((th) => th.textContent);
-    expect(heads).toEqual(["Planned", "Rest", "°C", "Typical", "min", "Typical", "About"]);
-    // A ticked rest: its fields in the °C and min columns, the typical values stay in their own columns.
+    expect(heads).toEqual(["Planned", "Rest", "°C", "min", "Typical", "About"]);
+    // A ticked rest: its fields in the °C and min columns; the temperature range beside the name, the duration's in
+    // its own column after min.
     await tick("MaltoseRest");
-    for (const [f, cell] of [["temperature", 3], ["minutes", 5]] as const) {
-      const t = row("MaltoseRest").querySelector(`[data-mash-typical=${f}]`)!;
-      expect(t.closest("td")!.cellIndex).toBe(cell);
-      expect((row("MaltoseRest") as HTMLTableRowElement).cells[cell - 1].querySelector("input")).not.toBeNull();
-    }
+    const ticked = row("MaltoseRest") as HTMLTableRowElement;
+    expect([ticked.cells[2].querySelector("input"), ticked.cells[3].querySelector("input")].every(Boolean)).toBe(true);
+    expect(ticked.querySelector("[data-mash-typical=minutes]")!.closest("td")!.cellIndex).toBe(4);
     expect(panel().querySelector("[data-goal-line]")).toBeNull();
   });
 
@@ -868,7 +868,7 @@ describe("App, the Mashing tab (QE-32)", () => {
     expect(input.className).toContain("ring-amber-500!");
     const typical = document.getElementById(input.getAttribute("aria-describedby")!)!;
     expect(typical).toBe(typicalOf());
-    expect(typical.textContent).toBe("60–65 °C");
+    expect(typical.textContent).toBe("(60–65 °C)");
     expect(typical.className).toContain("text-amber-700");
     expect(await status()).toContain("Complete: BrewberryPi can load this recipe.");
     expect(await download()).toContain('"MaltoseRest": { "temperature": 70, "minutes": 45 }');

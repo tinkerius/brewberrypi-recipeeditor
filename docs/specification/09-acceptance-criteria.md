@@ -87,10 +87,11 @@ a release that changes sign-in or Drive behaviour.
   a later sign-in (the folders exist) adds nothing.
 - `ACC-019` (GUI-020) The list is titled "My Recipes"; "New recipe" and "Upload recipe" come after the recipes;
   there is no "New from a sample recipe".
-- `ACC-058` (QE-32, EDT-030, EDT-031, GUI-032) The Mashing tab has, below the heading "Rests", a table of the 9 rests of `EDT-031` in its
-  order, each row with its name, the typical range ("60–65 °C" for the Maltose rest) in the Typical column after °C and
-  the typical duration in the Typical column after min, an unticked check box and no fields (for a recipe without
-  `mashing`); a ticked rest shows its fields in the °C and min columns, the typical values staying in theirs; and an ⓘ button "About this rest" that expands the rest's texts below the row (one at a time)
+- `ACC-058` (QE-32, QE-73, EDT-030, EDT-031, GUI-032) The Mashing tab has, below the heading "Rests", a table of the 9 rests of `EDT-031` in its
+  order, each row with its name followed by its typical range in grey, in brackets ("Maltose rest (beta-amylase rest)
+  (60–65 °C)"; `QE-73`), the typical duration in the Typical column after min, an unticked check box and no fields
+  (for a recipe without `mashing`); the heads are Rest, °C, min, Typical (and, for screen readers, Planned and About);
+  a ticked rest shows its fields in the °C and min columns, the typical values staying where they are; and an ⓘ button "About this rest" that expands the rest's texts below the row (one at a time)
   and collapses them again; the goals are not shown in it.
 - `ACC-059` (EDT-032, EDT-034, FMT-006, QE-63) Ticking Mash-out and then Maltose rest plans them with empty fields (a
   pre-mash too), reported as "The Maltose rest needs a temperature." and "The Mash-out needs minutes."; with 78 °C,

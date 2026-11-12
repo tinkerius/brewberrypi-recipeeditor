@@ -85,11 +85,16 @@ function RestRows(props: {
           />
         </td>
         <td class={CELL}>
-          <label for={checkbox} class="block cursor-pointer pt-1.5 text-[13px] leading-snug font-semibold sm:text-sm sm:leading-normal text-ink dark:text-ink-light">
-            {/* On a phone the short name, so the seven columns fit. */}
-            <span class="sm:hidden">{info.short}</span>
-            <span class="hidden sm:inline">{info.label}</span>
-          </label>
+          <div class="pt-1.5 text-[13px] leading-snug sm:text-sm sm:leading-normal">
+            <label for={checkbox} class="cursor-pointer font-semibold text-ink dark:text-ink-light">
+              {/* On a phone the short name, so the columns fit. */}
+              <span class="sm:hidden">{info.short}</span>
+              <span class="hidden sm:inline">{info.label}</span>
+            </label>{" "}
+            {/* The typical temperature range beside the name, grey (amber while outside it; QE-73). */}
+            {typical("temperature", `(${typicalTemperature(id)})`, warn)}
+            <FieldNotes notes={notes("temperature")} class="mt-0.5" />
+          </div>
         </td>
         <td class={`${CELL} w-12 sm:w-20`}>
           {planned && (
@@ -103,12 +108,6 @@ function RestRows(props: {
               onChange={(v) => props.onChange({ ...rest, temperature: v })}
             />
           )}
-        </td>
-        <td class={CELL}>
-          <div class={VALUE}>
-            {typical("temperature", typicalTemperature(id), warn)}
-            <FieldNotes notes={notes("temperature")} />
-          </div>
         </td>
         <td class={`${CELL} w-12 sm:w-20`}>
           {planned && (
@@ -137,7 +136,7 @@ function RestRows(props: {
       {props.open && (
         <tr id={about} data-mash-about={id} class={planned ? "bg-berry-light/10 dark:bg-berry-light/5" : ""}>
           <td />
-          <td colSpan={6} class={`${CELL} pt-0`}>
+          <td colSpan={5} class={`${CELL} pt-0`}>
             <dl class={ABOUT}>
               {info.about.map(([term, text]) => (
                 <div key={term}>
@@ -183,7 +182,6 @@ export function MashingTab(props: { recipe: Recipe; problems: Problem[]; warning
                 </th>
                 <th class={HEAD}>Rest</th>
                 <th class={HEAD}>°C</th>
-                <th class={HEAD}>Typical</th>
                 <th class={HEAD}>min</th>
                 <th class={HEAD}>Typical</th>
                 <th class={HEAD}>

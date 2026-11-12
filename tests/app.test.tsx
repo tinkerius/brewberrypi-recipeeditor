@@ -816,7 +816,7 @@ describe("App, the Mashing tab (QE-32)", () => {
     expect(panel().querySelector("[data-mash-about]")).toBeNull();
     expect(rows[5].textContent).toContain("Maltose rest (beta-amylase rest)");
     // The name (short on a phone, long from tablet width on), then its typical range in grey.
-    expect(rows[5].cells[1].textContent).toBe("Maltose rest" + "Maltose rest (beta-amylase rest)" + " (60–65 °C)");
+    expect((rows[5] as HTMLTableRowElement).cells[1].textContent).toBe("Maltose rest" + "Maltose rest (beta-amylase rest)" + " (60–65 °C)");
     const heads = [...panel().querySelectorAll("thead th")].map((th) => th.textContent);
     expect(heads).toEqual(["Planned", "Rest", "°C", "min", "Typical", "About"]);
     // A ticked rest: its fields in the °C and min columns; the temperature range beside the name, the duration's in

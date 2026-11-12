@@ -88,11 +88,14 @@ type Column = {
   /** The typical value, a second line in the column head (EDT-068, QE-60): the range outside which it warns. */
   typical?: string;
 };
+/** The unit inside a column's fields (QE-74). */
+const COLUMN_UNITS: Partial<Record<Column["field"], string>> = { ebc: "EBC", grams: "g", alpha: "%" };
+
 /** In this order after the name (EDT-042, QE-40): the absolute amount last, just before the relative one. */
 const COLUMNS: Record<IngredientKind, Column[]> = {
   malts: [
-    { field: "ebc", head: "EBC", label: "Colour (EBC)", integer: false, width: "w-24 sm:w-28" },
-    { field: "grams", head: "Absolute amount (g)", label: "Absolute amount (g)", integer: true, width: "w-16 sm:w-28" },
+    { field: "ebc", head: "EBC", label: "Colour (EBC)", integer: false, width: "w-32 sm:w-36" },
+    { field: "grams", head: "Absolute amount (g)", label: "Absolute amount (g)", integer: true, width: "w-24 sm:w-28" },
   ],
   hops: [
     {
@@ -100,7 +103,7 @@ const COLUMNS: Record<IngredientKind, Column[]> = {
       head: "α %",
       label: "Alpha acid (%)",
       integer: false,
-      width: "w-12 sm:w-20",
+      width: "w-20 sm:w-24",
       typical: `${TYPICAL.alpha.min}–${TYPICAL.alpha.max}`,
     },
     {
@@ -400,7 +403,7 @@ function AdditionsCell(props: {
   return (
     <div class="space-y-1">
       {additions.map((a, j) => (
-        <div key={j} class="flex items-center gap-1.5 [&_input]:w-14! [&_input]:px-1.5! sm:[&_input]:w-16!" data-addition={j}>
+        <div key={j} class="flex items-center gap-1.5 [&_input]:w-20! [&_input]:px-1.5! sm:[&_input]:w-24!" data-addition={j}>
           <span class="contents" data-addition-field="minutes">
             <NumberField
               label={`Cooking time (min), ${one} ${props.index + 1}, addition ${j + 1}`}
@@ -563,7 +566,7 @@ function IngredientGroup(props: {
               ) : (
                 <td
                   key={c.field}
-                  class={`${CELL} ${c.field === "ebc" ? "min-w-22" : "min-w-14"} sm:min-w-0 [&_input]:w-full! [&_input]:px-1.5! sm:[&_input]:px-3! [&_span]:justify-end`}
+                  class={`${CELL} ${c.field === "ebc" ? "min-w-30" : "min-w-22"} sm:min-w-0 [&_input]:w-full! [&_input]:px-1.5! sm:[&_input]:px-3! [&_span]:justify-end`}
                   data-ingredient-field={c.field}
                 >
                   <div class="flex items-center gap-1.5">
@@ -583,6 +586,8 @@ function IngredientGroup(props: {
                     <NumberField
                       label={`${c.label}, ${one} ${i + 1}`}
                       compact
+                      fill
+                      unit={COLUMN_UNITS[c.field]}
                       integer={c.integer}
                       value={entry[c.field]}
                       invalid={invalid(i, c.field)}
@@ -652,7 +657,7 @@ function IngredientGroup(props: {
           {columns.map((c) => (
             <td
               key={c.field}
-              class={`${CELL} ${c.field === "ebc" ? "min-w-22" : "min-w-14"} sm:min-w-0 [&_input]:w-full! [&_input]:px-1.5! sm:[&_input]:px-3! [&_span]:justify-end`}
+              class={`${CELL} ${c.field === "ebc" ? "min-w-30" : "min-w-22"} sm:min-w-0 [&_input]:w-full! [&_input]:px-1.5! sm:[&_input]:px-3! [&_span]:justify-end`}
               data-acid-malt-field={c.field}
             >
               <div class="flex items-center gap-1.5">

@@ -818,7 +818,7 @@ describe("App, the Mashing tab (QE-32)", () => {
     // The name (short on a phone, long from tablet width on), then its typical range in grey.
     expect((rows[5] as HTMLTableRowElement).cells[1].textContent).toBe("Maltose rest" + "Maltose rest (beta-amylase rest)" + " (60–65 °C)");
     const heads = [...panel().querySelectorAll("thead th")].map((th) => th.textContent);
-    expect(heads).toEqual(["Planned", "Rest", "°C", "min", "Typical", "About"]);
+    expect(heads).toEqual(["Planned", "Rest", "Temperature", "Duration", "Typical", "About"]);
     // A ticked rest: its fields in the °C and min columns; the temperature range beside the name, the duration's in
     // its own column after min.
     await tick("MaltoseRest");
@@ -2090,12 +2090,13 @@ describe("App, the Water tab (QE-36)", () => {
     // The totals for this brew (QE-66): per 18 L of mash water, and of the total malt.
     const total = (row: string) => section().querySelector(`[data-treatment=${row}] [data-total-cell]`)!.textContent;
     expect(["boil", "gypsum", "acid_malt", "lactic_acid"].map(total)).toEqual(["", "1.8 g", "46 g", "0.9 ml"]);
-    expect([...section().querySelectorAll("[data-unit]")].map((u) => u.textContent)).toEqual([
-      "°dH",
-      "°dH carbonate hardness",
-      "g/10 L mash water",
-      "% of total malt",
-      "ml/10 L mash water",
+    // The units inside the fields (QE-74), what they refer to beside them.
+    expect([...section().querySelectorAll("[data-unit]")].map((u) => u.textContent)).toEqual(["°dH", "°dH", "g/10 L", "%", "ml/10 L"]);
+    expect([...section().querySelectorAll("[data-unit-note]")].map((u) => u.textContent)).toEqual([
+      "carbonate hardness",
+      "mash water",
+      "of total malt",
+      "mash water",
     ]);
     expect(effect("result")).toBe("−2.4 °dH");
     expect(section().querySelector("[data-treatment=result] [data-field-warning]")).toBeNull();
@@ -2119,6 +2120,17 @@ describe("App, the Water tab (QE-36)", () => {
     expect(await download()).toContain('"water": { "mash": 18, "treatment": { "alkalinity": 10.3 } }');
     await type(amount("alkalinity")!, "");
     expect(await download()).toContain('"water": { "mash": 18 }');
+  });
+
+  it("ACC-101 the unit stays inside the number field, not part of its text", async () => {
+    await open();
+    const box = input("Mash water").closest("[data-field-box]")!;
+    const unit = box.querySelector("[data-unit]")!;
+    expect([unit.textContent, unit.getAttribute("aria-hidden"), input("Mash water").value]).toEqual(["L", "true", ""]);
+    await type(input("Mash water"), "16");
+    expect(input("Mash water").value).toBe("16"); // only the number is typed
+    expect(input("Mash water").getAttribute("style")).toContain("padding-right"); // room for the unit
+    expect(box.querySelector("[data-unit]")!.textContent).toBe("L");
   });
 
   it("ACC-079 without malts the mash thickness says where they go", async () => {

@@ -21,20 +21,23 @@ export function NumberField(props: {
   value: unknown;
   invalid: boolean;
   integer?: boolean;
-  /** Shown after the field, e.g. "°C". */
+  /** The unit, inside the field at its right end in grey, not part of the text (QE-74): "°C", "g/10 L". */
   unit?: string;
+  /** What the unit refers to, beside the field in small type that may wrap ("mash water", "of total malt"). */
+  unitNote?: string;
+  /** The field fills its cell (tables whose cells set the input's width to full). */
+  fill?: boolean;
   /** In a table cell (EDT-031): the label is only for screen readers, the field narrower. */
   compact?: boolean;
   /** The label only for screen readers, the field as wide as usual (its visible label is elsewhere, EDT-069). */
   hiddenLabel?: boolean;
-  /** A long unit, in small type that may wrap beside the field ("ml/10 L mash water", EDT-069). */
-  longUnit?: boolean;
   /** Marks the field as worth a second look (a warning, not a problem; EDT-033). */
   warn?: boolean;
   /** The id of a hint that describes the field (e.g. its typical values). */
   describedBy?: string;
   onChange: (value: number | string | undefined) => void;
 }) {
+  const unit = props.unit;
   const shown = typeof props.value === "number" || typeof props.value === "string" ? String(props.value) : "";
   const [text, setText] = useState(shown);
   // Follow changes from outside (undo of the type, another recipe), not the echo of our own input.
@@ -47,26 +50,40 @@ export function NumberField(props: {
     <label class="contents">
       <span class={props.compact || props.hiddenLabel ? "sr-only" : LABEL_STYLE}>{props.label}</span>
       <span class="flex items-center gap-2 text-sm text-stone-600 dark:text-stone-300">
-        <input
-          type="text"
-          inputMode={props.integer ? "numeric" : "decimal"}
-          aria-describedby={props.describedBy}
-          class={
-            `${INPUT_STYLE} ${props.compact ? "w-11! px-1! sm:w-16! sm:px-2!" : "w-20!"} py-1.5! text-right ` +
-            (props.invalid ? INVALID_INPUT : props.warn ? WARN_INPUT : "")
-          }
-          value={text}
-          onInput={(e) => {
-            const next = e.currentTarget.value;
-            setText(next);
-            const parsed = parseNumber(next);
-            // Not a number: keep the text, so the validator reports it ("must be a number").
-            props.onChange(parsed === undefined ? undefined : Number.isNaN(parsed) ? next : parsed);
-          }}
-        />
-        {props.unit && (
-          <span class={props.longUnit ? "text-[11px] leading-tight sm:text-xs" : "whitespace-nowrap"} data-unit>
-            {props.unit}
+        {/* The unit sits inside the field's frame, after the number; only the number is typed (QE-74). */}
+        <span class={`relative ${props.fill ? "flex min-w-0 flex-1" : "inline-flex"}`} data-field-box>
+          <input
+            type="text"
+            inputMode={props.integer ? "numeric" : "decimal"}
+            aria-describedby={props.describedBy}
+            class={
+              `${INPUT_STYLE} ${props.compact ? (unit ? "w-16! px-1! sm:w-20! sm:px-2!" : "w-11! px-1! sm:w-16! sm:px-2!") : unit ? "w-24!" : "w-20!"} py-1.5! text-right ` +
+              (props.invalid ? INVALID_INPUT : props.warn ? WARN_INPUT : "")
+            }
+            // Room for the unit at the right end; inline and important, so the cells' padding classes don't cover it.
+            style={unit ? `padding-right: calc(${unit.length}ch + 0.9rem) !important` : undefined}
+            value={text}
+            onInput={(e) => {
+              const next = e.currentTarget.value;
+              setText(next);
+              const parsed = parseNumber(next);
+              // Not a number: keep the text, so the validator reports it ("must be a number").
+              props.onChange(parsed === undefined ? undefined : Number.isNaN(parsed) ? next : parsed);
+            }}
+          />
+          {unit && (
+            <span
+              aria-hidden="true"
+              class={`pointer-events-none absolute inset-y-0 flex items-center whitespace-nowrap text-stone-500 dark:text-stone-400 right-2`}
+              data-unit
+            >
+              {unit}
+            </span>
+          )}
+        </span>
+        {props.unitNote && (
+          <span class="text-[11px] leading-tight sm:text-xs" data-unit-note>
+            {props.unitNote}
           </span>
         )}
       </span>

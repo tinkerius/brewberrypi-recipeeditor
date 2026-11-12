@@ -90,7 +90,8 @@ a release that changes sign-in or Drive behaviour.
 - `ACC-058` (QE-32, QE-73, EDT-030, EDT-031, GUI-032) The Mashing tab has, below the heading "Rests", a table of the 9 rests of `EDT-031` in its
   order, each row with its name followed by its typical range in grey, in brackets ("Maltose rest (beta-amylase rest)
   (60–65 °C)"; `QE-73`), the typical duration in the Typical column after min, an unticked check box and no fields
-  (for a recipe without `mashing`); the heads are Rest, °C, min, Typical (and, for screen readers, Planned and About);
+  (for a recipe without `mashing`); the heads are Rest, Temperature, Duration, Typical (and, for screen readers,
+  Planned and About; `QE-74`);
   a ticked rest shows its fields in the °C and min columns, the typical values staying where they are; and an ⓘ button "About this rest" that expands the rest's texts below the row (one at a time)
   and collapses them again; the goals are not shown in it.
 - `ACC-059` (EDT-032, EDT-034, FMT-006, QE-63) Ticking Mash-out and then Maltose rest plans them with empty fields (a
@@ -285,14 +286,17 @@ a release that changes sign-in or Drive behaviour.
   carbonate hardness gives "ΔRA = 0 °dH (…)"; without the inputs only the formulas.
 - `ACC-099` (EDT-069, EDT-070, QE-66) With 4.6 kg of malt and 18 L mash water, 1 % acid malt is 46.5 g (1/99 of
   4600 g; the total malt 4646 g), 1 g/10 L gypsum 1.8 g and 0.5 ml/10 L lactic acid 0.9 ml in the Total column ("1.8 g",
-  "46 g", "0.9 ml"; nothing for boiling); the units read "°dH" (the tap water's, in the Effect column), "°dH carbonate hardness",
-  "g/10 L mash water", "% of total malt", "ml/10 L mash water"; without mash water there are no totals of the doses.
+  "46 g", "0.9 ml"; nothing for boiling); the units inside the fields read "°dH" (the tap water's, in the Effect column),
+  "°dH", "g/10 L", "%", "ml/10 L", followed by "carbonate hardness", "mash water", "of total malt", "mash water"
+  (`QE-74`); without mash water there are no totals of the doses.
 - `ACC-100` (EDT-070, QE-67, QE-68, QE-70) With Pilsner malt 4600 g 7 EBC and 1 % acid malt in the Water treatment, the Malt table
   shows after it a row like the others with its values as text, no input fields ("Acid malt", 5 EBC with its swatch,
   46 g; no "read-only" label, no handle, no ✕), 1 %, with "From the Water treatment (1 % of
   the total malt); change it on the Water tab."; Pilsner malt is 99 %, the Total "4646 g", the donut's legend 99 % and
   1 %; the file's malts are only the Pilsner malt; the link opens the Water tab, and unticking the acid malt there
   removes the row (Total 4600 g).
+- `ACC-101` (EDT-071, QE-74) The Mash water field shows "L" inside its frame (hidden from screen readers, which hear
+  the label), its text is empty; typing 16 makes its text "16", the unit staying, with room for it at the right.
 
 ## 9.3 Browser drafts
 

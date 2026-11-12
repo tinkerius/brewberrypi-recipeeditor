@@ -101,6 +101,7 @@ function RestRows(props: {
             <NumberField
               label={`Temperature (°C), ${info.short}`}
               compact
+              unit="°C"
               value={rest.temperature}
               invalid={invalid("temperature")}
               warn={warn}
@@ -114,6 +115,7 @@ function RestRows(props: {
             <NumberField
               label={`Duration (min), ${info.short}`}
               compact
+              unit="min"
               integer
               value={rest.minutes}
               invalid={invalid("minutes")}
@@ -181,8 +183,8 @@ export function MashingTab(props: { recipe: Recipe; problems: Problem[]; warning
                   <span class="sr-only">Planned</span>
                 </th>
                 <th class={HEAD}>Rest</th>
-                <th class={HEAD}>°C</th>
-                <th class={HEAD}>min</th>
+                <th class={HEAD}>Temperature</th>
+                <th class={HEAD}>Duration</th>
                 <th class={HEAD}>Typical</th>
                 <th class={HEAD}>
                   <span class="sr-only">About</span>

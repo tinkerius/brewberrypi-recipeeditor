@@ -97,8 +97,8 @@ Applies signed out (drafts, §4) and signed in (Drive recipes, §5) alike, unles
   gets, each with its temperature and duration. It is design information for the brewer; it does not change the
   goals (**Mash Process**), and the app does not use it. (Goals made from the plan may follow later.)
 - `EDT-031` Below the heading **Rests**, the tab has a **table** with one row per rest of the table below, each once, in this order. Its columns:
-  a check box, the rest's name with its typical temperature range, the planned **°C**, the planned **min**, its
-  **Typical** duration, and an **ⓘ** button. The planned values are fields
+  a check box, the rest's name with its typical temperature range, the planned **Temperature** (°C), the planned
+  **Duration** (min), its **Typical** duration, and an **ⓘ** button. The planned values are fields
   in their own columns, so the plan reads at a glance; a ticked row is highlighted, an unticked one has no fields.
   The typical temperature range (the "warning outside" range) follows the rest's name in grey, in brackets, in the
   table only ("Ferulic acid rest (43–45 °C)", `QE-73`); the typical duration is in its own column after min, so it
@@ -511,3 +511,12 @@ temperature of their own. The typical durations of `EDT-038` and the flags:
   Total ("4646 g"), the shares, the donut, the beer colour (`EDT-048`), the mash thickness (`EDT-052`), the water
   estimate and the mash water's typical value (`EDT-067`), and the acid malt's own effect — but it is **never written
   to the malt list**: the file keeps only `water.treatment.acid_malt`. Unticked in the Water treatment, the row goes.
+
+## 3.13 Units in number fields (`QE-74`)
+
+- `EDT-071` Every number field shows its **unit inside the field**, at its right end in grey: it is not part of the
+  text, so only the number is typed, selected and changed, and the unit stays while the field is empty ("°C", "min",
+  "EBC", "g", "%", "L", "°P", "g/L", "°dH", "g/10 L", "ml/10 L", "°C/min"). The field leaves room for the unit, so a
+  number never runs under it. Where a unit needs more words, they follow the field in small type ("mash water", "of
+  total malt", "carbonate hardness"; `EDT-069`). Column heads name the value, not the unit, where the unit is in the
+  fields (the Rests table's Temperature and Duration, `EDT-031`).

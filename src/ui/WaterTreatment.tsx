@@ -51,18 +51,18 @@ type RowId = "alkalinity" | TreatmentStep | "result";
 /** The rows: their names (short on a phone), fields and explanations. */
 const ROWS: Record<
   Exclude<RowId, "result">,
-  { name: string; short: string; field: { key: TreatmentField; label: string; unit: string }; about: string; typical?: string }
+  { name: string; short: string; field: { key: TreatmentField; label: string; unit: string; note?: string }; about: string; typical?: string }
 > = {
   alkalinity: {
     name: "Residual alkalinity (tap water)",
     short: "Tap water RA",
-    field: { key: "alkalinity", label: "Residual alkalinity (tap water)", unit: "°dH residual alkalinity" },
+    field: { key: "alkalinity", label: "Residual alkalinity (tap water)", unit: "°dH" },
     about: "From your water supplier's analysis: the starting value.",
   },
   boil: {
     name: "Boil the mash water",
     short: "Boil",
-    field: { key: "carbonate_hardness", label: "Carbonate hardness (tap water)", unit: "°dH carbonate hardness" },
+    field: { key: "carbonate_hardness", label: "Carbonate hardness (tap water)", unit: "°dH", note: "carbonate hardness" },
     about:
       "Enter the tap water's carbonate hardness (from the analysis; needed). Boiling the mash water precipitates it down to about 3 °dH, with as " +
       "much calcium hardness: the residual alkalinity falls by (1 − 1/3.5) per °dH removed.",
@@ -70,21 +70,21 @@ const ROWS: Record<
   gypsum: {
     name: "Brewing gypsum",
     short: "Gypsum",
-    field: { key: "gypsum", label: "Brewing gypsum", unit: "g/10 L mash water" },
+    field: { key: "gypsum", label: "Brewing gypsum", unit: "g/10 L", note: "mash water" },
     about: "Its calcium lowers the residual alkalinity: 1 g per 10 L of mash water adds 23 mg/L of calcium, about −0.93 °dH.",
     typical: `up to ${TREATMENT_TYPICAL.gypsum} g/10 L mash water`,
   },
   acid_malt: {
     name: "Acid malt",
     short: "Acid malt",
-    field: { key: "acid_malt", label: "Acid malt", unit: "% of total malt" },
+    field: { key: "acid_malt", label: "Acid malt", unit: "%", note: "of total malt" },
     about: "Its lactic acid (about 3 % of the malt) acts in the mash: worked out from the malts' weight and the mash water.",
     typical: `up to ${TREATMENT_TYPICAL.acidMalt} % of total malt`,
   },
   lactic_acid: {
     name: "Lactic acid 80 %",
     short: "Lactic acid",
-    field: { key: "lactic_acid", label: "Lactic acid 80 %", unit: "ml/10 L mash water" },
+    field: { key: "lactic_acid", label: "Lactic acid 80 %", unit: "ml/10 L", note: "mash water" },
     about: "Lowers the residual alkalinity by about 3 °dH per ml per 10 L of mash water.",
   },
 };
@@ -134,12 +134,12 @@ export function WaterTreatment(props: { recipe: Recipe; problems: Problem[]; war
     acid_malt: effects.acidMalt,
     lactic_acid: effects.lacticAcid,
   };
-  const input = (field: { key: TreatmentField; label: string; unit: string }, keepTicked: boolean) => (
+  const input = (field: { key: TreatmentField; label: string; unit: string; note?: string }, keepTicked: boolean) => (
     <NumberField
       label={field.label}
       compact
-      longUnit
       unit={field.unit}
+      unitNote={field.note}
       value={t[field.key] ?? undefined}
       invalid={props.problems.some((p) => p.path === path(field.key))}
       warn={props.warnings.some((w) => w.path === path(field.key))}
@@ -200,7 +200,7 @@ export function WaterTreatment(props: { recipe: Recipe; problems: Problem[]; war
           </td>
           <td class={CELL}>{name(info, step ? checkbox : undefined)}</td>
           {/* The tap water's residual alkalinity is entered in the Effect column: it is the starting value (QE-71). */}
-          <td class={`${CELL} w-28 sm:w-44`}>{step && ticked && input(info.field, step !== "boil")}</td>
+          <td class={`${CELL} w-40 sm:w-48 [&_input]:w-24! sm:[&_input]:w-28!`}>{step && ticked && input(info.field, step !== "boil")}</td>
           <td class={CELL}>
             <div class={VALUE}>
               {info.typical && (
@@ -231,7 +231,7 @@ export function WaterTreatment(props: { recipe: Recipe; problems: Problem[]; war
                   "–"
                 )
               ) : (
-                <span class="font-normal [&_input]:w-16! sm:[&_input]:w-20!" data-alkalinity-input>
+                <span class="font-normal [&_input]:w-20! sm:[&_input]:w-24!" data-alkalinity-input>
                   <NumberField
                     label={info.field.label}
                     compact

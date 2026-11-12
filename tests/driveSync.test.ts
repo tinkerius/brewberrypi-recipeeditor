@@ -3,7 +3,7 @@ import { fingerprint, newDoc, type Doc } from "../src/doc";
 import { driveDoc, inPool, mergeDriveList } from "../src/driveSync";
 import type { DriveFile } from "../src/store/DriveStore";
 
-const recipe = { version: 2, name: "R", mashing_process: { goals: [{ type: "MashIn" }] } };
+const recipe = { version: 3, name: "R", mashing_process: { goals: [{ type: "MashIn" }] } };
 
 function file(fileId: string, id: string, version: string): DriveFile {
   return { fileId, id, version, modifiedTime: "" };

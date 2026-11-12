@@ -80,3 +80,64 @@
     --grid-line: rgb(241 232 235 / 0.1);
   }
 }
+
+/*
+ * Categorical colours of the share charts (EDT-047): the dataviz reference palette in its fixed order, validated for
+ * colour-vision deficiency on light and dark surfaces; a 9th entry and beyond fold into "other".
+ */
+:root {
+  --series-1: #2a78d6;
+  --series-2: #eb6834;
+  --series-3: #1baf7a;
+  --series-4: #eda100;
+  --series-5: #e87ba4;
+  --series-6: #008300;
+  --series-7: #6250d6;
+  --series-8: #e34948;
+  --series-other: #a8a29e;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --series-1: #3987e5;
+    --series-2: #d95926;
+    --series-3: #199e70;
+    --series-4: #c98500;
+    --series-5: #d55181;
+    --series-6: #008300;
+    --series-7: #9085e9;
+    --series-8: #e66767;
+    --series-other: #78716c;
+  }
+}
+
+/*
+ * The hops in three greens and the other boil additions in three violets (EDT-047, EDT-054, QE-47, QE-48), in table
+ * order, then one muted tone from the 4th row. Every check of the dataviz validator passes for all pairs (lightness
+ * band, chroma, colour-vision deficiency, normal vision): hops ΔE 19.9 / CVD 18.8 light, 17.3 / 11.5 dark; other
+ * additions 22.8 / 14.8 light, 16.1 / 12.9 dark. One tone per set is just under 3:1 against the surface, which the
+ * names next to every icon make up for; a fourth tone would not stay apart.
+ */
+:root {
+  --hop-1: #3f6212;
+  --hop-2: #84cc16;
+  --hop-3: #00a087;
+  --hop-more: #93a98d;
+  --addition-1: #651fff;
+  --addition-2: #a78bfa;
+  --addition-3: #b5179e;
+  --addition-more: #a39bb5;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --hop-1: #09750f;
+    --hop-2: #9b8f13;
+    --hop-3: #19979b;
+    --hop-more: #6f8069;
+    --addition-1: #6967e1;
+    --addition-2: #b57baf;
+    --addition-3: #8e4088;
+    --addition-more: #7a7390;
+  }
+}

@@ -31,13 +31,28 @@ function contentSecurityPolicy(): Plugin {
   };
 }
 
+/** Set automatically inside a GitHub Codespace. Read through globalThis: the project has no Node type definitions. */
+const env = (globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env ?? {};
+const inCodespace = env.CODESPACES === "true";
+
 export default defineConfig({
   plugins: [preact(), tailwindcss(), contentSecurityPolicy()],
   // Served at the root of https://recipes.brewberrypi.org.
   base: "/",
   // The Google OAuth client allows the origin http://localhost:5173 for development.
-  server: { host: "localhost", port: 5173, strictPort: true },
-  preview: { host: "localhost", port: 5173, strictPort: true },
+  // In a GitHub Codespace the page is served via https://<codespace>-5173.app.github.dev, so allow that host
+  // and send hot reload over the forwarded HTTPS port (443) instead of 5173.
+  // Listen on 127.0.0.1, not "localhost": Node resolves "localhost" to IPv6 ::1 only, which the Codespaces port
+  // forwarder (IPv4) cannot reach. The browser still opens http://localhost:5173 locally, so the OAuth origin is
+  // unchanged.
+  server: {
+    host: "127.0.0.1",
+    port: 5173,
+    strictPort: true,
+    allowedHosts: [".app.github.dev"],
+    ...(inCodespace && { hmr: { clientPort: 443 } }),
+  },
+  preview: { host: "127.0.0.1", port: 5173, strictPort: true, allowedHosts: [".app.github.dev"] },
   // Only this repository's tests (CI checks out the upstream repositories in .upstream/).
   // Google is "configured" in the tests (a fake client id), so the signed-in paths can be tested.
   test: { environment: "node", include: ["tests/**/*.test.{ts,tsx}"], env: { VITE_GOOGLE_CLIENT_ID: "test-client" } },

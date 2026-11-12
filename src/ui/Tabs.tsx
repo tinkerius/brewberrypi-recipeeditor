@@ -16,6 +16,8 @@ export function Tabs<Id extends string>(props: {
   tabs: readonly Tab<Id>[];
   selected: Id;
   onSelect: (id: Id) => void;
+  /** Each tab's errors and warnings (EDT-063): a red count, an amber ⚠ count. */
+  badges?: Partial<Record<Id, { errors: number; warnings: number }>>;
   children: ComponentChildren;
 }) {
   const list = useRef<HTMLDivElement>(null);
@@ -52,7 +54,7 @@ export function Tabs<Id extends string>(props: {
               aria-controls={`panel-${tab.id}`}
               tabIndex={active ? 0 : -1}
               class={
-                "-mb-px shrink-0 border-b-2 px-3 py-2 text-sm font-semibold whitespace-nowrap transition-colors " +
+                "relative -mb-px shrink-0 border-b-2 px-3 py-2 text-sm font-semibold whitespace-nowrap transition-colors " +
                 "focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-berry-light " +
                 (active
                   ? "border-berry-light text-ink dark:text-ink-light"
@@ -61,6 +63,39 @@ export function Tabs<Id extends string>(props: {
               onClick={() => props.onSelect(tab.id)}
             >
               {tab.label}
+              {(() => {
+                const b = props.badges?.[tab.id];
+                if (!b || (b.errors === 0 && b.warnings === 0)) {
+                  return null;
+                }
+                const said = [
+                  b.errors > 0 ? `${b.errors} ${b.errors === 1 ? "error" : "errors"}` : "",
+                  b.warnings > 0 ? `${b.warnings} ${b.warnings === 1 ? "warning" : "warnings"}` : "",
+                ].filter(Boolean);
+                return (
+                  <span class="ml-1.5 inline-flex items-center gap-1 align-[1px]" data-tab-badge title={said.join(", ")}>
+                    <span class="sr-only">({said.join(", ")})</span>
+                    {b.errors > 0 && (
+                      <span
+                        aria-hidden="true"
+                        class="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-red-600 px-1 text-[10px] leading-none font-bold text-white dark:bg-red-500"
+                        data-tab-errors
+                      >
+                        {b.errors}
+                      </span>
+                    )}
+                    {b.warnings > 0 && (
+                      <span
+                        aria-hidden="true"
+                        class="inline-flex h-4 items-center rounded-full bg-amber-100 px-1 text-[10px] leading-none font-bold text-amber-800 dark:bg-brass-light/20 dark:text-brass-light"
+                        data-tab-warnings
+                      >
+                        ⚠ {b.warnings}
+                      </span>
+                    )}
+                  </span>
+                );
+              })()}
             </button>
           );
         })}

@@ -1,23 +1,56 @@
-/** The selected recipe: file name, name, goals, problems and the actions. */
+/** The selected recipe: file name, name, its tabs (malt, hops, water, mashing plan, goals), problems and actions. */
 
 import type { ComponentChildren } from "preact";
 import { useEffect, useRef, useState } from "preact/hooks";
 import { problemsOf, type Doc } from "../doc";
-import { goalsOf, newGoal, withGoals, type Goal, type Recipe } from "../model";
-import { GOALS_PATH } from "../validate";
+import { INGREDIENT_LABELS, MASH_RESTS, goalsOf, isMashRestId, newGoal, withGoals, type Goal, type Recipe } from "../model";
+import { BATCH_PATH, GOALS_PATH, INGREDIENTS_PATH, MASHING_PATH, WATER_PATH } from "../validate";
+import { ADD_ROW_LINE, AddRowButton } from "./AddRow";
 import { GoalEditor } from "./GoalEditor";
 import { GoalTypeDialog } from "./GoalTypeDialog";
+import { IngredientsTab } from "./IngredientsTab";
+import { MashingTab } from "./MashingTab";
+import { OverviewTab } from "./OverviewTab";
+import { FermentationTab } from "./FermentationTab";
+import { WaterTab } from "./WaterTab";
 import { RecipeTitle } from "./RecipeTitle";
 import { Tabs } from "./Tabs";
-import { dropSlot, moveItem, targetIndex } from "./reorder";
-import { BUTTON_STYLES, CARD_STYLE, HINT_STYLE, LINK_STYLE } from "./styles";
+import { moveItem } from "./reorder";
+import { useReorder } from "./useReorder";
+import { BUTTON_STYLES, CARD_STYLE, HINT_STYLE, LINK_STYLE, SECTION_TITLE_STYLE } from "./styles";
+import { warningsOf } from "../warnings";
+import { ERROR_TEXT, WARNING_TEXT, notesAt, type Issues } from "./notes";
 
 const PATH_LABELS: Record<string, string> = {
   id: "File name",
   name: "Recipe name",
+  description: "Description",
   version: "Format version",
   mashing_process: "Mashing process",
   [GOALS_PATH]: "Goals",
+  [MASHING_PATH]: "Mashing",
+  [INGREDIENTS_PATH]: "Ingredients",
+  [BATCH_PATH]: "Batch",
+  [`${BATCH_PATH}.liters`]: "Knockout volume",
+  [`${BATCH_PATH}.plato`]: "Original gravity",
+  [`${BATCH_PATH}.final_plato`]: "Final gravity",
+  [WATER_PATH]: "Water",
+  [`${WATER_PATH}.mash`]: "Mash water",
+  [`${WATER_PATH}.sparge`]: "Sparge water",
+  [`${WATER_PATH}.top_up`]: "Top-up water",
+  [`${WATER_PATH}.treatment`]: "Water treatment",
+  [`${WATER_PATH}.treatment.alkalinity`]: "Residual alkalinity",
+  [`${WATER_PATH}.treatment.carbonate_hardness`]: "Carbonate hardness",
+  [`${WATER_PATH}.treatment.boil`]: "Boiling",
+  [`${WATER_PATH}.treatment.gypsum`]: "Brewing gypsum",
+  [`${WATER_PATH}.treatment.acid_malt`]: "Acid malt",
+  [`${WATER_PATH}.treatment.lactic_acid`]: "Lactic acid",
+  [`${WATER_PATH}.treatment.result`]: "Water treatment",
+  fermentation: "Fermentation",
+  "fermentation.yeast": "Yeast",
+  "fermentation.yeast.name": "Yeast",
+  "fermentation.yeast.grams": "Yeast",
+  "fermentation.co2": "CO₂ target",
 };
 
 /** The goal a problem is about, if any (its index). */
@@ -26,14 +59,107 @@ function goalOf(path: string): number | undefined {
   return goal ? Number(goal[1]) : undefined;
 }
 
-function describePath(path: string): string {
-  const goal = goalOf(path);
-  return goal !== undefined ? `Goal ${goal + 1}` : (PATH_LABELS[path] ?? (path || "Recipe"));
+/** The tabs the ingredients, the batch and the water are entered on. */
+type DesignTab = "malts" | "hops" | "water" | "fermentation";
+
+/**
+ * The tab a problem of the ingredients, the batch or the water is on (EDT-045, EDT-051, QE-56), where it is entered:
+ * the hops and other additions on Boiling; the water and the knockout volume on Water; the gravities on
+ * Fermentation; else Malt.
+ */
+function ingredientsTab(path: string): DesignTab | undefined {
+  const about = (prefix: string) => path === prefix || path.startsWith(`${prefix}.`);
+  if (path.startsWith(`${INGREDIENTS_PATH}.hops`) || path.startsWith(`${INGREDIENTS_PATH}.others`)) {
+    return "hops";
+  }
+  if (about(`${BATCH_PATH}.plato`) || about(`${BATCH_PATH}.final_plato`) || about("fermentation")) {
+    return "fermentation";
+  }
+  if (about(WATER_PATH) || about(BATCH_PATH)) {
+    return "water";
+  }
+  return about(INGREDIENTS_PATH) ? "malts" : undefined;
 }
 
-/** The problems (EDT-020); a goal's problem opens that goal when its "Goal n" is clicked. */
-export function ProblemList(props: { doc: Doc; onGoal?: (index: number) => void }) {
+/** Whether a problem is about the mashing plan (the Mashing tab). */
+function isMashing(path: string): boolean {
+  return path === MASHING_PATH || path.startsWith(`${MASHING_PATH}.`);
+}
+
+/** The tab a problem or warning is on (EDT-063); none for the recipe's name, file name and format version. */
+function tabOf(path: string): RecipeTab | undefined {
+  if (path === "description") {
+    return "overview";
+  }
+  if (path === "mashing_process" || path.startsWith("mashing_process.")) {
+    return "mash";
+  }
+  return isMashing(path) ? "mashing" : ingredientsTab(path);
+}
+
+function describePath(path: string): string {
+  const goal = goalOf(path);
+  if (goal !== undefined) {
+    return `Goal ${goal + 1}`;
+  }
+  const ingredient = /^ingredients\.(malts|hops|others)(?:\[(\d+)\])?/.exec(path);
+  if (ingredient) {
+    const { title, one } = INGREDIENT_LABELS[ingredient[1] as "malts" | "hops" | "others"];
+    return ingredient[2] === undefined ? title : `${one} ${Number(ingredient[2]) + 1}`;
+  }
+  const rest = /^mashing\.([^.]+)/.exec(path)?.[1];
+  if (rest !== undefined) {
+    return `Mashing, ${isMashRestId(rest) ? MASH_RESTS[rest].short : rest}`;
+  }
+  return PATH_LABELS[path] ?? (path || "Recipe");
+}
+
+/**
+ * The problems and the warnings (EDT-020, QE-54): the errors in red, which must be fixed before saving or downloading,
+ * and the warnings in amber, values outside their typical range (EDT-064). A goal's entry opens that goal when its
+ * "Goal n" is clicked, one of the mashing plan the Mashing tab (EDT-035), one of the malts, hops, batch or water its
+ * tab (EDT-045, EDT-051).
+ */
+export function ProblemList(props: {
+  doc: Doc;
+  onGoal?: (index: number) => void;
+  onMashing?: () => void;
+  onIngredients?: (tab: DesignTab) => void;
+}) {
   const problems = problemsOf(props.doc);
+  const warnings = props.doc.loadError ? [] : warningsOf(props.doc.recipe);
+  /** An entry: where it is (a link to its tab or goal where there is one), then its message. */
+  const entry = (path: string, message: string, i: number) => {
+    const goal = goalOf(path);
+    return (
+      <li key={i}>
+        {goal !== undefined && props.onGoal ? (
+          <button type="button" class={LINK_STYLE} onClick={() => props.onGoal!(goal)}>
+            {describePath(path)}
+          </button>
+        ) : isMashing(path) && props.onMashing ? (
+          <button type="button" class={LINK_STYLE} onClick={props.onMashing}>
+            {describePath(path)}
+          </button>
+        ) : ingredientsTab(path) && props.onIngredients ? (
+          <button type="button" class={LINK_STYLE} onClick={() => props.onIngredients!(ingredientsTab(path)!)}>
+            {describePath(path)}
+          </button>
+        ) : (
+          <span class="font-medium">{describePath(path)}</span>
+        )}
+        : {message}
+        {path === "id" && " Rename it with the recipe's menu (⋯) in the list."}
+      </li>
+    );
+  };
+  const warningList =
+    warnings.length === 0 ? null : (
+      <div class="rounded-lg bg-amber-50 p-3 text-sm ring-1 ring-amber-200 dark:bg-brass-light/10 dark:ring-brass-light/20" role="status" data-warning-list>
+        <p class={`font-medium ${WARNING_TEXT}`}>⚠ Warnings — outside the typical range; the recipe stays valid:</p>
+        <ul class="mt-1 list-disc pl-5 text-stone-700 dark:text-stone-300">{warnings.map((w, i) => entry(w.path, w.message, i))}</ul>
+      </div>
+    );
   if (props.doc.loadError) {
     return (
       <p class="rounded-lg bg-red-50 p-3 text-sm text-red-700 dark:bg-red-500/10 dark:text-red-300" role="alert">
@@ -43,54 +169,61 @@ export function ProblemList(props: { doc: Doc; onGoal?: (index: number) => void 
   }
   if (problems.length === 0) {
     return (
-      <p class="rounded-lg bg-leaf/10 p-3 text-sm text-leaf dark:bg-leaf-light/10 dark:text-leaf-light">
-        {goalsOf(props.doc.recipe).length === 0
-          ? "✓ Valid recipe file. It has no goals yet, so BrewberryPi lists it but can't brew it."
-          : "✓ Complete: BrewberryPi can load this recipe."}
-      </p>
+      <>
+        <p class="rounded-lg bg-leaf/10 p-3 text-sm text-leaf dark:bg-leaf-light/10 dark:text-leaf-light">
+          {goalsOf(props.doc.recipe).length === 0
+            ? "✓ Valid recipe file. It has no goals yet, so BrewberryPi lists it but can't brew it."
+            : "✓ Complete: BrewberryPi can load this recipe."}
+        </p>
+        {warningList}
+      </>
     );
   }
   return (
-    <div class="rounded-lg bg-brass/10 p-3 text-sm dark:bg-brass-light/10" role="status">
-      <p class="font-medium text-ink dark:text-ink-light">Incomplete — fix these before saving or downloading:</p>
-      <ul class="mt-1 list-disc pl-5 text-stone-700 dark:text-stone-300">
-        {problems.map((p, i) => {
-          const goal = goalOf(p.path);
-          return (
-            <li key={i}>
-              {goal !== undefined && props.onGoal ? (
-                <button type="button" class={LINK_STYLE} onClick={() => props.onGoal!(goal)}>
-                  {describePath(p.path)}
-                </button>
-              ) : (
-                <span class="font-medium">{describePath(p.path)}</span>
-              )}
-              : {p.message}
-              {p.path === "id" && " Rename it with the recipe's menu (⋯) in the list."}
-            </li>
-          );
-        })}
-      </ul>
-    </div>
+    <>
+      <div class="rounded-lg bg-red-50 p-3 text-sm ring-1 ring-red-200 dark:bg-red-500/10 dark:ring-red-400/20" role="status" data-error-list>
+        <p class={`font-medium ${ERROR_TEXT}`}>⊘ Incomplete — fix these before saving or downloading:</p>
+        <ul class="mt-1 list-disc pl-5 text-stone-700 dark:text-stone-300">{problems.map((p, i) => entry(p.path, p.message, i))}</ul>
+      </div>
+      {warningList}
+    </>
   );
 }
 
-/** The recipe's tabs (GUI-032, QE-28); more come later. */
-const RECIPE_TABS = [{ id: "mash", label: "Mash Process" }] as const;
+/** The recipe's tabs (GUI-032, QE-28, QE-32, QE-34, QE-35); more come later. */
+const RECIPE_TABS = [
+  { id: "overview", label: "Overview" },
+  { id: "malts", label: "Malt" },
+  { id: "mashing", label: "Mashing" },
+  { id: "hops", label: "Boiling" },
+  { id: "water", label: "Water" },
+  { id: "fermentation", label: "Fermentation" },
+  { id: "mash", label: "Mash Process" },
+] as const;
 type RecipeTab = (typeof RECIPE_TABS)[number]["id"];
 
 export function RecipeEditor(props: { doc: Doc; onChange: (recipe: Recipe) => void; actions?: ComponentChildren; status?: ComponentChildren }) {
   const { doc } = props;
   const problems = problemsOf(doc);
+  const warnings = warningsOf(doc.recipe);
+  const issues: Issues = { problems, warnings };
+  // Each tab's errors and warnings, as a badge on the tab (EDT-063).
+  const badges: Partial<Record<RecipeTab, { errors: number; warnings: number }>> = {};
+  const count = (path: string, kind: "errors" | "warnings") => {
+    const t = tabOf(path);
+    if (t) {
+      const b = (badges[t] ??= { errors: 0, warnings: 0 });
+      b[kind] += 1;
+    }
+  };
+  problems.forEach((p) => count(p.path, "errors"));
+  warnings.forEach((w) => count(w.path, "warnings"));
   const [adding, setAdding] = useState(false);
-  const [tab, setTab] = useState<RecipeTab>("mash");
+  const [tab, setTab] = useState<RecipeTab>("overview");
   const setRecipe = (recipe: Recipe) => props.onChange(recipe);
   const setGoals = (goals: Goal[]) => setRecipe(withGoals(doc.recipe, goals));
   const goals = goalsOf(doc.recipe);
   const has = (path: string) => problems.some((p) => p.path === path);
-  const list = useRef<HTMLOListElement>(null);
-  const [drag, setDrag] = useState<{ from: number; slot: number }>();
-  const [focusHandle, setFocusHandle] = useState<number>();
   // The open goal (EDT-011, one at a time), for this recipe only.
   const [opened, setOpened] = useState<{ key: string; index: number; focus?: boolean }>();
   const open = opened?.key === doc.key ? opened.index : undefined;
@@ -113,60 +246,20 @@ export function RecipeEditor(props: { doc: Doc; onChange: (recipe: Recipe) => vo
     }
   }, [opened]);
 
-  // Keyboard reordering: the moved goal's handle keeps the focus.
-  useEffect(() => {
-    if (focusHandle !== undefined) {
-      list.current?.children[focusHandle]?.querySelector<HTMLButtonElement>("[data-drag-handle]")?.focus();
-      setFocusHandle(undefined);
-    }
-  }, [focusHandle]);
+  const reorder = useReorder<HTMLOListElement>(goals.length, moveGoal);
+  const list = reorder.container;
 
-  /** Drag and drop with the handle (EDT-012): pointer events, so mouse, pen and touch all work. */
-  const startDrag = (from: number, event: PointerEvent) => {
-    event.preventDefault();
-    const handle = event.currentTarget as HTMLElement;
-    handle.setPointerCapture?.(event.pointerId);
-    const midpoints = () =>
-      [...(list.current?.children ?? [])].map((item) => {
-        const r = item.getBoundingClientRect();
-        return r.top + r.height / 2;
-      });
-    setDrag({ from, slot: from });
-    const move = (e: PointerEvent) => {
-      if (e.clientY < 60) {
-        window.scrollBy(0, -16);
-      } else if (e.clientY > window.innerHeight - 60) {
-        window.scrollBy(0, 16);
-      }
-      setDrag({ from, slot: dropSlot(e.clientY, midpoints()) });
-    };
-    const finish = (e: PointerEvent) => {
-      handle.removeEventListener("pointermove", move);
-      handle.removeEventListener("pointerup", finish);
-      handle.removeEventListener("pointercancel", finish);
-      setDrag(undefined);
-      if (e.type === "pointerup") {
-        const to = targetIndex(from, dropSlot(e.clientY, midpoints()));
-        if (to !== from) {
-          moveGoal(from, to);
-        }
-      }
-    };
-    handle.addEventListener("pointermove", move);
-    handle.addEventListener("pointerup", finish);
-    handle.addEventListener("pointercancel", finish);
-  };
-
-  /** Where the drop line goes: none while the goal would stay where it is. */
-  const dropLine = (i: number): "before" | "after" | undefined => {
-    if (!drag || targetIndex(drag.from, drag.slot) === drag.from) {
-      return undefined;
-    }
-    if (drag.slot === i) {
-      return "before";
-    }
-    return drag.slot === goals.length && i === goals.length - 1 ? "after" : undefined;
-  };
+  const problemList = (
+    <ProblemList
+      doc={doc}
+      onGoal={(index) => {
+        setTab("mash");
+        setOpen(index, true);
+      }}
+      onMashing={() => setTab("mashing")}
+      onIngredients={(t) => setTab(t)}
+    />
+  );
 
   return (
     <section class={CARD_STYLE} aria-label="Recipe">
@@ -176,70 +269,94 @@ export function RecipeEditor(props: { doc: Doc; onChange: (recipe: Recipe) => vo
             docKey={doc.key}
             name={doc.recipe.name}
             invalid={has("name")}
+            notes={notesAt(issues, "name")}
             onChange={(name) => setRecipe({ ...doc.recipe, name })}
           />
-          <p class={`${HINT_STYLE} mt-0.5 truncate`} title="Rename the file in the recipe's menu in the list">
-            {doc.id}.json
-          </p>
         </div>
         {props.status}
       </div>
 
 
-      <Tabs label="Recipe sections" tabs={RECIPE_TABS} selected={tab} onSelect={setTab}>
-        <p class={HINT_STYLE}>The goals in brewing order.</p>
-        {goals.length === 0 ? (
-          <p class={`${HINT_STYLE} mt-2`}>No goals yet. Add them below; until then the BrewberryPi app lists this recipe but can't brew it.</p>
+      <Tabs label="Recipe sections" tabs={RECIPE_TABS} selected={tab} onSelect={setTab} badges={badges}>
+        {tab === "overview" ? (
+          <>
+            <OverviewTab recipe={doc.recipe} problems={problems} onChange={setRecipe} />
+            {/* The errors and warnings of the whole recipe: on the Overview tab only (QE-59); the other tabs show
+                theirs at the fields and count them on the tabs (EDT-062, EDT-063). */}
+            {!doc.loadError && (
+              <section class="mt-6" aria-labelledby="status-title" data-status>
+                <h3 id="status-title" class={`${SECTION_TITLE_STYLE} mb-2`}>
+                  Status
+                </h3>
+                <div class="space-y-2">{problemList}</div>
+              </section>
+            )}
+          </>
+        ) : tab === "fermentation" ? (
+          <FermentationTab recipe={doc.recipe} problems={problems} warnings={warnings} onChange={setRecipe} />
+        ) : tab === "water" ? (
+          <WaterTab recipe={doc.recipe} problems={problems} warnings={warnings} onChange={setRecipe} />
+        ) : tab === "malts" || tab === "hops" ? (
+          <IngredientsTab
+            key={tab}
+            kind={tab}
+            recipe={doc.recipe}
+            problems={problems}
+            warnings={warnings}
+            onChange={setRecipe}
+            onTab={setTab}
+          />
+        ) : tab === "mashing" ? (
+          <MashingTab recipe={doc.recipe} problems={problems} warnings={warnings} onChange={setRecipe} />
         ) : (
-          <ol
-            ref={list}
-            class="mt-2 divide-y divide-line rounded-lg ring-1 ring-line dark:divide-white/10 dark:ring-white/10"
-          >
-            {goals.map((goal, i) => (
-              <GoalEditor
-                key={`${doc.key}-${i}`}
-                goal={goal}
-                index={i}
-                count={goals.length}
-                problems={problems}
-                open={open === i}
-                onToggle={() => setOpen(open === i ? undefined : i)}
-                onChange={(g) => setGoals(goals.map((x, j) => (j === i ? g : x)))}
-                onDragStart={(e) => startDrag(i, e)}
-                onMoveKey={(delta) => {
-                  const to = i + delta;
-                  if (to >= 0 && to < goals.length) {
-                    moveGoal(i, to);
-                    setFocusHandle(to);
-                  }
-                }}
-                dragging={drag?.from === i}
-                dropLine={dropLine(i)}
-                onRemove={() => {
-                  setGoals(goals.filter((_, j) => j !== i));
-                  if (open !== undefined && open >= i) {
-                    setOpen(open === i ? undefined : open - 1);
-                  }
+          <>
+            <p class={HINT_STYLE}>The goals in brewing order.</p>
+            {goals.length === 0 && (
+              <p class={`${HINT_STYLE} mt-2`}>No goals yet. Add them below; until then the BrewberryPi app lists this recipe but can't brew it.</p>
+            )}
+            <div class="mt-2 rounded-lg ring-1 ring-line dark:ring-white/10">
+              {goals.length > 0 && (
+                <ol ref={list} class="divide-y divide-line dark:divide-white/10">
+                  {goals.map((goal, i) => (
+                    <GoalEditor
+                      key={`${doc.key}-${i}`}
+                      goal={goal}
+                      index={i}
+                      count={goals.length}
+                      problems={problems}
+                      open={open === i}
+                      onToggle={() => setOpen(open === i ? undefined : i)}
+                      onChange={(g) => setGoals(goals.map((x, j) => (j === i ? g : x)))}
+                      onDragStart={(e) => reorder.startDrag(i, e)}
+                      onMoveKey={(delta) => reorder.moveKey(i, delta)}
+                      dragging={reorder.dragging(i)}
+                      dropLine={reorder.dropLine(i)}
+                      onRemove={() => {
+                        setGoals(goals.filter((_, j) => j !== i));
+                        if (open !== undefined && open >= i) {
+                          setOpen(open === i ? undefined : open - 1);
+                        }
+                      }}
+                    />
+                  ))}
+                </ol>
+              )}
+              <div class={goals.length > 0 ? ADD_ROW_LINE : ""}>
+                <AddRowButton label="Add goal" class={goals.length > 0 ? "rounded-b-lg" : "rounded-lg"} onClick={() => setAdding(true)} />
+              </div>
+            </div>
+            {adding && (
+              <GoalTypeDialog
+                title="Add a goal"
+                onCancel={() => setAdding(false)}
+                onChoose={(type) => {
+                  setAdding(false);
+                  setGoals([...goals, newGoal(type)]);
+                  setOpen(goals.length);
                 }}
               />
-            ))}
-          </ol>
-        )}
-        <div class="mt-3">
-          <button type="button" class={BUTTON_STYLES.secondary} onClick={() => setAdding(true)}>
-            + Add goal
-          </button>
-        </div>
-        {adding && (
-          <GoalTypeDialog
-            title="Add a goal"
-            onCancel={() => setAdding(false)}
-            onChoose={(type) => {
-              setAdding(false);
-              setGoals([...goals, newGoal(type)]);
-              setOpen(goals.length);
-            }}
-          />
+            )}
+          </>
         )}
       </Tabs>
 
@@ -249,7 +366,8 @@ export function RecipeEditor(props: { doc: Doc; onChange: (recipe: Recipe) => vo
             {doc.notice} Download or save it to write the file in the current format.
           </p>
         )}
-        <ProblemList doc={doc} onGoal={(index) => setOpen(index, true)} />
+        {/* A file that could not be read says so on every tab. */}
+        {doc.loadError && problemList}
       </div>
       {props.actions && <div class="mt-4 flex flex-wrap gap-2">{props.actions}</div>}
     </section>

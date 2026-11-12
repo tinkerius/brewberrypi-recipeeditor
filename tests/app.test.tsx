@@ -792,13 +792,10 @@ describe("App, the Mashing tab (QE-32)", () => {
     for (const r of rows) {
       const info = MASH_RESTS[r.dataset.mashRest as MashRestId];
       expect(r.textContent).toContain(info.label);
-      const typical = (f: string) => r.querySelector(`[data-mash-typical=${f}]`)!;
-      expect([typical("temperature").textContent, typical("minutes").textContent]).toEqual([
-        `(${info.tempMin}–${info.tempMax} °C)`,
-        info.duration,
-      ]);
-      expect(typical("temperature").closest("td")!.cellIndex).toBe(1); // beside the name (QE-73)
-      expect(typical("minutes").closest("td")!.cellIndex).toBe(4); // Typical, after min
+      const typical = (f: string) => panel().querySelector(`[data-mash-rest=${r.dataset.mashRest}] [data-mash-typical=${f}], [data-mash-about=${r.dataset.mashRest}] [data-mash-typical=${f}]`);
+      expect(typical("temperature")!.textContent).toBe(`(${info.tempMin}–${info.tempMax} °C)`);
+      expect(typical("temperature")!.closest("td")!.cellIndex).toBe(1); // beside the name (QE-73)
+      expect(typical("minutes")).toBeNull(); // the typical duration is behind the ⓘ (QE-75)
       expect(r.querySelector<HTMLInputElement>("input[type=checkbox]")!.checked).toBe(false);
       expect(r.querySelector("input:not([type=checkbox])")).toBeNull();
       const about = r.querySelector<HTMLButtonElement>("button[aria-expanded]")!;
@@ -807,6 +804,7 @@ describe("App, the Mashing tab (QE-32)", () => {
       expect(about.getAttribute("aria-expanded")).toBe("true");
       const texts = panel().querySelector(`[data-mash-about=${r.dataset.mashRest}]`)!;
       expect(texts.id).toBe(about.getAttribute("aria-controls"));
+      expect(typical("minutes")!.textContent).toBe(info.duration);
       for (const [term, text] of info.about) {
         expect(texts.textContent).toContain(`${term}: ${text}`);
       }
@@ -818,13 +816,12 @@ describe("App, the Mashing tab (QE-32)", () => {
     // The name (short on a phone, long from tablet width on), then its typical range in grey.
     expect((rows[5] as HTMLTableRowElement).cells[1].textContent).toBe("Maltose rest" + "Maltose rest (beta-amylase rest)" + " (60–65 °C)");
     const heads = [...panel().querySelectorAll("thead th")].map((th) => th.textContent);
-    expect(heads).toEqual(["Planned", "Rest", "Temperature", "Duration", "Typical", "About"]);
+    expect(heads).toEqual(["Planned", "Rest", "Temperature", "Duration", "About"]);
     // A ticked rest: its fields in the °C and min columns; the temperature range beside the name, the duration's in
     // its own column after min.
     await tick("MaltoseRest");
     const ticked = row("MaltoseRest") as HTMLTableRowElement;
     expect([ticked.cells[2].querySelector("input"), ticked.cells[3].querySelector("input")].every(Boolean)).toBe(true);
-    expect(ticked.querySelector("[data-mash-typical=minutes]")!.closest("td")!.cellIndex).toBe(4);
     expect(panel().querySelector("[data-goal-line]")).toBeNull();
   });
 
@@ -1084,7 +1081,13 @@ describe("App, the Malt and Hops tabs (QE-34, QE-35)", () => {
 
   it("ACC-067 the Malt and Hops tabs each have a table; rows are added and removed, and an empty list leaves the file", async () => {
     await open();
-    const heads = (kind: string) => [...section(kind).querySelectorAll("thead th")].map((th) => th.textContent);
+    // The heads' texts, without their ⓘ buttons (QE-75).
+    const heads = (kind: string) =>
+      [...section(kind).querySelectorAll("thead tr:first-child th")].map((th) => {
+        const copy = th.cloneNode(true) as HTMLElement;
+        copy.querySelectorAll("[data-info-button]").forEach((b) => b.remove());
+        return copy.textContent;
+      });
     expect(heads("malts")).toEqual(["Move", "Name", "EBC", "Absolute amount (g)", "Relative amount (%)", "Remove"]);
     expect(section("hops")).toBeNull(); // on its own tab
     expect(section("malts").textContent).toContain("No malt yet.");
@@ -1104,15 +1107,12 @@ describe("App, the Malt and Hops tabs (QE-34, QE-35)", () => {
     expect(rows("malts")).toHaveLength(0);
     expect(await download()).not.toContain("ingredients");
     await showTab("hops");
-    // Each with its typical value below the head (EDT-068).
-    expect(heads("hops")).toEqual([
-      "Move",
-      "Name",
-      "α %, typical 2–20",
-      "Additions (cooking time · amount), typical cooking time up to 90 min",
-      "Absolute amount (g)",
-      "Remove",
-    ]);
+    expect(heads("hops")).toEqual(["Move", "Name", "α %", "Additions (cooking time · amount)", "Absolute amount (g)", "Remove"]);
+    // Their typical values behind the heads' ⓘ (QE-75).
+    await act(async () => section("hops").querySelector<HTMLElement>("thead [data-info-button][aria-label='About: Alpha acid (%)']")!.click());
+    expect(section("hops").querySelector("[data-head-info=alpha] [data-info-typical]")!.textContent).toBe("Typical: 2–20 %");
+    await act(async () => section("hops").querySelector<HTMLElement>("thead [data-info-button][aria-label='About: Additions']")!.click());
+    expect(section("hops").querySelector("[data-head-info=additions] [data-info-typical]")!.textContent).toBe("Typical: a cooking time up to 90 min");
     expect(section("hops").textContent).toContain("No hop yet.");
     expect(section("hops").querySelector("tbody tr:last-child [data-add-row]")!.textContent).toBe("+ Add hop");
   });
@@ -1889,8 +1889,16 @@ describe("App, the Water tab (QE-36)", () => {
     expect(recipe().querySelector("[role=tabpanel] h3")!.textContent?.trim()).toBe("Water");
     const labels = [...recipe().querySelectorAll("[data-water-fields] label")].map((l) => l.textContent);
     expect(labels).toEqual(["Mash waterL", "Sparge waterL", "Top-up waterL", "Knockout volume (target)L"]); // the gravity: Fermentation
-    for (const hint of ["strike water", "while lautering", "after lautering, only to dilute to the original gravity", "end of the boil"]) {
-      expect(recipe().textContent).toContain(hint);
+    // The explanations behind each field's ⓘ (QE-75).
+    for (const [row, hint] of [
+      ["water-mash", "strike water"],
+      ["water-sparge", "while lautering"],
+      ["water-top_up", "after lautering, only to dilute to the original gravity"],
+      ["batch-liters", "end of the boil"],
+    ]) {
+      expect(recipe().textContent).not.toContain(hint);
+      await act(async () => recipe().querySelector<HTMLElement>(`[data-field-row=${row}] [data-info-button]`)!.click());
+      expect(recipe().querySelector(`[data-field-info=${row}] [data-info-explanation]`)!.textContent).toContain(hint);
     }
     await type(input("Top-up water"), "2");
     await type(input("Mash water"), "16");
@@ -1916,32 +1924,41 @@ describe("App, the Water tab (QE-36)", () => {
     });
     const total = () => recipe().querySelector("[data-total-water]")!.textContent;
     const thickness = () => recipe().querySelector("[data-mash-thickness]")!.textContent;
-    const hint = () => recipe().querySelector("[data-mash-thickness-hint]")!.textContent;
+    const hint = () => recipe().querySelector("[data-figure-missing=mash-thickness]")?.textContent;
     expect([total(), thickness(), hint()]).toEqual(["–", "–", "Enter the mash water."]);
     await type(input("Sparge water"), "14");
     expect(total()).toBe("14 L");
     await type(input("Mash water"), "16");
     await type(input("Top-up water"), "2.5");
     expect([total(), thickness()]).toEqual(["32.5 L", "3.2 L/kg"]);
-    expect(hint()).toContain("typical 2.5–5 L/kg");
+    expect(hint()).toBeUndefined();
+    // Its typical range behind its ⓘ (QE-75).
+    await act(async () => recipe().querySelector<HTMLElement>("[data-water-figures] [data-info-button][aria-label='About: Mash thickness']")!.click());
+    expect(recipe().querySelector("[data-figure-info=mash-thickness] [data-info-typical]")!.textContent).toContain("2.5–5 L/kg");
     await type(input("Knockout volume"), "20");
     await act(async () => recipe().querySelector<HTMLElement>("#tab-malts")!.click());
     // The Malt tab takes it from here: it only asks for the malts' EBC now.
     expect(recipe().querySelector("[data-figure-hint]")!.textContent).toBe("Enter the EBC of malts 1, 2.");
   });
 
-  /** A water field's typical value (EDT-068); `info` opens its ⓘ and returns what it shows. */
-  const typical = (field: string) => recipe().querySelector(`[data-field-row=water-${field}] [data-typical]`)?.textContent;
+  /** A water field's info (EDT-072): `info` opens its ⓘ and returns what it shows, `typical` its typical value. */
   async function info(field: string): Promise<Element> {
-    await act(async () => recipe().querySelector<HTMLElement>(`[data-field-row=water-${field}] [data-typical-info]`)!.click());
-    return recipe().querySelector(`[data-typical-about=water-${field}]`)!;
+    if (!recipe().querySelector(`[data-field-info=water-${field}]`)) {
+      await act(async () => recipe().querySelector<HTMLElement>(`[data-field-row=water-${field}] [data-info-button]`)!.click());
+    }
+    return recipe().querySelector(`[data-field-info=water-${field}]`)!;
   }
+  const typical = async (field: string) => (await info(field)).querySelector("[data-info-typical]")?.textContent;
 
   it("ACC-096 each water field has its typical value: the mash water by beer style, the sparge water estimated", async () => {
     await open();
-    // A Typical column like the Mashing tab's (QE-60).
-    expect([...recipe().querySelectorAll("[data-water-fields] > span")].map((h) => h.textContent)).toEqual(["", "", "Typical", ""]);
-    expect([typical("mash"), typical("sparge"), typical("top_up")]).toEqual(["Typical: 2.5–5 L/kg of malt", "Typical: –", "Typical: usually 0 L"]);
+    // No Typical column: each field's typical value is behind its ⓘ (QE-75).
+    expect(recipe().querySelector("[data-water-fields]")!.textContent).not.toContain("Typical");
+    expect([await typical("mash"), await typical("sparge"), await typical("top_up")]).toEqual([
+      "Typical: 2.5–5 L/kg of malt",
+      undefined,
+      "Typical: usually 0 L",
+    ]);
     const styles = await info("mash");
     expect([...styles.querySelectorAll("[data-water-styles] tr")].map((tr) => [...(tr as HTMLTableRowElement).cells].map((td) => td.textContent))).toEqual([
       ["Pils, Helles", "4–5 L/kg"],
@@ -1949,7 +1966,7 @@ describe("App, the Water tab (QE-36)", () => {
       ["Märzen, Dunkel, Amber", "3–3.5 L/kg"],
       ["Bock, Stout, strong beers", "2.5–3 L/kg"],
     ]);
-    expect((await info("sparge")).textContent).toBe(
+    expect((await info("sparge")).querySelector("[data-water-estimate]")!.textContent).toBe(
       "For an estimate of the total and the sparge water, enter the knockout volume and the malts on the Malt tab.",
     );
     expect(recipe().querySelector("[data-water-guide]")).toBeNull(); // no separate guide box
@@ -1962,7 +1979,7 @@ describe("App, the Water tab (QE-36)", () => {
       mashing_process: { goals: [] },
       ingredients: { malts: [{ name: "Pilsner malt", grams: 4500 }] },
     });
-    expect(typical("mash")).toBe("Typical: 11.3–22.5 L (2.5–5 L/kg)");
+    expect(await typical("mash")).toBe("Typical: 11.3–22.5 L (2.5–5 L/kg of malt)");
     const styles = await info("mash");
     expect(styles.textContent).toContain("Mash water by beer style (for your 4.5 kg of malt)");
     expect([...styles.querySelectorAll("[data-style-litres]")].map((td) => td.textContent)).toEqual([
@@ -1980,9 +1997,10 @@ describe("App, the Water tab (QE-36)", () => {
     expect(recipe().querySelector("[data-estimate-sparge]")!.textContent).toBe("Sparge water ≈ total − mash water − top-up water (enter the mash water)");
     await type(input("Mash water"), "18");
     await type(input("Top-up water"), "3");
-    expect(typical("sparge")).toBe("Typical: ≈ 10.9 L");
+    expect(await typical("sparge")).toBe("Typical: ≈ 10.9 L (estimate)");
     expect(recipe().querySelector("[data-estimate-sparge]")!.textContent).toBe("Sparge water ≈ total − mash water − top-up water = 10.9 L");
-    expect(recipe().querySelector("[data-total-estimate]")!.textContent).toBe(" (estimate ≈ 31.9 L)");
+    await act(async () => recipe().querySelector<HTMLElement>("[data-water-figures] [data-info-button][aria-label='About: Total water']")!.click());
+    expect(recipe().querySelector("[data-figure-info=total-water] [data-info-typical]")!.textContent).toContain("≈ 31.9 L");
     // At 4 L/kg no warning (typical 2.5–5 L/kg).
     expect(recipe().querySelector("[data-water=mash] [data-field-warning]")).toBeNull();
   });
@@ -2029,7 +2047,6 @@ describe("App, the Water tab (QE-36)", () => {
       "Used",
       "Step",
       "Value",
-      "Typical",
       "Total",
       "Effect",
       "About",
@@ -2053,7 +2070,7 @@ describe("App, the Water tab (QE-36)", () => {
     expect(section().querySelector("[data-treatment=alkalinity] [data-effect-cell] input")).toBe(amount("alkalinity"));
     expect(result()).toBe("10.3 °dH");
     // The target for the beer colour (here 9 EBC), with a warning above it.
-    expect(section().querySelector("[data-treatment=result] [data-typical]")!.textContent).toBe("at most 2 °dH (9 EBC, like Pils)");
+    expect(await about("result")).toContain("Typical: at most 2 °dH (9 EBC, like Pils)");
     expect(section().querySelector("[data-treatment=result] [data-field-warning]")!.textContent).toBe(
       "⚠ A residual alkalinity of 10.3 °dH after treatment is above the typical 2 °dH at most for a beer of 9 EBC.",
     );
@@ -2100,7 +2117,7 @@ describe("App, the Water tab (QE-36)", () => {
     ]);
     expect(effect("result")).toBe("−2.4 °dH");
     expect(section().querySelector("[data-treatment=result] [data-field-warning]")).toBeNull();
-    expect(await about("result")).toContain("Typical at most, by the beer colour of the Malt tab:");
+    expect(await about("result")).toContain("at most 15 °dH"); // the target table
     expect(await download()).toContain(
       '"water": { "mash": 18, "treatment": { "alkalinity": 10.3, "carbonate_hardness": 14, "boil": true, "gypsum": 1, "acid_malt": 1, "lactic_acid": 0.5 } }',
     );
@@ -2133,10 +2150,46 @@ describe("App, the Water tab (QE-36)", () => {
     expect(box.querySelector("[data-unit]")!.textContent).toBe("L");
   });
 
+  it("ACC-102 explanations, typical values and calculations are in the fields' info fields", async () => {
+    await open();
+    const row = () => recipe().querySelector("[data-field-row=water-mash]")!;
+    const button = () => row().querySelector<HTMLElement>("[data-info-button]")!;
+    expect(row().textContent).not.toContain("strike water");
+    expect(row().textContent).not.toContain("2.5–5");
+    expect([button().getAttribute("aria-label"), button().getAttribute("aria-expanded")]).toEqual(["About: Mash water", "false"]);
+    await act(async () => button().click());
+    const info = recipe().querySelector("[data-field-info=water-mash]")!;
+    expect(info.id).toBe(button().getAttribute("aria-controls"));
+    const parts = [...info.querySelectorAll("[data-info-explanation], [data-info-typical], [data-info-calculation]")];
+    expect(parts.map((e) => Object.keys((e as HTMLElement).dataset)[0])).toEqual(["infoExplanation", "infoTypical", "infoCalculation"]);
+    expect(parts[0].textContent).toContain("strike water");
+    expect(parts[1].textContent).toBe("Typical: 2.5–5 L/kg of malt");
+    expect(parts[2].textContent).toContain("Calculation:");
+    expect(parts[2].textContent).toContain("Pils, Helles");
+    await act(async () => button().click());
+    expect(recipe().querySelector("[data-field-info=water-mash]")).toBeNull();
+    // The Water treatment's tap water row.
+    const tap = recipe().querySelector("[data-treatment=alkalinity]")!;
+    await act(async () => tap.querySelector<HTMLElement>("button[aria-label^=About]")!.click());
+    expect(recipe().querySelector("[data-treatment-about=alkalinity] [data-info-explanation]")!.textContent).toBe(
+      "From your water supplier's analysis: the starting value.",
+    );
+    // The Fermentation tab: the attenuation's info, and the CO₂ target's warning beside it, its range only in the ⓘ.
+    await act(async () => recipe().querySelector<HTMLElement>("#tab-fermentation")!.click());
+    await act(async () => recipe().querySelector<HTMLElement>("[data-info-button][aria-label='About: Apparent attenuation']")!.click());
+    const attenuation = recipe().querySelector("[data-figure-info=attenuation]")!;
+    expect(attenuation.querySelector("[data-info-typical]")!.textContent).toBe("Typical: 65–85 %");
+    expect(attenuation.querySelector("[data-info-calculation]")!.textContent).toContain("(OG − FG) ÷ OG");
+    await type(input("CO₂ target"), "8");
+    const co2 = recipe().querySelector("[data-field-row=co2]")!;
+    expect(co2.querySelector("[data-field-warning]")!.textContent).toContain("outside the typical 3.5–7.5 g/L");
+    expect(co2.querySelector("[data-field-info=co2]")).toBeNull();
+  });
+
   it("ACC-079 without malts the mash thickness says where they go", async () => {
     await open();
     await type(input("Mash water"), "16");
-    expect([recipe().querySelector("[data-mash-thickness]")!.textContent, recipe().querySelector("[data-mash-thickness-hint]")!.textContent]).toEqual([
+    expect([recipe().querySelector("[data-mash-thickness]")!.textContent, recipe().querySelector("[data-figure-missing=mash-thickness]")!.textContent]).toEqual([
       "–",
       "Enter the malts on the Malt tab.",
     ]);
@@ -2147,7 +2200,7 @@ describe("App, the Water tab (QE-36)", () => {
     expect([...recipe().querySelectorAll("[role=tabpanel] h3")].map((h) => h.textContent?.trim())).toEqual(["Water", "Water treatment"]);
     await act(async () => recipe().querySelector<HTMLElement>("#tab-fermentation")!.click());
     expect([...recipe().querySelectorAll("[role=tabpanel] h3")].map((h) => h.textContent?.trim())).toEqual(["Gravity", "Yeast", "Carbonation"]);
-    const alcohol = () => [recipe().querySelector("[data-alcohol]")!.textContent, recipe().querySelector("[data-alcohol-hint]")!.textContent];
+    const alcohol = () => [recipe().querySelector("[data-alcohol]")!.textContent, recipe().querySelector("[data-figure-missing=alcohol]")?.textContent];
     expect(alcohol()).toEqual(["–", "Enter the original gravity and the final gravity."]);
     await type(input("Original gravity (target)"), "12");
     await type(input("Final gravity"), "2.5");

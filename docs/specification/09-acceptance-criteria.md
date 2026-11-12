@@ -89,11 +89,11 @@ a release that changes sign-in or Drive behaviour.
   there is no "New from a sample recipe".
 - `ACC-058` (QE-32, QE-73, EDT-030, EDT-031, GUI-032) The Mashing tab has, below the heading "Rests", a table of the 9 rests of `EDT-031` in its
   order, each row with its name followed by its typical range in grey, in brackets ("Maltose rest (beta-amylase rest)
-  (60–65 °C)"; `QE-73`), the typical duration in the Typical column after min, an unticked check box and no fields
-  (for a recipe without `mashing`); the heads are Rest, Temperature, Duration, Typical (and, for screen readers,
-  Planned and About; `QE-74`);
-  a ticked rest shows its fields in the °C and min columns, the typical values staying where they are; and an ⓘ button "About this rest" that expands the rest's texts below the row (one at a time)
-  and collapses them again; the goals are not shown in it.
+  (60–65 °C)"; `QE-73`), an unticked check box and no fields
+  (for a recipe without `mashing`); the heads are Rest, Temperature, Duration (and, for screen readers,
+  Planned and About; `QE-74`, `QE-75`);
+  a ticked rest shows its fields in the °C and min columns, the range staying beside the name; and an ⓘ button "About this rest" that expands the rest's texts below the row (one at a time),
+  starting with its typical duration (`QE-75`), and collapses them again; the goals are not shown in it.
 - `ACC-059` (EDT-032, EDT-034, FMT-006, QE-63) Ticking Mash-out and then Maltose rest plans them with empty fields (a
   pre-mash too), reported as "The Maltose rest needs a temperature." and "The Mash-out needs minutes."; with 78 °C,
   10 min and 63 °C, 50 min entered the recipe is complete, and the written file has `"mashing"` after `"mashing_process"` with
@@ -174,11 +174,11 @@ a release that changes sign-in or Drive behaviour.
   "end", in the hops' greens (their donut colours; a 4th hop's in the muted tone), with tooltips ("…, add at 0 min
   (start), cooks 60 min"); it says "No cooking time yet: hop 4."; without cooking times it asks for them.
 - `ACC-078` (EDT-051, EDT-053, FMT-006) The Water tab has the heading Water and the fields Mash water, Sparge water,
-  Top-up water and Knockout volume (target) (L) with their hints, and no gravity (`ACC-081`); 16, 14 and 2 are written as
+  Top-up water and Knockout volume (target) (L) with their hints in their ⓘ (`QE-75`), and no gravity (`ACC-081`); 16, 14 and 2 are written as
   `"water": { "mash": 16, "sparge": 14, "top_up": 2 }`; −1 is a problem whose entry opens the Water tab; clearing
   all three removes `water`.
 - `ACC-079` (EDT-052, EDT-050) With 5000 g of malt: total water "–", then 14 L, then with 16 L mash and 2.5 L
-  top-up water 32.5 L and a mash thickness of 3.2 L/kg (typical 2.5–5 L/kg); "Enter the mash water." before, and
+  top-up water 32.5 L and a mash thickness of 3.2 L/kg (typical 2.5–5 L/kg in its ⓘ); "Enter the mash water." before, and
   "Enter the malts on the Malt tab." without malts. With a knockout volume of 20 L the Malt tab no longer asks for it.
 - `ACC-080` (EDT-055) At 9 EBC the colour scale has the styles Pils, Pale Ale, Märzen, Dunkel, Stout, the marker
   between Pils and Pale Ale, the label "9 EBC on a scale from 0 to 80 EBC, like Helles, Weissbier" and no line
@@ -255,22 +255,23 @@ a release that changes sign-in or Drive behaviour.
   target of 0 is "CO₂ target: The CO₂ target must be a number above 0 g/L.", 8 g/L a warning at the field; an
   amount of 0 is "Yeast: The yeast's amount must be a number above 0 g.", whose entry opens the Fermentation tab;
   clearing all three removes `fermentation`.
-- `ACC-096` (EDT-067, EDT-068, QE-58, QE-60) The Water tab's fields have a column Typical and no separate guide box:
-  mash water "2.5–5 L/kg of malt", sparge water "–", top-up water "usually 0 L"; the mash water's ⓘ lists Pils, Helles
+- `ACC-096` (EDT-067, EDT-068, QE-58, QE-60, QE-75) The Water tab's fields have no column Typical and no separate
+  guide box; their ⓘ show "Typical: 2.5–5 L/kg of malt" (mash water), none (sparge water), "Typical: usually 0 L"
+  (top-up water); the mash water's ⓘ lists Pils, Helles
   4–5 L/kg; Weizen, Pale Ale, IPA 3.5–4 L/kg; Märzen, Dunkel, Amber 3–3.5 L/kg; Bock, Stout, strong beers 2.5–3 L/kg,
   the sparge water's asks for the knockout volume and the malts. With 4.5 kg of malt the mash water is "11.3–22.5 L
-  (2.5–5 L/kg)" and the ⓘ adds 18–22.5, 15.8–18, 13.5–15.8, 11.3–13.5 L; with 24 L knockout volume the sparge
+  (2.5–5 L/kg of malt)" and the ⓘ adds 18–22.5, 15.8–18, 13.5–15.8, 11.3–13.5 L; with 24 L knockout volume the sparge
   water's ⓘ shows "… ≈ 24 L + 2.4 L (60 min assumed, ~10 %/h) + 4.5 L (~1 L/kg) + 1 L = 31.9 L"; with 18 L mash and
-  3 L top-up water the sparge water is "≈ 10.9 L" and the Total water figure "(estimate ≈ 31.9 L)"; 18 L for 4.5 kg
+  3 L top-up water the sparge water is "≈ 10.9 L (estimate)" and the Total water figure's ⓘ "≈ 31.9 L"; 18 L for 4.5 kg
   (4 L/kg) is no warning; with hop additions of 90 and 10 min and 20 L: "20 L + 3 L (90 min, ~10 %/h) + 4.5 L
-  (~1 L/kg) + 1 L = 28.5 L". The hop table's heads read "α %" over "2–20" and "Additions (cooking time · amount)"
-  over "cooking time up to 90 min".
+  (~1 L/kg) + 1 L = 28.5 L". The hop table's heads read "α %" and "Additions (cooking time · amount)", their ⓘ
+  "Typical: 2–20 %" and "Typical: a cooking time up to 90 min".
 - `ACC-097` (EDT-069, QE-61..QE-64, QE-69, QE-71, FMT-006) With Pilsner malt 4600 g 7 EBC, 18 L mash water and 24 L knockout
-  volume, the Water tab's Water treatment is a table like the Rests table with the heads Step, Value, Typical, Total and
-  Effect (`QE-72`) (and, for screen readers, Used and About) and the result in its foot; it has Residual alkalinity (tap water)
+  volume, the Water tab's Water treatment is a table like the Rests table with the heads Step, Value, Total and
+  Effect (`QE-72`, `QE-75`) (and, for screen readers, Used and About) and the result in its foot; it has Residual alkalinity (tap water)
   and the steps Boil the mash water, Brewing gypsum, Acid malt and Lactic acid 80 %, each with a
   checkbox and, unticked, no field and the effect "–". The tap water's residual alkalinity is entered in the
-  Effect column (`QE-71`). The result is "–", with 10.3 °dH "10.3 °dH", the target "at most 2 °dH (9 EBC, like Pils)" and its warning. Ticked, a step's field is empty: boiling's
+  Effect column (`QE-71`). The result is "–", with 10.3 °dH "10.3 °dH" and its warning, its ⓘ the target "at most 2 °dH (9 EBC, like Pils)". Ticked, a step's field is empty: boiling's
   effect is "–" and its carbonate hardness an error ("⊘ Boiling the mash water needs the tap water's carbonate
   hardness.", `QE-69`), its ⓘ explains boiling, with 14 °dH "−7.9 °dH"; gypsum is
   "⊘ The brewing gypsum needs an amount." until 1 g/10 L gives "−0.9 °dH" (its ⓘ: "Its calcium lowers the residual
@@ -297,6 +298,12 @@ a release that changes sign-in or Drive behaviour.
   removes the row (Total 4600 g).
 - `ACC-101` (EDT-071, QE-74) The Mash water field shows "L" inside its frame (hidden from screen readers, which hear
   the label), its text is empty; typing 16 makes its text "16", the unit staying, with room for it at the right.
+- `ACC-102` (EDT-072, QE-75) The Water tab's Mash water row shows no explanation or typical value beside the field,
+  only its ⓘ "About: Mash water"; pressing it opens below the row, in this order, the explanation (strike water),
+  "Typical: 2.5–5 L/kg of malt" and "Calculation:" with the beer styles, and pressing it again closes it. With 10.3 °dH
+  for the tap water the Water treatment's first row's ⓘ shows "From your water supplier's analysis: the starting
+  value."; the Fermentation tab's Apparent attenuation ⓘ shows "Typical: 65–85 %" and "(OG − FG) ÷ OG"; a CO₂ target
+  of 8 g/L shows its warning beside the field while its typical range is only in its ⓘ.
 
 ## 9.3 Browser drafts
 

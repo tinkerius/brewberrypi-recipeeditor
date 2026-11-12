@@ -9,7 +9,9 @@
 import type { Problem } from "../validate";
 import { TYPICAL, type Warning } from "../warnings";
 import { alcoholOf, fermentationOf, withFermentationField, yeastOf, type Recipe } from "../model";
+import { useState } from "preact/hooks";
 import { FieldGrid, FieldRow } from "./FieldGrid";
+import { FigureRow } from "./info";
 import { NumberField, TextField } from "./fields";
 import { notesAt, notesWhere } from "./notes";
 import { HINT_STYLE, SECTION_TITLE_STYLE } from "./styles";
@@ -18,6 +20,7 @@ import { BatchFieldRow, FIGURES, TERM, VALUE } from "./WaterTab";
 export function FermentationTab(props: { recipe: Recipe; problems: Problem[]; warnings: Warning[]; onChange: (recipe: Recipe) => void }) {
   const alcohol = alcoholOf(props.recipe);
   const issues = { problems: props.problems, warnings: props.warnings };
+  const [figure, setFigure] = useState<string>();
   const invalid = (path: string) => props.problems.some((p) => p.path === path);
   const yeast = yeastOf(props.recipe);
   const set = (field: "name" | "grams" | "co2", value: unknown) => props.onChange(withFermentationField(props.recipe, field, value));
@@ -34,23 +37,48 @@ export function FermentationTab(props: { recipe: Recipe; problems: Problem[]; wa
           <BatchFieldRow field="final_plato" {...props} />
         </FieldGrid>
         <dl class={FIGURES} data-gravity-figures>
-          <dt class={TERM}>Alcohol</dt>
-          <dd>
-            <span data-alcohol class={VALUE}>
-              {"abv" in alcohol ? `${(Math.round(alcohol.abv * 10) / 10).toFixed(1)} % vol` : "–"}
-            </span>{" "}
-            <span class={HINT_STYLE} data-alcohol-hint>
-              {"abv" in alcohol
-                ? "(Balling's formula, from the original and final gravity)"
+          <FigureRow
+            id="alcohol"
+            term="Alcohol"
+            termClass={TERM}
+            value={
+              <span data-alcohol class={VALUE}>
+                {"abv" in alcohol ? `${(Math.round(alcohol.abv * 10) / 10).toFixed(1)} % vol` : "–"}
+              </span>
+            }
+            missing={
+              "abv" in alcohol
+                ? undefined
                 : alcohol.notBelow
                   ? "The final gravity must be below the original gravity."
-                  : `Enter ${alcohol.missing.map((m) => (m === "plato" ? "the original gravity" : "the final gravity")).join(" and ")}.`}
-            </span>
-          </dd>
-          <dt class={TERM}>Apparent attenuation</dt>
-          <dd data-attenuation class={VALUE}>
-            {"abv" in alcohol ? `${Math.round(alcohol.attenuation)} %` : "–"}
-          </dd>
+                  : `Enter ${alcohol.missing.map((m) => (m === "plato" ? "the original gravity" : "the final gravity")).join(" and ")}.`
+            }
+            info={{
+              explanation: "The alcohol by volume, from the original and final gravity.",
+              calculation:
+                "Balling's formula: real extract RE = 0.1808 × OG + 0.8192 × FG; ABW = (OG − RE) ÷ (2.0665 − 0.010665 × OG); " +
+                "ABV = ABW × SG(FG) ÷ 0.7907",
+            }}
+            open={figure === "alcohol"}
+            onToggle={() => setFigure(figure === "alcohol" ? undefined : "alcohol")}
+          />
+          <FigureRow
+            id="attenuation"
+            term="Apparent attenuation"
+            termClass={TERM}
+            value={
+              <span data-attenuation class={VALUE}>
+                {"abv" in alcohol ? `${Math.round(alcohol.attenuation)} %` : "–"}
+              </span>
+            }
+            info={{
+              explanation: "How much of the original gravity the yeast fermented, as the hydrometer shows it.",
+              typical: `${TYPICAL.attenuation.min}–${TYPICAL.attenuation.max} %`,
+              calculation: "(OG − FG) ÷ OG",
+            }}
+            open={figure === "attenuation"}
+            onToggle={() => setFigure(figure === "attenuation" ? undefined : "attenuation")}
+          />
         </dl>
       </section>
       <section class="mt-6" aria-labelledby="yeast-title">
@@ -58,7 +86,7 @@ export function FermentationTab(props: { recipe: Recipe; problems: Problem[]; wa
           Yeast
         </h3>
         <FieldGrid data-yeast-fields>
-          <div class="contents [&_input]:w-48! sm:[&_input]:w-full!" data-yeast-field="name">
+          <div class="contents [&_input]:w-48! sm:[&_input]:w-56!" data-yeast-field="name">
             <FieldRow
               id="yeast-name"
               field={
@@ -71,7 +99,8 @@ export function FermentationTab(props: { recipe: Recipe; problems: Problem[]; wa
                 />
               }
               notes={nameNotes}
-              hint="The yeast strain or product."
+              label="About: Yeast name"
+              info={{ explanation: "The yeast strain or product, e.g. Fermentis WB-06." }}
             />
           </div>
           <div class="contents" data-yeast-field="grams">
@@ -87,7 +116,8 @@ export function FermentationTab(props: { recipe: Recipe; problems: Problem[]; wa
                 />
               }
               notes={notesAt(issues, "fermentation.yeast.grams")}
-              hint="Dry yeast: a packet is often 11.5 g."
+              label="About: Yeast amount"
+              info={{ explanation: "The yeast's amount in grams.", typical: "dry yeast: often one packet of 11.5 g" }}
             />
           </div>
         </FieldGrid>
@@ -110,9 +140,12 @@ export function FermentationTab(props: { recipe: Recipe; problems: Problem[]; wa
                   onChange={(v) => set("co2", v)}
                 />
               }
-              typical={`${TYPICAL.co2.min}–${TYPICAL.co2.max} g/L`}
               notes={notesAt(issues, "fermentation.co2")}
-              hint="Grams of CO₂ per litre of beer (British ales low, wheat beers high)."
+              label="About: CO₂ target"
+              info={{
+                explanation: "The target carbonation: grams of CO₂ per litre of beer.",
+                typical: `${TYPICAL.co2.min}–${TYPICAL.co2.max} g/L (British ales low, wheat beers high)`,
+              }}
             />
           </div>
         </FieldGrid>

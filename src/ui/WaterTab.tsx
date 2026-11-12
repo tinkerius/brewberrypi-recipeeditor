@@ -7,6 +7,7 @@
  */
 
 import type { ComponentChildren } from "preact";
+import { useState } from "preact/hooks";
 import type { Problem } from "../validate";
 import { TYPICAL, type Warning } from "../warnings";
 import { notesAt } from "./notes";
@@ -29,6 +30,7 @@ import {
 } from "../model";
 import { NumberField } from "./fields";
 import { FieldGrid, FieldRow } from "./FieldGrid";
+import { FigureRow, type Info } from "./info";
 import { HINT_STYLE, SECTION_TITLE_STYLE } from "./styles";
 import { WaterTreatment } from "./WaterTreatment";
 
@@ -91,9 +93,9 @@ export function BatchFieldRow(props: {
             onChange={(v) => props.onChange(withBatchField(props.recipe, field, v))}
           />
         }
-        typical={info.typical}
+        label={`About: ${info.label}`}
+        info={{ explanation: info.hint, typical: info.typical }}
         notes={notesAt({ problems: props.problems, warnings: props.warnings }, path)}
-        hint={info.hint}
       />
     </div>
   );
@@ -137,17 +139,21 @@ export function WaterTab(props: { recipe: Recipe; problems: Problem[]; warnings:
   const kg = totalGrams(maltsWithAcidMalt(props.recipe)) / 1000; // the acid malt too (EDT-070)
   const estimate = waterEstimate(props.recipe);
   const { min, max } = TYPICAL.mashThickness;
-  // Each water field's typical value and how it is worked out (EDT-067, EDT-068).
-  const typical: Record<WaterField, { typical: string | undefined; info?: { label: string; content: ComponentChildren } }> = {
+  // One figure's info open at a time.
+  const [figure, setFigure] = useState<string>();
+  // Each water field's info (EDT-067, EDT-072): what it is, its typical value, how that is worked out.
+  const estimateText =
+    "missing" in estimate ? undefined : estimate.sparge === undefined ? undefined : `≈ ${litres(estimate.sparge)} (estimate)`;
+  const infos: Record<WaterField, Info> = {
     mash: {
-      typical: kg > 0 ? `${oneDecimal(min * kg)}–${oneDecimal(max * kg)} L (${min}–${max} L/kg)` : `${min}–${max} L/kg of malt`,
-      info: { label: "Mash water by beer style", content: <StyleTable kg={kg} /> },
+      explanation: WATER_LABELS.mash.hint,
+      typical: kg > 0 ? `${oneDecimal(min * kg)}–${oneDecimal(max * kg)} L (${min}–${max} L/kg of malt)` : `${min}–${max} L/kg of malt`,
+      calculation: <StyleTable kg={kg} />,
     },
     sparge: {
-      typical: "missing" in estimate ? "–" : estimate.sparge === undefined ? "–" : `≈ ${litres(estimate.sparge)}`,
-      info: {
-        label: "How the sparge water is estimated",
-        content:
+      explanation: WATER_LABELS.sparge.hint,
+      typical: estimateText,
+      calculation:
           "missing" in estimate ? (
             <p data-water-estimate>
               For an estimate of the total and the sparge water, enter{" "}
@@ -174,9 +180,8 @@ export function WaterTab(props: { recipe: Recipe; problems: Problem[]; warnings:
               </p>
             </div>
           ),
-      },
     },
-    top_up: { typical: "usually 0 L" },
+    top_up: { explanation: WATER_LABELS.top_up.hint, typical: "usually 0 L" },
   };
   return (
     <section aria-labelledby="water-title">
@@ -198,10 +203,9 @@ export function WaterTab(props: { recipe: Recipe; problems: Problem[]; warnings:
                   onChange={(v) => props.onChange(withWaterField(props.recipe, field, v))}
                 />
               }
-              typical={typical[field].typical}
-              info={typical[field].info}
+              label={`About: ${WATER_LABELS[field].label}`}
+              info={infos[field]}
               notes={notesAt(issues, `water.${field}`)}
-              hint={WATER_LABELS[field].hint}
             />
           </div>
         ))}
@@ -211,29 +215,44 @@ export function WaterTab(props: { recipe: Recipe; problems: Problem[]; warnings:
         </div>
       </FieldGrid>
       <dl class={FIGURES} data-water-figures>
-        <dt class={TERM}>Total water</dt>
-        <dd>
-          <span data-total-water class={VALUE}>
-            {total === undefined ? "–" : litres(total)}
-          </span>
-          {!("missing" in estimate) && (
-            <span class={HINT_STYLE} data-total-estimate>
-              {" "}
-              (estimate ≈ {litres(estimate.total)})
+        <FigureRow
+          id="total-water"
+          term="Total water"
+          termClass={TERM}
+          value={
+            <span data-total-water class={VALUE}>
+              {total === undefined ? "–" : litres(total)}
             </span>
-          )}
-        </dd>
-        <dt class={TERM}>Mash thickness</dt>
-        <dd>
-          <span data-mash-thickness class={VALUE}>
-            {"value" in thickness ? `${oneDecimal(thickness.value)} L/kg` : "–"}
-          </span>{" "}
-          <span class={HINT_STYLE} data-mash-thickness-hint>
-            {"value" in thickness
-              ? `(mash water per kg of malt; typical ${min}–${max} L/kg)`
-              : `Enter ${thickness.missing.map((m) => (m === "mash" ? "the mash water" : "the malts on the Malt tab")).join(" and ")}.`}
-          </span>
-        </dd>
+          }
+          info={{
+            explanation: "The sum of the water volumes entered.",
+            typical: "missing" in estimate ? undefined : `≈ ${litres(estimate.total)} (estimate, see the sparge water's ⓘ)`,
+          }}
+          open={figure === "total-water"}
+          onToggle={() => setFigure(figure === "total-water" ? undefined : "total-water")}
+        />
+        <FigureRow
+          id="mash-thickness"
+          term="Mash thickness"
+          termClass={TERM}
+          value={
+            <span data-mash-thickness class={VALUE}>
+              {"value" in thickness ? `${oneDecimal(thickness.value)} L/kg` : "–"}
+            </span>
+          }
+          missing={
+            "value" in thickness
+              ? undefined
+              : `Enter ${thickness.missing.map((m) => (m === "mash" ? "the mash water" : "the malts on the Malt tab")).join(" and ")}.`
+          }
+          info={{
+            explanation: "The mash water per kg of malt (the acid malt included).",
+            typical: `${min}–${max} L/kg`,
+            calculation: "mash water [L] ÷ total malt [kg]",
+          }}
+          open={figure === "mash-thickness"}
+          onToggle={() => setFigure(figure === "mash-thickness" ? undefined : "mash-thickness")}
+        />
       </dl>
       <WaterTreatment {...props} />
     </section>

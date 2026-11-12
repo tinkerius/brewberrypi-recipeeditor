@@ -30,6 +30,7 @@ import {
 import { NumberField } from "./fields";
 import { FieldNotes, notesAt, notesWhere } from "./notes";
 import { ABOUT, CELL, CHECKBOX, HEAD, InfoToggle, NAME, PLANNED, ROW, TABLE_FRAME, VALUE } from "./restTable";
+import { InfoContent } from "./info";
 import { HINT_STYLE, SECTION_TITLE_STYLE } from "./styles";
 
 /** An effect in the Effect column (QE-62): signed °dH, or "–" while unused or not yet worked out. */
@@ -167,7 +168,7 @@ export function WaterTreatment(props: { recipe: Recipe; problems: Problem[]; war
     open === id && (
       <tr id={`treatment-about-${id}`} data-treatment-about={id} class={planned ? PLANNED : ""}>
         <td />
-        <td colSpan={6} class={`${CELL} pt-0`}>
+        <td colSpan={5} class={`${CELL} pt-0`}>
           <div class={ABOUT}>{content}</div>
         </td>
       </tr>
@@ -198,24 +199,18 @@ export function WaterTreatment(props: { recipe: Recipe; problems: Problem[]; war
               />
             )}
           </td>
-          <td class={CELL}>{name(info, step ? checkbox : undefined)}</td>
-          {/* The tap water's residual alkalinity is entered in the Effect column: it is the starting value (QE-71). */}
-          <td class={`${CELL} w-40 sm:w-48 [&_input]:w-24! sm:[&_input]:w-28!`}>{step && ticked && input(info.field, step !== "boil")}</td>
           <td class={CELL}>
-            <div class={VALUE}>
-              {info.typical && (
-                <span data-typical class="text-[11px] leading-snug text-stone-500 sm:text-xs dark:text-stone-400">
-                  {info.typical}
-                </span>
-              )}
-              <FieldNotes notes={notes} />
-              {missing && (
-                <span class="text-[11px] leading-snug text-stone-500 sm:text-xs dark:text-stone-400" data-effect-missing>
-                  {missing}
-                </span>
-              )}
-            </div>
+            {name(info, step ? checkbox : undefined)}
+            {/* The row's errors and warnings, and what to enter, under its name; the typical value is in the ⓘ (QE-75). */}
+            <FieldNotes notes={notes} class="mt-0.5" />
+            {missing && (
+              <span class="mt-0.5 block text-[11px] leading-snug text-stone-500 sm:text-xs dark:text-stone-400" data-effect-missing>
+                {missing}
+              </span>
+            )}
           </td>
+          {/* The tap water's residual alkalinity is entered in the Effect column: it is the starting value (QE-71). */}
+          <td class={`${CELL} w-40 sm:w-48 [&_input]:w-28! sm:[&_input]:w-28!`}>{step && ticked && input(info.field, step !== "boil")}</td>
           {/* What it comes to for this brew, read-only (QE-66). */}
           <td class={`${CELL} text-right`}>
             <div class={`${VALUE} justify-end text-sm whitespace-nowrap tabular-nums text-stone-700 dark:text-stone-300`} data-total-cell>
@@ -249,10 +244,7 @@ export function WaterTreatment(props: { recipe: Recipe; problems: Problem[]; war
         {aboutRow(
           id,
           Boolean(step && ticked),
-          <>
-            <p data-treatment-hint>{info.about}</p>
-            <Formula recipe={props.recipe} row={id} />
-          </>,
+          <InfoContent info={{ explanation: info.about, typical: info.typical, calculation: <Formula recipe={props.recipe} row={id} /> }} />,
         )}
       </>
     );
@@ -277,7 +269,6 @@ export function WaterTreatment(props: { recipe: Recipe; problems: Problem[]; war
               </th>
               <th class={HEAD}>Step</th>
               <th class={HEAD}>Value</th>
-              <th class={HEAD}>Typical</th>
               <th class={`${HEAD} text-right`}>Total</th>
               <th class={`${HEAD} text-right`}>Effect</th>
               <th class={HEAD}>
@@ -298,20 +289,7 @@ export function WaterTreatment(props: { recipe: Recipe; problems: Problem[]; war
                   <span class="sm:hidden">After treatment</span>
                   <span class="hidden sm:inline">Residual alkalinity after treatment</span>
                 </span>
-              </td>
-              <td class={CELL}>
-                <div class={VALUE}>
-                  <span
-                    data-typical
-                    class={
-                      "text-[11px] leading-snug sm:text-xs " +
-                      (resultNotes.length > 0 ? "font-medium text-amber-700 dark:text-brass-light" : "text-stone-500 dark:text-stone-400")
-                    }
-                  >
-                    {target ? `at most ${target.max} °dH (${target.ebc} EBC, like ${target.beers})` : "–"}
-                  </span>
-                  <FieldNotes notes={resultNotes} />
-                </div>
+                <FieldNotes notes={resultNotes} class="mt-0.5" />
               </td>
               <td class={CELL} />
               <td class={`${CELL} text-right`}>
@@ -324,26 +302,34 @@ export function WaterTreatment(props: { recipe: Recipe; problems: Problem[]; war
             {aboutRow(
               "result",
               false,
-              <>
-                <p data-treatment-hint>
-                  The sum of the effects{effects.result === undefined ? " (enter the tap water's residual alkalinity)" : ""}.
-                </p>
-                <Formula recipe={props.recipe} row="result" />
-                <p class="pt-1">Typical at most, by the beer colour of the Malt tab:</p>
-                <table class="mt-1" data-target-table>
-                  <tbody>
-                    {TARGET_BY_COLOUR.map((b) => (
-                      <tr key={b.max}>
-                        <td class="py-0.5 pr-4">{b.beers}</td>
-                        <td class="py-0.5 pr-4 whitespace-nowrap tabular-nums">
-                          {b.upToEbc === Infinity ? `over ${TARGET_BY_COLOUR[TARGET_BY_COLOUR.length - 2].upToEbc} EBC` : `up to ${b.upToEbc} EBC`}
-                        </td>
-                        <td class="py-0.5 whitespace-nowrap font-semibold tabular-nums">{b.max} °dH</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </>,
+              <InfoContent
+                info={{
+                  explanation: `The residual alkalinity after the ticked steps: the sum of the effects${
+                    effects.result === undefined ? " (enter the tap water's residual alkalinity)" : ""
+                  }.`,
+                  typical: (
+                    <>
+                      <span data-typical>
+                        {target ? `at most ${target.max} °dH (${target.ebc} EBC, like ${target.beers})` : "by the beer colour of the Malt tab"}
+                      </span>
+                      <table class="mt-1" data-target-table>
+                        <tbody>
+                          {TARGET_BY_COLOUR.map((b) => (
+                            <tr key={b.max}>
+                              <td class="py-0.5 pr-4">{b.beers}</td>
+                              <td class="py-0.5 pr-4 whitespace-nowrap tabular-nums">
+                                {b.upToEbc === Infinity ? `over ${TARGET_BY_COLOUR[TARGET_BY_COLOUR.length - 2].upToEbc} EBC` : `up to ${b.upToEbc} EBC`}
+                              </td>
+                              <td class="py-0.5 whitespace-nowrap font-semibold tabular-nums">at most {b.max} °dH</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </>
+                  ),
+                  calculation: <Formula recipe={props.recipe} row="result" />,
+                }}
+              />,
             )}
           </tfoot>
         </table>

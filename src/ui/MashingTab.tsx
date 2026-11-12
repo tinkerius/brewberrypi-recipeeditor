@@ -23,7 +23,7 @@ import {
 } from "../model";
 import { NumberField } from "./fields";
 import { MashLadder } from "./MashLadder";
-import { ABOUT, CELL, HEAD, InfoToggle, TABLE_FRAME, VALUE } from "./restTable";
+import { ABOUT, CELL, HEAD, InfoToggle, TABLE_FRAME } from "./restTable";
 import { SECTION_TITLE_STYLE } from "./styles";
 
 function isObject(value: unknown): value is Record<string, unknown> {
@@ -93,7 +93,8 @@ function RestRows(props: {
             </label>{" "}
             {/* The typical temperature range beside the name, grey (amber while outside it; QE-73). */}
             {typical("temperature", `(${typicalTemperature(id)})`, warn)}
-            <FieldNotes notes={notes("temperature")} class="mt-0.5" />
+            {/* The fields' errors and warnings under the name; the typical duration is in the ⓘ (QE-75). */}
+            <FieldNotes notes={[...notes("temperature"), ...notes("minutes")]} class="mt-0.5" />
           </div>
         </td>
         <td class={`${CELL} w-12 sm:w-20`}>
@@ -120,16 +121,9 @@ function RestRows(props: {
               value={rest.minutes}
               invalid={invalid("minutes")}
               warn={warnMinutes}
-              describedBy={typicalId("minutes")}
               onChange={(v) => props.onChange({ ...rest, minutes: v })}
             />
           )}
-        </td>
-        <td class={CELL}>
-          <div class={VALUE}>
-            {typical("minutes", info.duration, warnMinutes)}
-            <FieldNotes notes={notes("minutes")} />
-          </div>
         </td>
         <td class={`${CELL} w-7 text-right sm:w-10`}>
           <InfoToggle open={props.open} controls={about} label={`About the ${info.short}`} title="About this rest" onClick={props.onToggle} />
@@ -138,8 +132,14 @@ function RestRows(props: {
       {props.open && (
         <tr id={about} data-mash-about={id} class={planned ? "bg-berry-light/10 dark:bg-berry-light/5" : ""}>
           <td />
-          <td colSpan={5} class={`${CELL} pt-0`}>
+          <td colSpan={4} class={`${CELL} pt-0`}>
             <dl class={ABOUT}>
+              <div>
+                <dt class="inline font-semibold">Typical duration:</dt>{" "}
+                <dd class="inline" data-mash-typical="minutes">
+                  {info.duration}
+                </dd>
+              </div>
               {info.about.map(([term, text]) => (
                 <div key={term}>
                   <dt class="inline font-semibold">{term}:</dt> <dd class="inline">{text}</dd>
@@ -185,7 +185,6 @@ export function MashingTab(props: { recipe: Recipe; problems: Problem[]; warning
                 <th class={HEAD}>Rest</th>
                 <th class={HEAD}>Temperature</th>
                 <th class={HEAD}>Duration</th>
-                <th class={HEAD}>Typical</th>
                 <th class={HEAD}>
                   <span class="sr-only">About</span>
                 </th>

@@ -98,11 +98,11 @@ Applies signed out (drafts, §4) and signed in (Drive recipes, §5) alike, unles
   goals (**Mash Process**), and the app does not use it. (Goals made from the plan may follow later.)
 - `EDT-031` Below the heading **Rests**, the tab has a **table** with one row per rest of the table below, each once, in this order. Its columns:
   a check box, the rest's name with its typical temperature range, the planned **Temperature** (°C), the planned
-  **Duration** (min), its **Typical** duration, and an **ⓘ** button. The planned values are fields
+  **Duration** (min), and an **ⓘ** button. The planned values are fields
   in their own columns, so the plan reads at a glance; a ticked row is highlighted, an unticked one has no fields.
   The typical temperature range (the "warning outside" range) follows the rest's name in grey, in brackets, in the
-  table only ("Ferulic acid rest (43–45 °C)", `QE-73`); the typical duration is in its own column after min, so it
-  lines up whether a rest is ticked or not. On a phone the
+  table only ("Ferulic acid rest (43–45 °C)", `QE-73`), with the temperature's and the duration's errors and warnings
+  after it; the typical duration is in the rest's ⓘ, first ("Typical duration: 30–60 min", `QE-75`). On a phone the
   Rest column shows the rest's short name ("Maltose rest"), so all columns fit. The ⓘ
   button ("About this rest") expands what the rest does (enzymes, effect, when useful) below its row, one rest at
   a time; pressing it again collapses it. The texts are the product owner's (2026-11-10), verbatim.
@@ -370,45 +370,47 @@ temperature of their own. The typical durations of `EDT-038` and the flags:
   (the gravity is on the Fermentation tab, `EDT-057`, `QE-56`):
   **Mash water** (strike water, mashed in with the malt), **Sparge water** (rinses the sugar out of the grain while
   lautering) and **Top-up water** (added after lautering, only to dilute to the original gravity), in litres, each a number
-  ≥ 0 with a one-line hint, and the **Knockout volume (target)** (`EDT-050`, `QE-50`, entered only here; the Malt and Boiling tabs use it). A
+  ≥ 0 with its explanation in its ⓘ (`EDT-072`), and the **Knockout volume (target)** (`EDT-050`, `QE-50`, entered only here; the Malt and Boiling tabs use it). A
   field left empty is left out of the file, and `water` too when all three are. A volume below 0 is a problem
   ("Mash water: The mash water must be a number of at least 0 litres."); clicking it opens the Water tab.
 - `EDT-052` Below the fields, computed and never stored: **Total water**, the sum of the volumes entered ("32.5 L",
   "–" while none is), and the **Mash thickness**, the mash water per kg of malt (the Malt tab's total weight), with
-  one decimal ("3.2 L/kg") and the hint "(mash water per kg of malt; typical 2.5–5 L/kg)"; without the mash water or
-  malts it shows "–" and what to enter ("Enter the mash water.", "Enter the malts on the Malt tab.").
-- `EDT-067` The water fields' **typical values** (`QE-58`, `QE-60`; hints only, nothing stored), in the Typical column
-  (`EDT-068`): the **Mash water** 2.5–5 L per kg of malt, with malts on the Malt tab in litres for their weight
-  ("11.3–22.5 L (2.5–5 L/kg)"); its ⓘ shows the mash water by beer style, per kg and in litres ("for your 4.5 kg of
+  one decimal ("3.2 L/kg"), its ⓘ (`EDT-072`) showing "The mash water per kg of malt (the acid malt included).",
+  "Typical: 2.5–5 L/kg" and "mash water [L] ÷ total malt [kg]"; without the mash water or malts it shows "–" and
+  what to enter ("Enter the mash water.", "Enter the malts on the Malt tab.").
+- `EDT-067` The water fields' **typical values** (`QE-58`, `QE-60`; hints only, nothing stored), in their ⓘ
+  (`EDT-072`, `QE-75`): the **Mash water** 2.5–5 L per kg of malt ("2.5–5 L/kg of malt"), with malts on the Malt tab
+  in litres for their weight ("11.3–22.5 L (2.5–5 L/kg of malt)"); its calculation the mash water by beer style, per kg and in litres ("for your 4.5 kg of
   malt"): Pils, Helles 4–5 L/kg; Weizen, Pale Ale, IPA 3.5–4 L/kg; Märzen, Dunkel, Amber 3–3.5 L/kg; Bock, Stout,
   strong beers 2.5–3 L/kg ("light beers are mashed thinner, dark and strong ones thicker"). The **Sparge water** an
-  estimate ("≈ 10.9 L"; "–" until it can be worked out); its ⓘ shows how: **Total water** ≈ knockout volume +
+  estimate ("≈ 10.9 L (estimate)"; none until it can be worked out); its calculation shows how: **Total water** ≈ knockout volume +
   boil-off (10 % of it per hour of the Boil Schedule's boil time, `EDT-054`; 60 min assumed while there is none) +
   grain absorption (1 L per kg of malt) + 1 L of losses, each term shown ("≈ 24 L + 2.4 L (60 min assumed, ~10 %/h)
   + 4.5 L (~1 L/kg) + 1 L = 31.9 L"), and **Sparge water** ≈ total − mash water − top-up water ("= 10.9 L";
   "(enter the mash water)" without it), or what to enter for it (the knockout volume, the malts). The **Top-up
-  water** "usually 0 L". The figure Total water adds the estimate: "21 L (estimate ≈ 31.9 L)".
-- `EDT-068` Every field with a typical range or value shows it the same way (`QE-60`), like the Mashing tab's rests
-  (`EDT-033`): on the Water and Fermentation tabs the fields are rows of label, field with its unit, a column
-  **Typical** and a one-line hint, with the same column widths in every section; the typical value is grey, amber
-  while the value is outside it, with the field's errors and warnings right after it (`EDT-062`) and, where it is
-  worked out, an ⓘ that shows how (`EDT-067`); on a phone "Typical: …" and the hint go below the field. Typical
-  values: original gravity 7–22 °P, final gravity "1–5 °P (attenuation 65–85 %)", CO₂ target 3.5–7.5 g/L, and the
-  water's (`EDT-067`); the knockout volume and the yeast have none. In the hop table the typical value is a second,
-  grey line in the column head: α % "2–20", Additions "cooking time up to 90 min". They are the ranges of `EDT-064`.
+  water** "usually 0 L". The figure Total water's ⓘ has the estimate as its typical value: "≈ 31.9 L (estimate, see
+  the sparge water's ⓘ)".
+- `EDT-068` Every field shows its typical value the same way (`QE-60`, `QE-75`): in its info field (`EDT-072`). On
+  the Water and Fermentation tabs the fields are rows of label, field with its unit, the field's ⓘ and its errors
+  and warnings (`EDT-062`), with the same column widths in every section; on a phone the errors and warnings go
+  below the field. Typical values: original gravity 7–22 °P, final gravity "1–5 °P (attenuation 65–85 %)", CO₂
+  target "3.5–7.5 g/L (British ales low, wheat beers high)", the yeast's amount "dry yeast: often one packet of
+  11.5 g", and the water's (`EDT-067`); the knockout volume and the yeast's name have none. In the hop table the
+  heads α % and Additions have an ⓘ: "2–20 %", "a cooking time up to 90 min". They are the ranges of `EDT-064`.
 - `EDT-053` The names are the English brewing terms: mash water (German Hauptguss), sparge water (Nachguss), top-up
   water (Verdünnungswasser), knockout volume (Ausschlagwürze).
 - `EDT-057` The tab **Fermentation** (`GUI-032`, `QE-56`), after Water, starts with the heading **Gravity**: the
   **Original gravity (target)** and the **Final gravity** (°P, each 0–40, app
-  `RCP-014` `plato` and `final_plato`) with one-line hints, and computed, never stored: the **Alcohol** in % vol by
+  `RCP-014` `plato` and `final_plato`) with their explanations in their ⓘ (`EDT-072`), and computed, never stored: the **Alcohol** in % vol by
   Balling's formula (real extract RE = 0.1808 · OE + 0.8192 · AE, ABW = (OE − RE) / (2.0665 − 0.010665 · OE), ABV
-  = ABW · SG(AE) / 0.7907), one decimal ("5.1 % vol"), and the **Apparent attenuation** ((OE − AE) / OE, "79 %").
+  = ABW · SG(AE) / 0.7907), one decimal ("5.1 % vol"), and the **Apparent attenuation** ((OE − AE) / OE, "79 %"),
+  each with an ⓘ holding its explanation and formula (the attenuation's typical 65–85 %).
   Without both gravities they show "–" and say what to enter; a final gravity not below the original gravity says
   "The final gravity must be below the original gravity.".
 
 - `EDT-066` Below the gravity, on the Fermentation tab (`QE-57`, app `RCP-017`): under **Yeast** its **Name** (text,
   e.g. "Fermentis WB-06") and **Amount** (g, decimals allowed, e.g. 11.5), and under **Carbonation** the **CO₂
-  target** (g of CO₂ per litre of beer, hint "typical 3.5–7.5 g/L"), each with a one-line hint. They are written as
+  target** (g of CO₂ per litre of beer), each with its explanation and typical value in its ⓘ (`EDT-068`). They are written as
   `"fermentation": { "yeast": { "name", "grams" }, "co2" }`; an empty field is left out, the yeast when both of its
   are, and `fermentation` when nothing is left. A yeast amount without a name is an error ("The yeast needs a
   name."), as are an amount or a CO₂ target not above 0; problems read "Yeast" or "CO₂ target" and open the
@@ -453,13 +455,13 @@ temperature of their own. The typical durations of `EDT-038` and the flags:
   box from tablet width on, scrolling sideways inside itself), head row, cells, bold names (short ones on a phone:
   "Tap water RA", "Boil", "Gypsum", "Acid malt", "Lactic acid", "After treatment"), the planned rows' highlight for
   ticked steps and an ⓘ per row that opens its explanation below it, one at a time. Its columns (`QE-72`): the checkbox,
-  **Step**, **Value** (the field and its unit, spelled out, `QE-66`: "°dH carbonate hardness", "g/10 L mash water", "% of total malt", "ml/10 L mash water"), **Typical** (the typical value, the field's errors and warnings right
-  after it, and what to enter while an effect can't be worked out), **Total** (read-only, `QE-66`: what the
+  **Step**, **Value** (the field and its unit, spelled out, `QE-66`: "°dH carbonate hardness", "g/10 L mash water", "% of total malt", "ml/10 L mash water"), **Total** (read-only, `QE-66`: what the
   step comes to for this brew — gypsum and lactic acid for the mash water, e.g. "1.8 g" and "0.9 ml" for 18 L; the
-  acid malt in whole grams, "46 g"; "–" while it can't be worked out, nothing for boiling), **Effect** and the ⓘ. Its rows (inputs left
+  acid malt in whole grams, "46 g"; "–" while it can't be worked out, nothing for boiling), **Effect** and the ⓘ; the step's errors and warnings, and what to enter while its effect can't be worked out,
+  follow its name (`QE-75`), and its typical value is in its ⓘ (`EDT-072`). Its rows (inputs left
   empty are left out of the file, `treatment` when it holds nothing, and `water` when that is empty):
   **Residual alkalinity (tap water)** (°dH, any number, entered **right in the Effect column** as the starting
-  value, its Value column empty, `QE-71`; "From the water analysis."), then the **steps**, each ticked
+  value, its Value column empty, `QE-71`; its ⓘ: "From your water supplier's analysis: the starting value."), then the **steps**, each ticked
   to use it like a mashing rest (`QE-63`; a checkbox before its name, "Tick the steps you use."): **Boil the mash
   water** (`QE-69`; ticked: `boil: true` and, in its row, the tap water's **carbonate hardness** in °dH ≥ 0, "°dH
   carbonate hardness", then mandatory, app `Q-47`),
@@ -471,7 +473,7 @@ temperature of their own. The typical durations of `EDT-038` and the flags:
   Unticked, a step has no field and no effect, and leaves the file (boiling with the carbonate hardness). The column
   **Effect** (`QE-62`) holds the tap water's residual alkalinity as the starting value (its field, `QE-71`) and each step's
   effect on it, signed ("−0.9 °dH"; "–" while unused or not worked out, "Enter the carbonate hardness." then under
-  Typical); each row's ⓘ says what the step does and shows how its value is worked out (`QE-65`): its formula and, once
+  its name); each row's ⓘ says what the step does and shows how its value is worked out (`QE-65`): its formula and, once
   it can be worked out, the same formula with the recipe's numbers and the result, rounded as shown (tap water
   "starting value 10.3 °dH"; boiling "ΔRA = −(14 − 3) × 0.714 = −7.9 °dH"; gypsum "ΔRA = −1 × 0.93 = −0.9 °dH";
   acid malt "ΔRA = −9.34 × 4.65 × 1 ÷ 18 = −2.4 °dH", i.e. −9.34 × total malt [kg] × acid malt [%] ÷ mash water [L];
@@ -486,8 +488,10 @@ temperature of their own. The typical durations of `EDT-038` and the flags:
     to enter);
   - lactic acid 80 % (1.2 g/ml): −2.99 °dH per ml/10 L.
   The table's foot line, **Residual alkalinity after treatment**, is the Effect column's total, bold below a line:
-  the tap water's plus every effect worked out ("−2.4 °dH", "–" without the tap water's), with its typical target by the beer colour of the Malt tab (`EDT-048`; "at most
-  2 °dH (9 EBC, like Pils)", "–" without a colour; its ⓘ shows the table) and a warning above it (`EDT-064`):
+  the tap water's plus every effect worked out ("−2.4 °dH", "–" without the tap water's), with a warning above its
+  typical target (`EDT-064`) under its name; its ⓘ explains it ("The residual alkalinity after the ticked steps: the
+  sum of the effects."), has the target by the beer colour of the Malt tab as its typical value (`EDT-048`; "at most
+  2 °dH (9 EBC, like Pils)", "–" without a colour), the table, and the formula:
 
 | Beer colour | Like | Residual alkalinity at most |
 |---|---|---|
@@ -520,3 +524,16 @@ temperature of their own. The typical durations of `EDT-038` and the flags:
   number never runs under it. Where a unit needs more words, they follow the field in small type ("mash water", "of
   total malt", "carbonate hardness"; `EDT-069`). Column heads name the value, not the unit, where the unit is in the
   fields (the Rests table's Temperature and Duration, `EDT-031`).
+
+## 3.14 Info fields (`QE-75`)
+
+- `EDT-072` What belongs to a field or a computed figure besides its value — **what it is** (its explanation, e.g.
+  "From your water supplier's analysis: the starting value."), its **typical value or range**, and **how it is worked
+  out** (a formula, a table) — is not shown beside it but in its **info field**: an ⓘ button right after the field
+  (or figure, or column head) opens it below, and pressing it again closes it. The info field shows, each only where
+  there is one and always in this order, the explanation, "Typical: …" and "Calculation:" with the formula or table.
+  Only the field's errors and warnings (`EDT-062`) and, while a figure can't be worked out, what to enter for it stay
+  visible next to it; on the Mashing tab the rests' typical temperature ranges also stay beside their names
+  (`EDT-031`). This holds on every tab: the Water and Fermentation fields and figures (`EDT-051`, `EDT-052`,
+  `EDT-057`, `EDT-066`, `EDT-067`), the Water treatment's rows and result (`EDT-069`), the rests (their typical
+  duration, `EDT-031`), and the Malt and hop tables' heads EBC, α % and Additions (`EDT-042`, `EDT-068`).

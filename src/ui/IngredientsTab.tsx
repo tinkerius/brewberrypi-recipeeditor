@@ -10,6 +10,7 @@ import { useEffect, useState } from "preact/hooks";
 import type { Problem } from "../validate";
 import { TYPICAL, type Warning } from "../warnings";
 import { FieldNotes, hasWarning, notesAt, notesWhere, type Issues } from "./notes";
+import { INFO_PANEL, InfoButton, InfoContent, type Info } from "./info";
 import { balanceOf, beerColourHex, buGu } from "../brewMath";
 import {
   INGREDIENT_EXTRA_FIELDS,
@@ -85,8 +86,8 @@ type Column = {
   label: string;
   integer: boolean;
   width: string;
-  /** The typical value, a second line in the column head (EDT-068, QE-60): the range outside which it warns. */
-  typical?: string;
+  /** The column's info behind an ⓘ in its head (EDT-072, QE-75): what it is and its typical value. */
+  info?: Info;
 };
 /** The unit inside a column's fields (QE-74). */
 const COLUMN_UNITS: Partial<Record<Column["field"], string>> = { ebc: "EBC", grams: "g", alpha: "%" };
@@ -94,7 +95,14 @@ const COLUMN_UNITS: Partial<Record<Column["field"], string>> = { ebc: "EBC", gra
 /** In this order after the name (EDT-042, QE-40): the absolute amount last, just before the relative one. */
 const COLUMNS: Record<IngredientKind, Column[]> = {
   malts: [
-    { field: "ebc", head: "EBC", label: "Colour (EBC)", integer: false, width: "w-32 sm:w-36" },
+    {
+      field: "ebc",
+      head: "EBC",
+      label: "Colour (EBC)",
+      integer: false,
+      width: "w-32 sm:w-36",
+      info: { explanation: "The malt's colour in EBC, from its datasheet (used for the beer colour); the swatch shows it." },
+    },
     { field: "grams", head: "Absolute amount (g)", label: "Absolute amount (g)", integer: true, width: "w-24 sm:w-28" },
   ],
   hops: [
@@ -104,7 +112,10 @@ const COLUMNS: Record<IngredientKind, Column[]> = {
       label: "Alpha acid (%)",
       integer: false,
       width: "w-20 sm:w-24",
-      typical: `${TYPICAL.alpha.min}–${TYPICAL.alpha.max}`,
+      info: {
+        explanation: "The hop's alpha acid in % (from its packet), which makes the bitterness.",
+        typical: `${TYPICAL.alpha.min}–${TYPICAL.alpha.max} %`,
+      },
     },
     {
       field: "additions",
@@ -112,7 +123,10 @@ const COLUMNS: Record<IngredientKind, Column[]> = {
       label: "Additions",
       integer: true,
       width: "w-52 sm:w-64",
-      typical: `cooking time up to ${TYPICAL.hopMinutes.max} min`,
+      info: {
+        explanation: "Each time the hop goes into the boil: how long it cooks (min) and how much (g).",
+        typical: `a cooking time up to ${TYPICAL.hopMinutes.max} min`,
+      },
     },
     { field: "total", head: "Absolute amount (g)", label: "Absolute amount (g)", integer: true, width: "w-14 sm:w-24" },
   ],
@@ -727,6 +741,9 @@ function IngredientTable(props: {
   const shares = HAS_SHARES[kind];
   // The malts' total includes the water treatment's acid malt (EDT-070).
   const total = totalGrams(kind === "malts" ? maltsWithAcidMalt(props.recipe) : ingredientsOf(props.recipe, kind));
+  // One column's info open at a time, in a line below the heads (QE-75).
+  const [headInfo, setHeadInfo] = useState<Column["field"]>();
+  const openColumn = columns.find((c) => c.field === headInfo);
   return (
     <div class="relative overflow-x-auto rounded-lg ring-1 ring-line dark:ring-white/10" data-ingredients={kind}>
       <table aria-label={INGREDIENT_LABELS[kind].title} class="w-full border-collapse text-sm">
@@ -737,19 +754,19 @@ function IngredientTable(props: {
             </th>
             <th class={`${HEAD} text-left`}>Name</th>
             {columns.map((c) => (
-              <th
-                key={c.field}
-                class={`${HEAD} ${c.width} text-right ${c.head.length < 6 ? "whitespace-nowrap" : ""}`}
-                title={c.typical ? `${c.label}; typical ${c.typical}` : c.label}
-              >
-                {c.head}
-                {/* The typical value below the head (EDT-068), like the Mashing tab's Typical column. */}
-                {c.typical && (
-                  <span class="block text-[10px] font-normal text-stone-500 sm:text-[11px] dark:text-stone-400" data-head-typical>
-                    <span class="sr-only">, typical </span>
-                    {c.typical}
-                  </span>
-                )}
+              <th key={c.field} class={`${HEAD} ${c.width} text-right ${c.head.length < 6 ? "whitespace-nowrap" : ""}`} title={c.label}>
+                <span class="inline-flex items-center justify-end gap-1.5">
+                  {c.head}
+                  {/* What the column is and its typical value, behind an ⓘ (QE-75). */}
+                  {c.info && (
+                    <InfoButton
+                      open={headInfo === c.field}
+                      label={`About: ${c.label}`}
+                      controls={`head-info-${kind}`}
+                      onClick={() => setHeadInfo(headInfo === c.field ? undefined : c.field)}
+                    />
+                  )}
+                </span>
               </th>
             ))}
             {shares && <th class={`${HEAD} w-14 text-right sm:w-24`}>Relative amount (%)</th>}
@@ -757,6 +774,16 @@ function IngredientTable(props: {
               <span class="sr-only">Remove</span>
             </th>
           </tr>
+          {openColumn?.info && (
+            <tr>
+              <td colSpan={columns.length + (shares ? 4 : 3)} class="px-2 pb-2 text-left font-normal sm:px-3">
+                <div id={`head-info-${kind}`} class={INFO_PANEL} data-head-info={openColumn.field}>
+                  <p class="font-semibold">{openColumn.label}</p>
+                  <InfoContent info={openColumn.info} />
+                </div>
+              </td>
+            </tr>
+          )}
         </thead>
         <IngredientGroup
           kind={kind}

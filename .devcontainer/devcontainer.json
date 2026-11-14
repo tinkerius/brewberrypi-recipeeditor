@@ -1,0 +1,33 @@
+// Development container for VS Code (Dev Containers) and GitHub Codespaces: Node 22 as in CI
+// (.github/workflows/ci.yml), and Claude Code. npm and the dependencies' install scripts run in the container, not on
+// the host.
+{
+  "name": "BrewberryPi Recipe Editor",
+  "image": "mcr.microsoft.com/devcontainers/javascript-node:1-22",
+  "features": {
+    // The claude command in the terminal; the VS Code extension is below.
+    "ghcr.io/anthropics/devcontainer-features/claude-code:1": {}
+  },
+  // Claude Code's sign-in and settings live in a volume of their own, so they survive a rebuild of the container.
+  // A new volume belongs to root: hand it to the node user first.
+  "mounts": ["source=brewberrypi-recipeeditor-claude-${devcontainerId},target=/home/node/.claude,type=volume"],
+  "containerEnv": { "CLAUDE_CONFIG_DIR": "/home/node/.claude" },
+  "postCreateCommand": "sudo mkdir -p /home/node/.claude && sudo chown node:node /home/node/.claude && npm ci",
+  // The Google OAuth client allows only the origin http://localhost:5173 (docs/google-setup.md): forward the dev
+  // server and the preview (vite.config.ts) to exactly that local port, not to another one if it is taken.
+  "forwardPorts": [5173],
+  "portsAttributes": {
+    "5173": { "label": "Recipe editor", "requireLocalPort": true, "onAutoForward": "notify" }
+  },
+  // Codespaces asks for these when a codespace is created (README, Development). Locally, use .env.local.
+  "secrets": {
+    "VITE_GOOGLE_CLIENT_ID": { "description": "Google OAuth client ID (docs/google-setup.md §3)" },
+    "VITE_GOOGLE_API_KEY": { "description": "Google API key for the Picker (docs/google-setup.md §4)" },
+    "VITE_GOOGLE_APP_ID": { "description": "Google Cloud project number (docs/google-setup.md §5)" }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": ["anthropic.claude-code", "bradlc.vscode-tailwindcss", "vitest.explorer"]
+    }
+  }
+}

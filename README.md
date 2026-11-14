@@ -62,10 +62,15 @@ within seconds.
 | `scripts/sync-upstream.sh` | Copies those files again; `--check` (CI) fails if they differ |
 | `tests/` | Vitest, each test named after the acceptance criterion it checks (`ACC-nnn ...`): validator (checked against Ajv and the schema), stores (fake IndexedDB, fake Drive), sync, components; `spec.test.ts` fails when an automated criterion has no test |
 | `docs/google-setup.md` | One-time setup: Google Cloud, domain, DNS, GitHub Pages, repository variables |
+| `.devcontainer/` | Development container (Node 22, Claude Code) for VS Code and GitHub Codespaces |
 
 ## Development
 
-Node 22.
+Node 22, either installed on your machine or in the development container: in VS Code, *Dev Containers: Reopen in
+Container* (needs Docker), or create a GitHub codespace. The container runs `npm ci` itself, has Claude Code (the
+`claude` command and the VS Code extension; sign in once; locally the sign-in survives a rebuild of the container), and forwards the dev
+server to `http://localhost:5173`. Only this repository is in the container: run `scripts/sync-upstream.sh` on the
+host, or clone brewberrypi-app and brewberrypi inside.
 
 ```bash
 npm ci

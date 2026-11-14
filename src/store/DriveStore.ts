@@ -6,6 +6,7 @@
  * Picker (picker.ts). The folders carry appProperties so they are found again even if the user renames them.
  */
 
+import { randomHex } from "../doc";
 import { idFromFileName, serializeRecipe, type Recipe } from "../model";
 import type { TokenSource } from "../auth/google";
 import { isRelevantChange, type DriveChange } from "../driveSync";
@@ -61,7 +62,7 @@ function toDriveFile(file: ApiFile): DriveFile {
 }
 
 function multipart(metadata: object, content: string): { body: string; contentType: string } {
-  const boundary = `brewberrypi-${crypto.randomUUID()}`;
+  const boundary = `brewberrypi-${randomHex()}`;
   const body =
     `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(metadata)}\r\n` +
     `--${boundary}\r\nContent-Type: application/json\r\n\r\n${content}\r\n--${boundary}--`;

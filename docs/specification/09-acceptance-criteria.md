@@ -88,7 +88,7 @@ a release that changes sign-in or Drive behaviour.
 - `ACC-019` (GUI-020) The list is titled "My Recipes"; "New recipe" and "Upload recipe" come after the recipes;
   there is no "New from a sample recipe".
 - `ACC-058` (QE-32, QE-73, EDT-030, EDT-031, GUI-032) The Mashing tab has, below the heading "Rests", a table of the mash-in (`ACC-103`) and then the 9 rests of `EDT-031` in its
-  order, each row with its name followed by its typical range in grey, in brackets ("Maltose rest (beta-amylase rest)
+  order, the iodine test (`ACC-104`) before the Mash-out, each row with its name followed by its typical range in grey, in brackets ("Maltose rest (beta-amylase rest)
   (60–65 °C)"; `QE-73`), an unticked check box and no fields
   (for a recipe without `mashing`); the heads are Rest, Temperature, Duration (and, for screen readers,
   Planned and About; `QE-74`, `QE-75`);
@@ -316,6 +316,11 @@ a release that changes sign-in or Drive behaviour.
   typical range" and its field is marked amber, the recipe staying complete; at 65 °C it warns "⚠ Maltose rest at 63 °C is lower than the mash-in
   (65 °C): the steps should rise.", the recipe stays complete, and the file has `"MashIn": { "temperature": 65 }`
   first in `mashing`.
+- `ACC-104` (EDT-031, FMT-006, QE-79, app Q-49) The Rests table has the row "Iodine test" between the
+  Saccharification rest and the Mash-out, unticked, with an ⓘ showing "When: …", "How: …" and "Result: …". With
+  the mash-in at 38 °C, the Saccharification rest at 72 °C for 30 min and the Mash-out at 78 °C for 5 min, ticking
+  it shows no fields, leaves the total mash time unchanged, the recipe stays complete, and the file has
+  `"IodineTest": {}` on its own line between `SaccharificationRest` and `MashOut`; unticking it removes it.
 - `ACC-020` (BRW-001) A draft stored, then the store opened again (a reload), gives the same draft; it can be
   deleted.
 - `ACC-021` (BRW-002, BRW-003) The banner says "only stored in this browser and can be lost" when the storage works

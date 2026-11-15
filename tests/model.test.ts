@@ -12,6 +12,7 @@ import {
   readRecipe,
   serializeRecipe,
   toRecipe,
+  withIodineTest,
   withMashIn,
   withMashRest,
   GOAL_TYPES,
@@ -238,6 +239,15 @@ describe("mashing plan (QE-32)", () => {
     const none = withMashIn(withMashRest(withMashRest(planned, "MaltoseRest", undefined), "MashOut", undefined), undefined);
     expect("mashing" in none).toBe(false);
     expect(none).toEqual(empty);
+  });
+
+  it("ACC-104 plans the iodine test as {} before the Mash-out and drops it again", () => {
+    const base = withMashIn(withMashRest({ ...emptyRecipe(), name: "P" }, "MashOut", { temperature: 78, minutes: 5 }), 38);
+    const planned = withIodineTest(base, true);
+    expect(Object.keys(planned.mashing as object)).toEqual(["MashIn", "IodineTest", "MashOut"]);
+    expect(validateRecipe(planned)).toEqual([]);
+    expect(withIodineTest(planned, false)).toEqual(base);
+    expect("mashing" in withIodineTest(withIodineTest({ ...emptyRecipe(), name: "P" }, true), false)).toBe(false);
   });
 
   it("ACC-059 presets every rest inside its typical range", () => {

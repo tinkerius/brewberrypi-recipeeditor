@@ -10,7 +10,7 @@
 
 import type { ComponentChildren } from "preact";
 import { useState } from "preact/hooks";
-import { MASH_BAND_IDS, MASH_IN, MASH_RESTS, MASH_TEMPERATURE_LIMIT, bandInfo, type MashBandId } from "../mashRests";
+import { IODINE_TEST, MASH_BAND_IDS, MASH_IN, MASH_RESTS, MASH_TEMPERATURE_LIMIT, bandInfo, type MashBandId } from "../mashRests";
 import { mashInTemperature } from "../model";
 import {
   DEFAULT_HEATING_RATE,
@@ -59,7 +59,7 @@ export function MashLadder(props: { plan: Record<string, unknown>; selected?: Ma
   const rate = typeof rateValue === "number" && rateValue > 0 ? rateValue : DEFAULT_HEATING_RATE;
   const steps = stepsOf(props.plan);
   // Ticked rests without both values yet (no presets, QE-63): the chart asks for them.
-  const ticked = Object.keys(props.plan).some((id) => id !== MASH_IN);
+  const ticked = Object.keys(props.plan).some((id) => id !== MASH_IN && id !== IODINE_TEST);
   // The schedule starts at the mash-in temperature (EDT-039, QE-77), else at the first step's.
   const mashIn = mashInTemperature(props.plan);
   const profile = mashProfile(steps, rate, mashIn);

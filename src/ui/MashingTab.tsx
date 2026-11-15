@@ -8,9 +8,12 @@
 
 import type { Warning } from "../warnings";
 import { FieldNotes, hasWarning, notesAt } from "./notes";
+import { Fragment } from "preact";
 import { useRef, useState } from "preact/hooks";
 import type { Problem } from "../validate";
 import {
+  IODINE_TEST,
+  IODINE_TEST_INFO,
   MASH_IN,
   MASH_IN_INFO,
   MASH_REST_IDS,
@@ -18,6 +21,7 @@ import {
   mashingOf,
   newMashRest,
   typicalTemperature,
+  withIodineTest,
   withMashIn,
   withMashRest,
   type MashRest,
@@ -113,6 +117,45 @@ function MashInRows(props: {
         </td>
       </tr>
       {props.open && <AboutRow id={about} rest={MASH_IN} planned items={MASH_IN_INFO.about} />}
+    </>
+  );
+}
+
+/** The iodine test's row (EDT-031, QE-79): a check box and its name, no fields; a marker in the plan. */
+function IodineTestRows(props: { planned: boolean; problems: Problem[]; open: boolean; onToggle: () => void; onChange: (planned: boolean) => void }) {
+  const checkbox = `mash-${IODINE_TEST}`;
+  const about = `mash-about-${IODINE_TEST}`;
+  const notes = notesAt({ problems: props.problems, warnings: [] }, `mashing.${IODINE_TEST}`);
+  return (
+    <>
+      <tr
+        data-mash-rest={IODINE_TEST}
+        class={"border-t border-line first:border-t-0 dark:border-white/10 " + (props.planned ? "bg-berry-light/10 dark:bg-berry-light/5" : "")}
+      >
+        <td class={`${CELL} w-5 sm:w-8`}>
+          <input
+            id={checkbox}
+            type="checkbox"
+            class="mt-2 size-4 accent-berry"
+            checked={props.planned}
+            onChange={(e) => props.onChange(e.currentTarget.checked)}
+          />
+        </td>
+        <td class={CELL}>
+          <div class="pt-1.5 text-[13px] leading-snug sm:text-sm sm:leading-normal">
+            <label for={checkbox} class="cursor-pointer font-semibold text-ink dark:text-ink-light">
+              {IODINE_TEST_INFO.label}
+            </label>
+            <FieldNotes notes={notes} class="mt-0.5" />
+          </div>
+        </td>
+        <td class={`${CELL} w-12 sm:w-20`} />
+        <td class={`${CELL} w-12 sm:w-20`} />
+        <td class={`${CELL} w-7 text-right sm:w-10`}>
+          <InfoToggle open={props.open} controls={about} label="About the iodine test" title="About the iodine test" onClick={props.onToggle} />
+        </td>
+      </tr>
+      {props.open && <AboutRow id={about} rest={IODINE_TEST} planned={props.planned} items={IODINE_TEST_INFO.about} />}
     </>
   );
 }
@@ -222,7 +265,7 @@ function RestRows(props: {
 
 export function MashingTab(props: { recipe: Recipe; problems: Problem[]; warnings: Warning[]; onChange: (recipe: Recipe) => void }) {
   const plan = mashingOf(props.recipe);
-  const [open, setOpen] = useState<MashRestId | typeof MASH_IN>();
+  const [open, setOpen] = useState<MashRestId | typeof MASH_IN | typeof IODINE_TEST>();
   const mashIn = plan[MASH_IN];
   const table = useRef<HTMLTableElement>(null);
   /** From the ladder: the rest's details open in the table, and its row comes into view (EDT-037). */
@@ -236,7 +279,7 @@ export function MashingTab(props: { recipe: Recipe; problems: Problem[]; warning
         <h3 id="mash-ladder-title" class={`${SECTION_TITLE_STYLE} mb-2`}>
           Temperature Ladder
         </h3>
-        <MashLadder plan={plan} selected={open === MASH_IN ? undefined : open} onSelect={showRest} />
+        <MashLadder plan={plan} selected={open === IODINE_TEST ? undefined : open} onSelect={showRest} />
       </section>
       <section class="mt-6" aria-labelledby="mash-rests-title">
         <h3 id="mash-rests-title" class={`${SECTION_TITLE_STYLE} mb-2`}>
@@ -270,16 +313,27 @@ export function MashingTab(props: { recipe: Recipe; problems: Problem[]; warning
               {MASH_REST_IDS.map((id) => {
                 const rest = plan[id];
                 return (
-                  <RestRows
-                    key={id}
-                    id={id}
-                    rest={rest === undefined ? undefined : isObject(rest) ? (rest as MashRest) : {}}
-                    problems={props.problems}
-                    warnings={props.warnings}
-                    open={open === id}
-                    onToggle={() => setOpen(open === id ? undefined : id)}
-                    onChange={(next) => props.onChange(withMashRest(props.recipe, id, next))}
-                  />
+                  <Fragment key={id}>
+                    {/* The iodine test right before the mash-out (QE-79). */}
+                    {id === "MashOut" && (
+                      <IodineTestRows
+                        planned={IODINE_TEST in plan}
+                        problems={props.problems}
+                        open={open === IODINE_TEST}
+                        onToggle={() => setOpen(open === IODINE_TEST ? undefined : IODINE_TEST)}
+                        onChange={(planned) => props.onChange(withIodineTest(props.recipe, planned))}
+                      />
+                    )}
+                    <RestRows
+                      id={id}
+                      rest={rest === undefined ? undefined : isObject(rest) ? (rest as MashRest) : {}}
+                      problems={props.problems}
+                      warnings={props.warnings}
+                      open={open === id}
+                      onToggle={() => setOpen(open === id ? undefined : id)}
+                      onChange={(next) => props.onChange(withMashRest(props.recipe, id, next))}
+                    />
+                  </Fragment>
                 );
               })}
             </tbody>

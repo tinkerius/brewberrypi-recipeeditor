@@ -49,6 +49,11 @@ const CASES: [string, unknown][] = [
   ["mash-in with minutes", { ...valid, mashing: { MashIn: { temperature: 57, minutes: 10 } } }],
   ["mash-in above 110", { ...valid, mashing: { MashIn: { temperature: 111 } } }],
   ["mash-in temperature as string", { ...valid, mashing: { MashIn: { temperature: "57" } } }],
+  // The iodine test, a marker (app Q-49, QE-79)
+  ["iodine test", { ...valid, mashing: { MashIn: { temperature: 38 }, SaccharificationRest: { temperature: 72, minutes: 30 }, IodineTest: {} } }],
+  ["iodine test with minutes", { ...valid, mashing: { MashIn: { temperature: 38 }, IodineTest: { minutes: 10 } } }],
+  ["iodine test not an object", { ...valid, mashing: { MashIn: { temperature: 38 }, IodineTest: true } }],
+  ["iodine test without the mash-in", { ...valid, mashing: { IodineTest: {} } }],
   ["with $schema", { $schema: "../recipe.schema.json", ...valid }],
   ["all goal types", r([
     { type: "PourInBrewingWater" },

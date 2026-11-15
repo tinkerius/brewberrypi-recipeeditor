@@ -10,6 +10,7 @@ import {
   INGREDIENT_EXTRA_FIELDS,
   INGREDIENT_KINDS,
   INGREDIENT_LABELS,
+  IODINE_TEST,
   MASH_IN,
   MASH_RESTS,
   isGoalType,
@@ -117,7 +118,7 @@ function checkGoal(goal: unknown, index: number, problems: Problem[]) {
 
 /**
  * The mashing plan (app RCP-012): the mash-in with exactly a temperature, required in a non-empty plan (app Q-48),
- * and known rests only, each with exactly a temperature and minutes.
+ * the iodine test as an empty marker (app Q-49), and known rests only, each with exactly a temperature and minutes.
  */
 function checkMashing(plan: unknown, problems: Problem[]) {
   if (!isObject(plan)) {
@@ -141,6 +142,17 @@ function checkMashing(plan: unknown, problems: Problem[]) {
   for (const [id, rest] of Object.entries(plan)) {
     const at = `${MASHING_PATH}.${id}`;
     if (id === MASH_IN) {
+      continue;
+    }
+    if (id === IODINE_TEST) {
+      // A marker without values (app Q-49).
+      if (!isObject(rest)) {
+        problems.push({ path: at, message: "The iodine test must be an empty object." });
+      } else {
+        for (const key of Object.keys(rest)) {
+          problems.push({ path: `${at}.${key}`, message: `The iodine test has no field "${key}".` });
+        }
+      }
       continue;
     }
     if (!isMashRestId(id)) {

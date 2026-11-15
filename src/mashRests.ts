@@ -248,3 +248,27 @@ export const MASH_BAND_IDS: readonly MashBandId[] = [MASH_IN, ...MASH_REST_IDS];
 export function bandInfo(id: MashBandId): MashBandInfo {
   return id === MASH_IN ? MASH_IN_INFO : MASH_RESTS[id];
 }
+
+/**
+ * The iodine test (app Q-49, QE-79): not a rest but a marker, "do the iodine test here", between the
+ * saccharification rest and the mash-out. Ticked or not; no values, no band, no time in the schedule.
+ */
+export const IODINE_TEST = "IodineTest";
+
+export const IODINE_TEST_INFO = {
+  label: "Iodine test",
+  short: "Iodine test",
+  about: [
+    ["When", "At the end of the Saccharification rest (or the Combined rest), before the Mash-out: above 78 °C the enzymes are destroyed, so starch left then stays unconverted."],
+    ["How", "Take a few drops of liquid wort (no husks or grain bits, they give a false result), let them cool on a white plate and add a drop of iodine solution (Lugol's)."],
+    ["Result", "Yellow-brown: the starch is converted; go on to the Mash-out. Blue-black or violet: starch remains; extend the rest by about 10 min and test again."],
+  ] as [string, string][],
+};
+
+/** Every entry of a plan in the order the table shows and the file has them (EDT-031, FMT-006). */
+export const MASH_PLAN_ORDER: readonly string[] = [
+  MASH_IN,
+  ...MASH_REST_IDS.slice(0, MASH_REST_IDS.indexOf("MashOut")),
+  IODINE_TEST,
+  "MashOut",
+];

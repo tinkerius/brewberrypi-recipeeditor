@@ -96,7 +96,7 @@ Applies signed out (drafts, §4) and signed in (Drive recipes, §5) alike, unles
 - `EDT-030` The tab **Mashing** (`GUI-032`) is the brewer's mashing plan (app `RCP-012`): which rests the mash
   gets, each with its temperature and duration. It is design information for the brewer; it does not change the
   goals (**Mash Process**), and the app does not use it. (Goals made from the plan may follow later.)
-- `EDT-031` Below the heading **Rests**, the tab has a **table**: first the **mash-in** (`QE-77`), then one row per rest of the table below, each once, in this order. Its columns:
+- `EDT-031` Below the heading **Rests**, the tab has a **table**: first the **mash-in** (`QE-77`), then one row per rest of the table below, each once, in this order, with the **iodine test** (`QE-79`) between the Saccharification rest and the Mash-out. Its columns:
   a check box, the rest's name with its typical temperature range, the planned **Temperature** (°C), the planned
   **Duration** (min), and an **ⓘ** button. The planned values are fields
   in their own columns, so the plan reads at a glance; a ticked row is highlighted, an unticked one has no fields.
@@ -115,6 +115,15 @@ Applies signed out (drafts, §4) and signed in (Drive recipes, §5) alike, unles
   to the first rest, or held for a Soak. Its values, in the rest data like the rests': range "35–40 °C, typ.
   ~38 °C", typical 38 °C, warning outside 35–40 °C (`EDT-033`); in the ladder it is a band like a rest's
   (`EDT-036`).
+
+  The **iodine test** (app `Q-49`, `IodineTest` in the file) is a marker, "do the iodine test here": its row,
+  "Iodine test", has a check box and no fields; ticked, the plan has `"IodineTest": {}`, unticked not. It has no
+  band in the ladder and no time in the schedule. Its ⓘ ("About the iodine test") says: **When:** At the end of
+  the Saccharification rest (or the Combined rest), before the Mash-out: above 78 °C the enzymes are destroyed, so
+  starch left then stays unconverted. **How:** Take a few drops of liquid wort (no husks or grain bits, they give
+  a false result), let them cool on a white plate and add a drop of iodine solution (Lugol's). **Result:**
+  Yellow-brown: the starch is converted; go on to the Mash-out. Blue-black or violet: starch remains; extend the
+  rest by about 10 min and test again.
 
 | Rest id | Name | Temperature range | Typ. duration | Warning outside |
 |---|---|---|---|---|
@@ -172,7 +181,7 @@ Applies signed out (drafts, §4) and signed in (Drive recipes, §5) alike, unles
 - `EDT-034` The plan holds the mash-in (once its temperature is entered) and the ticked rests, the mash-in first.
   When no rest is ticked and the mash-in's field is empty, the recipe file has no `mashing`; a file read
   with an empty `mashing` (`{}`) keeps it until a rest is ticked and unticked.
-- `EDT-035` Problems of the plan (`FMT-004`) are listed with the others (`EDT-020`) as "Mashing, <rest>" ("Mashing, Mash in"); clicking
+- `EDT-035` Problems of the plan (`FMT-004`) are listed with the others (`EDT-020`) as "Mashing, <rest>" ("Mashing, Mash in", "Mashing, Iodine test"); clicking
   that opens the Mashing tab, and the field with the problem is marked. Clicking a goal's "Goal n" opens the Mash
   Process tab with that goal open.
 

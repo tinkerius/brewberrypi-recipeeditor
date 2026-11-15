@@ -6,7 +6,7 @@
  */
 
 import { alcoholByVolume, apparentAttenuation, beerColourEbc, bitternessIbu } from "./brewMath";
-import { MASH_IN, MASH_REST_IDS, bandInfo, type MashBandId, type MashRestId } from "./mashRests";
+import { IODINE_TEST, MASH_IN, MASH_PLAN_ORDER, MASH_REST_IDS, bandInfo, type MashBandId, type MashRestId } from "./mashRests";
 
 export * from "./mashRests";
 
@@ -67,10 +67,10 @@ export function mashingOf(recipe: Recipe): Record<string, unknown> {
   return isObject(recipe.mashing) ? recipe.mashing : {};
 }
 
-/** The mash-in first (app Q-48), then the rest ids of a plan in catalogue order, then whatever else it holds. */
+/** The plan's entries in the table's order (the mash-in first, the iodine test before the mash-out), then whatever else it holds. */
 function inPlanOrder(plan: Record<string, unknown>): Record<string, unknown> {
   const ordered: Record<string, unknown> = {};
-  for (const id of [MASH_IN, ...MASH_REST_IDS]) {
+  for (const id of MASH_PLAN_ORDER) {
     if (id in plan) {
       ordered[id] = plan[id];
     }
@@ -102,6 +102,18 @@ export function withMashIn(recipe: Recipe, temperature: unknown): Recipe {
     delete plan[MASH_IN];
   } else {
     plan[MASH_IN] = { ...(isObject(plan[MASH_IN]) ? plan[MASH_IN] : {}), temperature };
+  }
+  const { mashing: _old, ...others } = recipe;
+  return Object.keys(plan).length === 0 ? others : { ...others, mashing: inPlanOrder(plan) };
+}
+
+/** Plans the iodine test (a marker, `{}`) or drops it (EDT-031, QE-79). */
+export function withIodineTest(recipe: Recipe, planned: boolean): Recipe {
+  const plan = { ...mashingOf(recipe) };
+  if (planned) {
+    plan[IODINE_TEST] = {};
+  } else {
+    delete plan[IODINE_TEST];
   }
   const { mashing: _old, ...others } = recipe;
   return Object.keys(plan).length === 0 ? others : { ...others, mashing: inPlanOrder(plan) };
@@ -854,7 +866,10 @@ export function serializeRecipe(recipe: Recipe): string {
       lines.push(`  "mashing": {`);
       entries.forEach(([id, value], i) => {
         // A rest's fields in the file's order, temperature then minutes, however they were entered (FMT-006).
-        const text = isObject(value)
+        // The iodine test is a marker: "{}" (app Q-49).
+        const text = isObject(value) && Object.keys(value).length === 0
+          ? "{}"
+          : isObject(value)
           ? indentGoal((({ temperature, minutes, ...more }) => ({ temperature, minutes, ...more }))(value) as Goal)
           : JSON.stringify(value);
         lines.push(`    ${JSON.stringify(id)}: ${text}${i < entries.length - 1 ? "," : ""}`);

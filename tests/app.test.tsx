@@ -11,7 +11,7 @@ import { FakeAuth, FakeDrive } from "./fakeDrive";
 import { BROWSER_STORAGE_WARNING, MEMORY_STORAGE_WARNING } from "../src/ui/Banners";
 import { SIDEBAR_KEY } from "../src/ui/sidebar";
 import { CHANGE_POLL_MS } from "../src/driveSync";
-import { MASH_IN_INFO, MASH_RESTS, bandInfo, type MashBandId, MASH_REST_IDS, toRecipe, type MashRestId, type Recipe } from "../src/model";
+import { IODINE_TEST_INFO, MASH_IN_INFO, MASH_PLAN_ORDER, MASH_RESTS, bandInfo, isMashRestId, type MashBandId, MASH_REST_IDS, toRecipe, type MashRestId, type Recipe } from "../src/model";
 
 let root: HTMLElement;
 
@@ -785,10 +785,10 @@ describe("App, the Mashing tab (QE-32)", () => {
   it("ACC-058 lists the 9 rests as table rows, the typical range beside the name and the duration after min, and expands what each does", async () => {
     await openMashing();
     expect(recipe().querySelector("#tab-mashing")!.getAttribute("aria-selected")).toBe("true");
-    // The mash-in first (QE-77; ACC-103), then the rests.
+    // The mash-in first (QE-77; ACC-103), then the rests, the iodine test before the mash-out (QE-79; ACC-104).
     const all = [...panel().querySelectorAll<HTMLElement>("[data-mash-rest]")];
-    expect(all.map((r) => r.dataset.mashRest)).toEqual(["MashIn", ...MASH_REST_IDS]);
-    const rows = all.slice(1);
+    expect(all.map((r) => r.dataset.mashRest)).toEqual([...MASH_PLAN_ORDER]);
+    const rows = all.filter((r) => isMashRestId(r.dataset.mashRest));
     const table = panel().querySelector("table")!;
     const heading = document.getElementById(table.getAttribute("aria-labelledby")!)!;
     expect([heading.tagName, heading.textContent?.trim()]).toEqual(["H3", "Rests"]);
@@ -1040,6 +1040,32 @@ describe("App, the Mashing tab (QE-32)", () => {
     expect(scheduleWarningsShown()).toContain("⚠ Maltose rest at 63 °C is lower than the mash-in (65 °C): the steps should rise.");
     expect(await status()).toContain("Complete: BrewberryPi can load this recipe.");
     expect(await download()).toContain('"mashing": {\n    "MashIn": { "temperature": 65 },\n    "MaltoseRest"');
+  });
+
+  it("ACC-104 the iodine test is an optional marker between the Saccharification rest and the Mash-out", async () => {
+    await openMashing();
+    const iodine = () => row("IodineTest") as HTMLTableRowElement;
+    expect(iodine().previousElementSibling!.getAttribute("data-mash-rest")).toBe("SaccharificationRest");
+    expect(iodine().nextElementSibling!.getAttribute("data-mash-rest")).toBe("MashOut");
+    expect(iodine().cells[1].textContent).toBe("Iodine test");
+    expect(iodine().querySelector<HTMLInputElement>("input[type=checkbox]")!.checked).toBe(false);
+    await act(async () => iodine().querySelector<HTMLButtonElement>("button[aria-expanded]")!.click());
+    for (const [term, text] of IODINE_TEST_INFO.about) {
+      expect(panel().querySelector("[data-mash-about=IodineTest]")!.textContent).toContain(`${term}: ${text}`);
+    }
+    await type(mashInField(), "38");
+    await plan([["SaccharificationRest", "72", "30"], ["MashOut", "78", "5"]]);
+    const before = total();
+    await tick("IodineTest");
+    // Ticked: no fields, no time in the schedule.
+    expect(iodine().querySelector("input:not([type=checkbox])")).toBeNull();
+    expect(total()).toBe(before);
+    expect(await status()).toContain("Complete: BrewberryPi can load this recipe.");
+    expect(await download()).toContain(
+      '    "SaccharificationRest": { "temperature": 72, "minutes": 30 },\n    "IodineTest": {},\n    "MashOut": { "temperature": 78, "minutes": 5 }\n',
+    );
+    await tick("IodineTest");
+    expect(await download()).not.toContain("IodineTest");
   });
 
   it("ACC-061 keeps and reports an unknown rest of an opened file", async () => {

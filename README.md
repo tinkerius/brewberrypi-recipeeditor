@@ -63,6 +63,7 @@ within seconds.
 | `tests/` | Vitest, each test named after the acceptance criterion it checks (`ACC-nnn ...`): validator (checked against Ajv and the schema), stores (fake IndexedDB, fake Drive), sync, components; `spec.test.ts` fails when an automated criterion has no test |
 | `docs/google-setup.md` | One-time setup: Google Cloud, domain, DNS, GitHub Pages, repository variables |
 | `.devcontainer/` | Development container (Node 22, Claude Code) for VS Code and GitHub Codespaces |
+| `.env.example` | Template for `.env.local`, the Google settings of the dev server (Development) |
 
 ## Development
 
@@ -81,13 +82,15 @@ npm run dev
 ```
 
 Opens http://localhost:5173. Without Google settings the editor works signed out, and the sign-in button is disabled. To
-sign in locally, put the values from `docs/google-setup.md` into `.env.local` (git-ignored):
+sign in locally, also in the development container, copy the template `.env.example` to `.env.local` (git-ignored),
+fill in the values from `docs/google-setup.md` §4 (the same as the repository variables of §5) and restart the dev
+server:
 
 ```bash
-VITE_GOOGLE_CLIENT_ID=…apps.googleusercontent.com
-VITE_GOOGLE_API_KEY=…
-VITE_GOOGLE_APP_ID=…
+cp .env.example .env.local
 ```
+
+Sign in at `http://localhost:5173`, the origin registered with Google, not by IP address.
 
 In a GitHub codespace, set the same three as **Codespaces secrets** of this repository instead (github.com →
 Settings → Codespaces → Codespaces secrets; Vite reads `VITE_*` from the environment), then create the codespace

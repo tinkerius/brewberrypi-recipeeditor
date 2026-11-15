@@ -50,10 +50,38 @@ export interface MashRestInfo {
   about: [string, string][];
 }
 
+/**
+ * The mash-in (app Q-48, QE-77): adding the malt to the water. Not a rest: the first, mandatory entry of every
+ * non-empty plan, with only a temperature and no duration. It has a typical range (QE-78) like a rest: a band in
+ * the ladder, a warning outside it.
+ */
+export const MASH_IN = "MashIn";
+
+/** What the ladder and the table show of a band: a rest's, or the mash-in's. */
+export type MashBandInfo = Pick<MashRestInfo, "label" | "short" | "range" | "tempMin" | "tempMax" | "tempTypical" | "enzymes" | "flags" | "about">;
+
+export const MASH_IN_INFO: MashBandInfo = {
+  label: "Mash in",
+  short: "Mash-in",
+  range: "35–40 °C, typ. ~38 °C",
+  tempMin: 35,
+  tempMax: 40,
+  tempTypical: 38,
+  enzymes: [],
+  flags: [],
+  about: [
+    ["What happens", "The mash water is heated to this temperature, then the malt is stirred into it. The mash starts here; there is no duration."],
+    ["Which temperature", "Usually ~38 °C; then the mash is heated to the first rest, or held for a Soak."],
+  ],
+};
+
+/** The ladder's bands (EDT-036): the mash-in and every rest. */
+export type MashBandId = typeof MASH_IN | MashRestId;
+
 export const MASH_RESTS: Record<MashRestId, MashRestInfo> = {
   PreMash: {
-    label: "Pre-mash / Dough-in rest (soaking)",
-    short: "Pre-mash",
+    label: "Soak",
+    short: "Soak",
     range: "Room temp. to 40 °C, typ. ~25 °C",
     tempMin: 15,
     tempMax: 40,
@@ -214,3 +242,9 @@ export const MASH_RESTS: Record<MashRestId, MashRestInfo> = {
     ],
   },
 };
+
+export const MASH_BAND_IDS: readonly MashBandId[] = [MASH_IN, ...MASH_REST_IDS];
+
+export function bandInfo(id: MashBandId): MashBandInfo {
+  return id === MASH_IN ? MASH_IN_INFO : MASH_RESTS[id];
+}

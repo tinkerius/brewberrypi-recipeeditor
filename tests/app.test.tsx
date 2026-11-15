@@ -11,7 +11,7 @@ import { FakeAuth, FakeDrive } from "./fakeDrive";
 import { BROWSER_STORAGE_WARNING, MEMORY_STORAGE_WARNING } from "../src/ui/Banners";
 import { SIDEBAR_KEY } from "../src/ui/sidebar";
 import { CHANGE_POLL_MS } from "../src/driveSync";
-import { MASH_RESTS, MASH_REST_IDS, toRecipe, type MashRestId, type Recipe } from "../src/model";
+import { MASH_IN_INFO, MASH_RESTS, bandInfo, type MashBandId, MASH_REST_IDS, toRecipe, type MashRestId, type Recipe } from "../src/model";
 
 let root: HTMLElement;
 
@@ -755,6 +755,8 @@ describe("App, the Mashing tab (QE-32)", () => {
   async function tick(id: string) {
     await act(async () => row(id).querySelector<HTMLInputElement>("input[type=checkbox]")!.click());
   }
+  /** The mash-in's temperature field, in the first row (QE-77). */
+  const mashInField = () => field("MashIn", "Temperature");
   async function type(input: HTMLInputElement, value: string) {
     await act(async () => {
       input.value = value;
@@ -783,8 +785,10 @@ describe("App, the Mashing tab (QE-32)", () => {
   it("ACC-058 lists the 9 rests as table rows, the typical range beside the name and the duration after min, and expands what each does", async () => {
     await openMashing();
     expect(recipe().querySelector("#tab-mashing")!.getAttribute("aria-selected")).toBe("true");
-    const rows = [...panel().querySelectorAll<HTMLElement>("[data-mash-rest]")];
-    expect(rows.map((r) => r.dataset.mashRest)).toEqual([...MASH_REST_IDS]);
+    // The mash-in first (QE-77; ACC-103), then the rests.
+    const all = [...panel().querySelectorAll<HTMLElement>("[data-mash-rest]")];
+    expect(all.map((r) => r.dataset.mashRest)).toEqual(["MashIn", ...MASH_REST_IDS]);
+    const rows = all.slice(1);
     const table = panel().querySelector("table")!;
     const heading = document.getElementById(table.getAttribute("aria-labelledby")!)!;
     expect([heading.tagName, heading.textContent?.trim()]).toEqual(["H3", "Rests"]);
@@ -834,6 +838,7 @@ describe("App, the Mashing tab (QE-32)", () => {
     expect([field("MashOut", "Temperature").value, field("MashOut", "Duration").value]).toEqual(["", ""]);
     expect(await status()).toContain("Mashing, Maltose rest: The Maltose rest needs a temperature.");
     expect(await status()).toContain("Mashing, Mash-out: The Mash-out needs minutes.");
+    await type(mashInField(), "57");
     await type(field("MaltoseRest", "Temperature"), "63");
     await type(field("MashOut", "Temperature"), "78");
     await type(field("MashOut", "Duration"), "10");
@@ -841,11 +846,14 @@ describe("App, the Mashing tab (QE-32)", () => {
     expect(await status()).toContain("Complete: BrewberryPi can load this recipe.");
     const text = await download();
     expect(text).toContain(
-      '  },\n  "mashing": {\n    "MaltoseRest": { "temperature": 63, "minutes": 50 },\n    "MashOut": { "temperature": 78, "minutes": 10 }\n  }\n}\n',
+      '  },\n  "mashing": {\n    "MashIn": { "temperature": 57 },\n    "MaltoseRest": { "temperature": 63, "minutes": 50 },\n    "MashOut": { "temperature": 78, "minutes": 10 }\n  }\n}\n',
     );
     await tick("MaltoseRest");
     await tick("MashOut");
     expect(row("MaltoseRest").querySelector("input:not([type=checkbox])")).toBeNull();
+    // The mash-in stays until its field is cleared too (EDT-034).
+    expect(await download()).toContain('"mashing": {\n    "MashIn": { "temperature": 57 }\n  }');
+    await type(mashInField(), "");
     expect(await download()).not.toContain("mashing\"");
     await tick("PreMash");
     expect([field("PreMash", "Temperature").value, field("PreMash", "Duration").value]).toEqual(["", ""]);
@@ -853,6 +861,7 @@ describe("App, the Mashing tab (QE-32)", () => {
 
   it("ACC-060 warns outside the typical range, and the recipe stays complete", async () => {
     await openMashing();
+    await type(mashInField(), "60");
     await tick("MaltoseRest");
     await type(field("MaltoseRest", "Duration"), "45");
     const warning = () => row("MaltoseRest").querySelector("[data-mash-typical=temperature] ~ [data-field-notes] [data-field-warning]")?.textContent;
@@ -911,6 +920,7 @@ describe("App, the Mashing tab (QE-32)", () => {
     expect(rests.map((g) => g.dataset.ladderRest)).toEqual([
       "PreMash",
       "AcidRest",
+      "MashIn", // its band at its typical 38 °C (QE-78)
       "BetaGlucanRest",
       "FerulicAcidRest",
       "ProteinRest",
@@ -920,11 +930,11 @@ describe("App, the Mashing tab (QE-32)", () => {
       "MashOut",
     ]);
     for (const g of rests) {
-      const info = MASH_RESTS[g.dataset.ladderRest as MashRestId];
+      const info = bandInfo(g.dataset.ladderRest as MashBandId);
       expect(g.textContent).toContain(`${info.short}`);
       expect(g.textContent).toContain(`${info.tempTypical} °C`);
       expect(g.querySelectorAll("text")).toHaveLength(1); // name and typical temperature only
-      expect(g.querySelector("title")!.textContent).toContain(`Enzyme`);
+      expect(g.querySelector("title")!.textContent).toContain(g.dataset.ladderRest === "MashIn" ? "What happens" : "Enzyme");
     }
     expect(l.querySelector("[data-ladder-rest=AcidRest]")!.textContent).toContain("(obsolete)");
     expect(l.querySelector("[data-ladder-limit]")!.textContent).toBe("max 78 °C");
@@ -950,15 +960,15 @@ describe("App, the Mashing tab (QE-32)", () => {
   it("ACC-065 a planned rest's label and tick show its planned temperature", async () => {
     await openMashing();
     const preMash = () => ladder().querySelector<SVGGElement>("[data-ladder-rest=PreMash]")!;
-    expect(preMash().querySelector("text")!.textContent).toBe("Pre-mash 25 °C");
+    expect(preMash().querySelector("text")!.textContent).toBe("Soak 25 °C");
     await plan([["PreMash", "30", "20"]]);
-    expect(preMash().querySelector("text")!.textContent).toBe("Pre-mash 30 °C");
+    expect(preMash().querySelector("text")!.textContent).toBe("Soak 30 °C");
     expect(preMash().querySelector("title")!.textContent).toContain("Planned: 30 °C for 20 min");
     // The tick sits where the profile holds 30 °C.
     const hold = ladder().querySelector("[data-ladder-profile] line[stroke=transparent]")!;
     expect(preMash().querySelector("[data-ladder-tick]")!.getAttribute("y1")).toBe(hold.getAttribute("y1"));
     await tick("PreMash");
-    expect(preMash().querySelector("text")!.textContent).toBe("Pre-mash 25 °C");
+    expect(preMash().querySelector("text")!.textContent).toBe("Soak 25 °C");
     expect(preMash().querySelector("title")!.textContent).not.toContain("Planned");
   });
 
@@ -981,6 +991,7 @@ describe("App, the Mashing tab (QE-32)", () => {
 
   it("ACC-064 shows the schedule's warnings, and the recipe stays complete", async () => {
     await openMashing();
+    await type(mashInField(), "63");
     await plan([
       ["MaltoseRest", "66", "90"],
       ["MashOut", "80", "5"],
@@ -991,6 +1002,44 @@ describe("App, the Mashing tab (QE-32)", () => {
       "⚠ No Combined rest or Saccharification rest: the starch may not be converted completely.",
     ]);
     expect(await status()).toContain("Complete: BrewberryPi can load this recipe.");
+  });
+
+  it("ACC-103 the mash-in is the first row, always planned, with only a temperature; the schedule starts there", async () => {
+    await openMashing();
+    const mashIn = row("MashIn") as HTMLTableRowElement;
+    expect(panel().querySelector("[data-mash-rest]")).toBe(mashIn);
+    expect(mashIn.cells[1].textContent).toBe("Mash in (35–40 °C)"); // its typical range beside the name (QE-78)
+    expect(mashIn.querySelector("input[type=checkbox]")).toBeNull();
+    expect(mashIn.cells[2].querySelector("input")).toBe(mashInField());
+    expect(mashIn.cells[3].querySelector("input")).toBeNull();
+    expect(mashInField().value).toBe("");
+    // Its ⓘ: what happens and which temperature.
+    await act(async () => mashIn.querySelector<HTMLButtonElement>("button[aria-expanded]")!.click());
+    for (const [term, text] of MASH_IN_INFO.about) {
+      expect(panel().querySelector("[data-mash-about=MashIn]")!.textContent).toContain(`${term}: ${text}`);
+    }
+    // Without rests an empty mash-in is no problem; with a rest it is, until entered.
+    expect(await status()).not.toContain("Mashing");
+    await plan([["MaltoseRest", "63", "45"], ["SaccharificationRest", "72", "30"]]);
+    expect(await status()).toContain("Mashing, Mash in: The mash-in needs a temperature.");
+    expect(mashInField().className).toContain("ring-red-400");
+    await type(mashInField(), "38");
+    expect(await status()).toContain("Complete: BrewberryPi can load this recipe.");
+    expect(row("MashIn").textContent).not.toContain("Outside the typical range");
+    // The schedule starts at the mash-in temperature: 25 min to 63 °C, then 9 min to 72 °C.
+    expect(total()).toBe("Total mash time 1 h 49 min: 1 h 15 min of rests, 34 min heating at 1 °C/min.");
+    // Its band in the ladder shows the planned temperature.
+    expect(ladder().querySelector("[data-ladder-rest=MashIn] text")!.textContent).toBe("Mash-in 38 °C");
+    // Outside 35–40 °C a warning, not a problem.
+    await type(mashInField(), "45");
+    expect(row("MashIn").textContent).toContain("⚠ Outside the typical range");
+    expect(mashInField().className).toContain("ring-amber-500!");
+    expect(await status()).toContain("Complete: BrewberryPi can load this recipe.");
+    // A first rest below the mash-in is warned about.
+    await type(mashInField(), "65");
+    expect(scheduleWarningsShown()).toContain("⚠ Maltose rest at 63 °C is lower than the mash-in (65 °C): the steps should rise.");
+    expect(await status()).toContain("Complete: BrewberryPi can load this recipe.");
+    expect(await download()).toContain('"mashing": {\n    "MashIn": { "temperature": 65 },\n    "MaltoseRest"');
   });
 
   it("ACC-061 keeps and reports an unknown rest of an opened file", async () => {
@@ -1166,7 +1215,7 @@ describe("App, the Malt and Hops tabs (QE-34, QE-35)", () => {
       version: 3,
       name: "Brew",
       mashing_process: { goals: [{ type: "MashIn" }] },
-      mashing: { MashOut: { temperature: 78, minutes: 10 } },
+      mashing: { MashIn: { temperature: 63 }, MashOut: { temperature: 78, minutes: 10 } },
     });
     await showTab("hops");
     await add("hops", "Hallertauer Tradition", "30", { alpha: "5.5", minutes: "60" });
@@ -1176,7 +1225,7 @@ describe("App, the Malt and Hops tabs (QE-34, QE-35)", () => {
     await setKnockout("20", "malts");
     const text = await download();
     expect(text).toContain(
-      '  "mashing": {\n    "MashOut": { "temperature": 78, "minutes": 10 }\n  },\n' +
+      '  "mashing": {\n    "MashIn": { "temperature": 63 },\n    "MashOut": { "temperature": 78, "minutes": 10 }\n  },\n' +
         '  "ingredients": {\n' +
         '    "malts": [\n' +
         '      { "name": "Pilsner malt", "grams": 4500, "ebc": 3.5 },\n' +

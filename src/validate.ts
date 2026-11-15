@@ -10,6 +10,7 @@ import {
   INGREDIENT_EXTRA_FIELDS,
   INGREDIENT_KINDS,
   INGREDIENT_LABELS,
+  MASH_IN,
   MASH_RESTS,
   isGoalType,
   isMashRestId,
@@ -114,14 +115,34 @@ function checkGoal(goal: unknown, index: number, problems: Problem[]) {
   }
 }
 
-/** The mashing plan (app RCP-012): known rests only, each with exactly a temperature and minutes. */
+/**
+ * The mashing plan (app RCP-012): the mash-in with exactly a temperature, required in a non-empty plan (app Q-48),
+ * and known rests only, each with exactly a temperature and minutes.
+ */
 function checkMashing(plan: unknown, problems: Problem[]) {
   if (!isObject(plan)) {
     problems.push({ path: MASHING_PATH, message: "The mashing plan must be an object of rests." });
     return;
   }
+  const mashInAt = `${MASHING_PATH}.${MASH_IN}`;
+  const mashIn = plan[MASH_IN];
+  if (mashIn !== undefined && !isObject(mashIn)) {
+    problems.push({ path: mashInAt, message: "The mash-in must be an object with a temperature." });
+  } else if (mashIn === undefined ? Object.keys(plan).length > 0 : mashIn.temperature === undefined) {
+    problems.push({ path: `${mashInAt}.temperature`, message: "The mash-in needs a temperature." });
+  } else if (mashIn !== undefined) {
+    for (const key of Object.keys(mashIn)) {
+      if (key !== "temperature") {
+        problems.push({ path: `${mashInAt}.${key}`, message: `The mash-in has no field "${key}".` });
+      }
+    }
+    checkField("temperature", mashIn.temperature, `${mashInAt}.temperature`, problems);
+  }
   for (const [id, rest] of Object.entries(plan)) {
     const at = `${MASHING_PATH}.${id}`;
+    if (id === MASH_IN) {
+      continue;
+    }
     if (!isMashRestId(id)) {
       problems.push({ path: at, message: `Unknown rest "${id}".` });
       continue;

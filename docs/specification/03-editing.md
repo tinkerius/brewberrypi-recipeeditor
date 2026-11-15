@@ -96,7 +96,7 @@ Applies signed out (drafts, §4) and signed in (Drive recipes, §5) alike, unles
 - `EDT-030` The tab **Mashing** (`GUI-032`) is the brewer's mashing plan (app `RCP-012`): which rests the mash
   gets, each with its temperature and duration. It is design information for the brewer; it does not change the
   goals (**Mash Process**), and the app does not use it. (Goals made from the plan may follow later.)
-- `EDT-031` Below the heading **Rests**, the tab has a **table** with one row per rest of the table below, each once, in this order. Its columns:
+- `EDT-031` Below the heading **Rests**, the tab has a **table**: first the **mash-in** (`QE-77`), then one row per rest of the table below, each once, in this order. Its columns:
   a check box, the rest's name with its typical temperature range, the planned **Temperature** (°C), the planned
   **Duration** (min), and an **ⓘ** button. The planned values are fields
   in their own columns, so the plan reads at a glance; a ticked row is highlighted, an unticked one has no fields.
@@ -107,9 +107,18 @@ Applies signed out (drafts, §4) and signed in (Drive recipes, §5) alike, unles
   button ("About this rest") expands what the rest does (enzymes, effect, when useful) below its row, one rest at
   a time; pressing it again collapses it. The texts are the product owner's (2026-11-10), verbatim.
 
+  The **mash-in** (app `Q-48`, `MashIn` in the file) is adding the malt to the water. It is not a rest: its row,
+  "Mash in", has no check box (it is in every plan), its typical range beside the name like a rest's ("Mash in
+  (35–40 °C)", `QE-78`), only a **Temperature** field (empty at first) and no Duration; its ⓘ ("About the
+  mash-in") says: **What happens:** The mash water is heated to this temperature, then the malt is stirred into
+  it. The mash starts here; there is no duration. **Which temperature:** Usually ~38 °C; then the mash is heated
+  to the first rest, or held for a Soak. Its values, in the rest data like the rests': range "35–40 °C, typ.
+  ~38 °C", typical 38 °C, warning outside 35–40 °C (`EDT-033`); in the ladder it is a band like a rest's
+  (`EDT-036`).
+
 | Rest id | Name | Temperature range | Typ. duration | Warning outside |
 |---|---|---|---|---|
-| `PreMash` | Pre-mash / Dough-in rest (soaking) | Room temp. to 40 °C, typ. ~25 °C | 15–30 min (cold: up to several hours) | 15–40 °C |
+| `PreMash` | Soak | Room temp. to 40 °C, typ. ~25 °C | 15–30 min (cold: up to several hours) | 15–40 °C |
 | `AcidRest` | Acid rest / Phytase rest | 30–35 °C (up to 52 °C), typ. ~35 °C | 30–120 min | 30–52 °C |
 | `BetaGlucanRest` | Beta-glucan rest (gum rest) | 35–45 °C, typ. ~40 °C | 15–20 min | 35–45 °C |
 | `FerulicAcidRest` | Ferulic acid rest | 43–45 °C, typ. ~45 °C | 15–20 min | 43–45 °C |
@@ -120,7 +129,7 @@ Applies signed out (drafts, §4) and signed in (Drive recipes, §5) alike, unles
 | `MashOut` | Mash-out | 76–78 °C, typ. ~78 °C | Heat up + 5–10 min | 76–78 °C |
 
   What each rest does (**About this rest**):
-  - Pre-mash / Dough-in rest: **Enzymes:** no targeted enzyme activity; amylases and proteases dissolve from the
+  - Soak: **Enzymes:** no targeted enzyme activity; amylases and proteases dissolve from the
     malt into the mash. Phytase and β-glucanase are slightly active at ~35–40 °C. **Effect:** hydrates the grist,
     softens the endosperm, prevents dough balls; enzymes are already in solution when the actual rests begin.
     **When useful:** coarse crush (e.g. lauter tun systems), poorly modified malts, before decoction, or to slightly
@@ -154,14 +163,16 @@ Applies signed out (drafts, §4) and signed in (Drive recipes, §5) alike, unles
   (min, a whole number) fields appear empty, with the typical values next to them, and are problems ("The Maltose
   rest needs a temperature.", "… needs minutes.", `EDT-035`) until entered (`EDT-015`); the ladder and the schedule
   count a rest once both are set. In the file a rest's fields are written temperature first, however entered. Unticking it removes the
-  rest from the plan, with its values.
-- `EDT-033` A planned rest whose temperature is outside its "warning outside" range (inclusive) shows a warning:
+  rest from the plan, with its values. While a rest is ticked, an empty mash-in temperature is a problem too ("The
+  mash-in needs a temperature.", app `Q-48`).
+- `EDT-033` A planned rest (or the mash-in, `QE-78`) whose temperature is outside its "warning outside" range (inclusive) shows a warning:
   its temperature field and its typical range (beside the name, `QE-73`) are marked amber, and "⚠ Outside the
   typical range" follows that range (`EDT-062`). It is only a warning (`EDT-020`): the recipe stays complete and can be saved and
   downloaded (`FMT-010`).
-- `EDT-034` The plan holds only ticked rests. When no rest is ticked, the recipe file has no `mashing`; a file read
+- `EDT-034` The plan holds the mash-in (once its temperature is entered) and the ticked rests, the mash-in first.
+  When no rest is ticked and the mash-in's field is empty, the recipe file has no `mashing`; a file read
   with an empty `mashing` (`{}`) keeps it until a rest is ticked and unticked.
-- `EDT-035` Problems of the plan (`FMT-004`) are listed with the others (`EDT-020`) as "Mashing, <rest>"; clicking
+- `EDT-035` Problems of the plan (`FMT-004`) are listed with the others (`EDT-020`) as "Mashing, <rest>" ("Mashing, Mash in"); clicking
   that opens the Mashing tab, and the field with the problem is marked. Clicking a goal's "Goal n" opens the Mash
   Process tab with that goal open.
 
@@ -170,7 +181,7 @@ Applies signed out (drafts, §4) and signed in (Drive recipes, §5) alike, unles
 - `EDT-036` Above the table of the Mashing tab, below the heading **Temperature Ladder**, is the **temperature
   ladder**, a chart whose y-axis is the mash
   temperature (°C):
-  - every rest of `EDT-031` is a **band** over its typical temperature range, in its own lane wherever ranges
+  - every rest of `EDT-031`, and the mash-in (`QE-78`), is a **band** over its typical temperature range, in its own lane wherever ranges
     overlap or touch, so no two bands cover each other; its temperature is ticked on the band: the planned
     temperature when the rest is planned (with a valid number), else the typical one;
   - beside the bands, a **label** per rest, sorted by typical temperature: its short name and the same temperature as its tick
@@ -187,14 +198,16 @@ Applies signed out (drafts, §4) and signed in (Drive recipes, §5) alike, unles
 - `EDT-038` The schedule's **warnings** are listed below the ladder, and with the others (`EDT-020`) and at their rest's
   temperature or duration field (`EDT-062`; the duration's: "⚠ Outside the typical duration"); they are warnings,
   not problems: the recipe stays complete (`FMT-010`). A warning is given for:
-  - a step whose temperature is lower than the step before it (the steps should rise);
+  - a step whose temperature is lower than the step before it, the first one lower than the mash-in ("… is lower
+    than the mash-in (65 °C): the steps should rise.", `QE-77`) (the steps should rise);
   - a step above 78 °C;
   - a plan with steps but none that converts the starch (Combined rest or Saccharification rest; flag
     `conversion`), as the starch may not be converted completely;
   - a hold outside the rest's typical duration (`durationMin`..`durationMax`; table below).
 - `EDT-039` The **schedule** is the planned rests in the table's order (a rest whose temperature or duration is not a
   valid number yet is left out until it is), drawn as the temperature profile over time over the bands of the
-  planned rests: it starts at the first step's temperature and heats to each step's temperature at the heating
+  planned rests: it starts at the mash-in temperature (`QE-77`; while that is not a valid number, at the first
+  step's temperature) and heats to each step's temperature at the heating
   rate, then holds it for the step's minutes. A step lower than the one before is reached at the same rate. The
   time axis is in minutes. Above the chart: "Total mash time <total>: <holds> of rests, <ramps> heating at <rate>
   °C/min." (times as "45 min" or "2 h 18 min"); "No rests planned yet." and, in the chart, "Tick rests below to
@@ -212,7 +225,7 @@ temperature of their own. The typical durations of `EDT-038` and the flags:
 
 | Rest | Typical duration (min) | Flags |
 |---|---|---|
-| Pre-mash | 15– (no upper limit: cold, up to several hours) | optional |
+| Soak | 15– (no upper limit: cold, up to several hours) | optional |
 | Acid rest | 30–120 | obsolete |
 | Beta-glucan rest | 15–20 | optional |
 | Ferulic acid rest | 15–20 | optional |

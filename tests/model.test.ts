@@ -12,6 +12,7 @@ import {
   readRecipe,
   serializeRecipe,
   toRecipe,
+  withMashIn,
   withMashRest,
   GOAL_TYPES,
   MASH_REST_IDS,
@@ -215,22 +216,26 @@ describe("mashing plan (QE-32)", () => {
     // Ticked, a rest has no values yet (QE-63): its temperature and minutes are problems until entered.
     const ticked = withMashRest(empty, "MashOut", newMashRest("MashOut"));
     expect(ticked.mashing).toEqual({ MashOut: {} });
-    expect(validateRecipe(ticked).map((p) => p.message)).toEqual(["The Mash-out needs a temperature.", "The Mash-out needs minutes."]);
-    const planned = withMashRest(
-      withMashRest(empty, "MashOut", { temperature: 78, minutes: 10 }),
-      "MaltoseRest",
-      { temperature: 63, minutes: 45 },
+    // A plan with a rest needs the mash-in's temperature (QE-77).
+    expect(validateRecipe(ticked).map((p) => p.message)).toEqual([
+      "The mash-in needs a temperature.",
+      "The Mash-out needs a temperature.",
+      "The Mash-out needs minutes.",
+    ]);
+    const planned = withMashIn(
+      withMashRest(withMashRest(empty, "MashOut", { temperature: 78, minutes: 10 }), "MaltoseRest", { temperature: 63, minutes: 45 }),
+      57,
     );
-    expect(planned.mashing).toEqual({ MaltoseRest: { temperature: 63, minutes: 45 }, MashOut: { temperature: 78, minutes: 10 } });
-    expect(Object.keys(planned.mashing as object)).toEqual(["MaltoseRest", "MashOut"]);
+    expect(planned.mashing).toEqual({ MashIn: { temperature: 57 }, MaltoseRest: { temperature: 63, minutes: 45 }, MashOut: { temperature: 78, minutes: 10 } });
+    expect(Object.keys(planned.mashing as object)).toEqual(["MashIn", "MaltoseRest", "MashOut"]);
     expect(validateRecipe(planned)).toEqual([]);
     const text = serializeRecipe(planned);
     expect(text).toBe(
       '{\n  "version": 3,\n  "name": "P",\n  "mashing_process": {\n    "goals": []\n  },\n  "mashing": {\n' +
-        '    "MaltoseRest": { "temperature": 63, "minutes": 45 },\n    "MashOut": { "temperature": 78, "minutes": 10 }\n  }\n}\n',
+        '    "MashIn": { "temperature": 57 },\n    "MaltoseRest": { "temperature": 63, "minutes": 45 },\n    "MashOut": { "temperature": 78, "minutes": 10 }\n  }\n}\n',
     );
     expect(readRecipe(JSON.parse(text))).toEqual({ recipe: planned, converted: undefined });
-    const none = withMashRest(withMashRest(planned, "MaltoseRest", undefined), "MashOut", undefined);
+    const none = withMashIn(withMashRest(withMashRest(planned, "MaltoseRest", undefined), "MashOut", undefined), undefined);
     expect("mashing" in none).toBe(false);
     expect(none).toEqual(empty);
   });
@@ -244,6 +249,7 @@ describe("mashing plan (QE-32)", () => {
   it("ACC-060 warns only outside the typical range, inclusive", () => {
     expect([59.9, 60, 65, 65.1, 70].map((t) => outsideTypicalRange("MaltoseRest", t))).toEqual([true, false, false, true, true]);
     expect(outsideTypicalRange("MaltoseRest", "6")).toBe(false);
-    expect(validateRecipe(withMashRest({ ...emptyRecipe(), name: "P" }, "MaltoseRest", { temperature: 70, minutes: 45 }))).toEqual([]);
+    const plan = withMashIn(withMashRest({ ...emptyRecipe(), name: "P" }, "MaltoseRest", { temperature: 70, minutes: 45 }), 63);
+    expect(validateRecipe(plan)).toEqual([]);
   });
 });

@@ -6,7 +6,7 @@
  */
 
 import { alcoholByVolume, apparentAttenuation, beerColourEbc, bitternessIbu } from "./brewMath";
-import { MASH_RESTS, MASH_REST_IDS, type MashRestId } from "./mashRests";
+import { MASH_IN, MASH_REST_IDS, bandInfo, type MashBandId, type MashRestId } from "./mashRests";
 
 export * from "./mashRests";
 
@@ -67,10 +67,10 @@ export function mashingOf(recipe: Recipe): Record<string, unknown> {
   return isObject(recipe.mashing) ? recipe.mashing : {};
 }
 
-/** The rest ids of a plan first in catalogue order, then whatever else it holds. */
+/** The mash-in first (app Q-48), then the rest ids of a plan in catalogue order, then whatever else it holds. */
 function inPlanOrder(plan: Record<string, unknown>): Record<string, unknown> {
   const ordered: Record<string, unknown> = {};
-  for (const id of MASH_REST_IDS) {
+  for (const id of [MASH_IN, ...MASH_REST_IDS]) {
     if (id in plan) {
       ordered[id] = plan[id];
     }
@@ -92,6 +92,28 @@ export function withMashRest(recipe: Recipe, id: MashRestId, rest: MashRest | un
   return Object.keys(plan).length === 0 ? others : { ...others, mashing: inPlanOrder(plan) };
 }
 
+/**
+ * Sets the mash-in temperature (EDT-031, QE-77); undefined (an emptied field) drops the mash-in. Without anything
+ * left, the recipe has no "mashing" (EDT-034).
+ */
+export function withMashIn(recipe: Recipe, temperature: unknown): Recipe {
+  const plan = { ...mashingOf(recipe) };
+  if (temperature === undefined) {
+    delete plan[MASH_IN];
+  } else {
+    plan[MASH_IN] = { ...(isObject(plan[MASH_IN]) ? plan[MASH_IN] : {}), temperature };
+  }
+  const { mashing: _old, ...others } = recipe;
+  return Object.keys(plan).length === 0 ? others : { ...others, mashing: inPlanOrder(plan) };
+}
+
+/** The mash-in temperature where the schedule starts (EDT-039): only a valid one (0–110 °C). */
+export function mashInTemperature(plan: Record<string, unknown>): number | undefined {
+  const mashIn = plan[MASH_IN];
+  const temperature = isObject(mashIn) ? mashIn.temperature : undefined;
+  return typeof temperature === "number" && Number.isFinite(temperature) && temperature >= 0 && temperature <= 110 ? temperature : undefined;
+}
+
 /** A newly ticked rest (EDT-032): no preset (QE-63), its temperature and minutes are entered; until then problems. */
 export function newMashRest(_id: MashRestId): MashRest {
   return {};
@@ -99,12 +121,12 @@ export function newMashRest(_id: MashRestId): MashRest {
 
 /** Whether a rest's temperature is outside its typical range (EDT-033); only for numbers. */
 /** The typical temperature range in the column after the °C field (EDT-031): "60–65 °C". */
-export function typicalTemperature(id: MashRestId): string {
-  return `${MASH_RESTS[id].tempMin}–${MASH_RESTS[id].tempMax} °C`;
+export function typicalTemperature(id: MashBandId): string {
+  return `${bandInfo(id).tempMin}–${bandInfo(id).tempMax} °C`;
 }
 
-export function outsideTypicalRange(id: MashRestId, temperature: unknown): boolean {
-  return typeof temperature === "number" && (temperature < MASH_RESTS[id].tempMin || temperature > MASH_RESTS[id].tempMax);
+export function outsideTypicalRange(id: MashBandId, temperature: unknown): boolean {
+  return typeof temperature === "number" && (temperature < bandInfo(id).tempMin || temperature > bandInfo(id).tempMax);
 }
 
 /** The two ingredient lists of the Ingredients tab (app RCP-013, EDT-041), in the file's key order. */

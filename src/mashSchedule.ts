@@ -5,7 +5,7 @@
  * `mashRests.ts` or the recipe, none is written here.
  */
 
-import { MASH_REST_IDS, MASH_RESTS, MASH_TEMPERATURE_LIMIT, type MashRestId } from "./mashRests";
+import { MASH_BAND_IDS, MASH_REST_IDS, MASH_RESTS, MASH_TEMPERATURE_LIMIT, bandInfo, type MashBandId, type MashRestId } from "./mashRests";
 
 export interface MashStep {
   restId: MashRestId;
@@ -97,14 +97,22 @@ export interface ScheduleWarning {
 }
 
 /**
- * The schedule's warnings (EDT-038): not errors, the recipe stays valid. A step not above the one before, a
+ * The schedule's warnings (EDT-038): not errors, the recipe stays valid. A step lower than the one before (the
+ * first: than the mash-in), a
  * temperature above the limit, no step that converts the starch, a hold outside the rest's typical duration.
  */
-export function scheduleWarnings(steps: MashStep[]): ScheduleWarning[] {
+export function scheduleWarnings(steps: MashStep[], mashIn?: number): ScheduleWarning[] {
   const warnings: ScheduleWarning[] = [];
   steps.forEach((step, i) => {
     const info = MASH_RESTS[step.restId];
     const before = steps[i - 1];
+    if (!before && mashIn !== undefined && step.targetTemp < mashIn) {
+      warnings.push({
+        restId: step.restId,
+        field: "temperature",
+        message: `${info.short} at ${step.targetTemp} °C is lower than the mash-in (${mashIn} °C): the steps should rise.`,
+      });
+    }
     if (before && step.targetTemp < before.targetTemp) {
       warnings.push({
         restId: step.restId,
@@ -135,21 +143,21 @@ export function scheduleWarnings(steps: MashStep[]): ScheduleWarning[] {
   return warnings;
 }
 
-/** The rests sorted by typical temperature, lowest first (EDT-036); ties keep the table's order. */
-export function restsByTypical(): MashRestId[] {
-  return [...MASH_REST_IDS].sort((a, b) => MASH_RESTS[a].tempTypical - MASH_RESTS[b].tempTypical);
+/** The bands (the mash-in and the rests) sorted by typical temperature, lowest first (EDT-036); ties keep the table's order. */
+export function restsByTypical(): MashBandId[] {
+  return [...MASH_BAND_IDS].sort((a, b) => bandInfo(a).tempTypical - bandInfo(b).tempTypical);
 }
 
 /**
  * A lane for each rest's band (EDT-036), so that bands whose ranges overlap or touch never share one: the first
  * lane whose bands all lie apart from it.
  */
-export function bandLanes(): Record<MashRestId, number> {
+export function bandLanes(): Record<MashBandId, number> {
   const lanes: { min: number; max: number }[][] = [];
-  const result = {} as Record<MashRestId, number>;
-  const order = [...MASH_REST_IDS].sort((a, b) => MASH_RESTS[a].tempMin - MASH_RESTS[b].tempMin);
+  const result = {} as Record<MashBandId, number>;
+  const order = [...MASH_BAND_IDS].sort((a, b) => bandInfo(a).tempMin - bandInfo(b).tempMin);
   for (const id of order) {
-    const { tempMin: min, tempMax: max } = MASH_RESTS[id];
+    const { tempMin: min, tempMax: max } = bandInfo(id);
     let lane = lanes.findIndex((bands) => bands.every((b) => max < b.min || min > b.max));
     if (lane < 0) {
       lane = lanes.length;

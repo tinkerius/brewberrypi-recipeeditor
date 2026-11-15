@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { MASH_RESTS, MASH_REST_IDS, MASH_TEMPERATURE_LIMIT, type MashRestId } from "../src/mashRests";
+import { MASH_BAND_IDS, MASH_RESTS, MASH_REST_IDS, MASH_TEMPERATURE_LIMIT, bandInfo, type MashRestId } from "../src/mashRests";
 import { bandLanes, mashProfile, restsByTypical, scheduleWarnings, spreadLabels, stepsOf, type MashStep } from "../src/mashSchedule";
 
 const step = (restId: MashRestId, targetTemp: number, holdMinutes: number): MashStep => ({ restId, targetTemp, holdMinutes });
@@ -26,15 +26,16 @@ describe("rest data (QE-33)", () => {
 
   it("ACC-062 sorts the rests by typical temperature, ties in table order", () => {
     const order = restsByTypical();
-    expect(order.map((id) => MASH_RESTS[id].tempTypical)).toEqual([25, 35, 40, 45, 52, 63, 67, 72, 78]);
-    expect(order.slice(0, 2)).toEqual(["PreMash", "AcidRest"]);
+    // The mash-in's band among them, at its typical 38 °C (QE-78).
+    expect(order.map((id) => bandInfo(id).tempTypical)).toEqual([25, 35, 38, 40, 45, 52, 63, 67, 72, 78]);
+    expect(order.slice(0, 3)).toEqual(["PreMash", "AcidRest", "MashIn"]);
   });
 
   it("ACC-062 puts overlapping or touching bands into different lanes", () => {
     const lanes = bandLanes();
-    for (const a of MASH_REST_IDS) {
-      for (const b of MASH_REST_IDS) {
-        const [x, y] = [MASH_RESTS[a], MASH_RESTS[b]];
+    for (const a of MASH_BAND_IDS) {
+      for (const b of MASH_BAND_IDS) {
+        const [x, y] = [bandInfo(a), bandInfo(b)];
         if (a !== b && lanes[a] === lanes[b]) {
           expect(x.tempMax < y.tempMin || x.tempMin > y.tempMax, `${a} and ${b}`).toBe(true);
         }

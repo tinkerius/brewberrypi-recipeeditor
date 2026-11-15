@@ -3,7 +3,7 @@
 import type { ComponentChildren } from "preact";
 import { useEffect, useRef, useState } from "preact/hooks";
 import { problemsOf, type Doc } from "../doc";
-import { INGREDIENT_LABELS, MASH_RESTS, goalsOf, isMashRestId, newGoal, withGoals, type Goal, type Recipe } from "../model";
+import { INGREDIENT_LABELS, MASH_IN, MASH_IN_INFO, MASH_RESTS, goalsOf, isMashRestId, newGoal, withGoals, type Goal, type Recipe } from "../model";
 import { BATCH_PATH, GOALS_PATH, INGREDIENTS_PATH, MASHING_PATH, WATER_PATH } from "../validate";
 import { ADD_ROW_LINE, AddRowButton } from "./AddRow";
 import { GoalEditor } from "./GoalEditor";
@@ -109,7 +109,7 @@ function describePath(path: string): string {
   }
   const rest = /^mashing\.([^.]+)/.exec(path)?.[1];
   if (rest !== undefined) {
-    return `Mashing, ${isMashRestId(rest) ? MASH_RESTS[rest].short : rest}`;
+    return `Mashing, ${isMashRestId(rest) ? MASH_RESTS[rest].short : rest === MASH_IN ? MASH_IN_INFO.label : rest}`;
   }
   return PATH_LABELS[path] ?? (path || "Recipe");
 }

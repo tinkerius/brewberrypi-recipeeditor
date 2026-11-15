@@ -87,7 +87,7 @@ a release that changes sign-in or Drive behaviour.
   a later sign-in (the folders exist) adds nothing.
 - `ACC-019` (GUI-020) The list is titled "My Recipes"; "New recipe" and "Upload recipe" come after the recipes;
   there is no "New from a sample recipe".
-- `ACC-058` (QE-32, QE-73, EDT-030, EDT-031, GUI-032) The Mashing tab has, below the heading "Rests", a table of the 9 rests of `EDT-031` in its
+- `ACC-058` (QE-32, QE-73, EDT-030, EDT-031, GUI-032) The Mashing tab has, below the heading "Rests", a table of the mash-in (`ACC-103`) and then the 9 rests of `EDT-031` in its
   order, each row with its name followed by its typical range in grey, in brackets ("Maltose rest (beta-amylase rest)
   (60–65 °C)"; `QE-73`), an unticked check box and no fields
   (for a recipe without `mashing`); the heads are Rest, Temperature, Duration (and, for screen readers,
@@ -96,9 +96,9 @@ a release that changes sign-in or Drive behaviour.
   starting with its typical duration (`QE-75`), and collapses them again; the goals are not shown in it.
 - `ACC-059` (EDT-032, EDT-034, FMT-006, QE-63) Ticking Mash-out and then Maltose rest plans them with empty fields (a
   pre-mash too), reported as "The Maltose rest needs a temperature." and "The Mash-out needs minutes."; with 78 °C,
-  10 min and 63 °C, 50 min entered the recipe is complete, and the written file has `"mashing"` after `"mashing_process"` with
-  `MaltoseRest` before `MashOut`, one rest per line, and reads back the same. Changing the Maltose rest's fields
-  changes the plan; unticking both rests removes `mashing` from the recipe.
+  10 min and 63 °C, 50 min and the mash-in at 57 °C entered the recipe is complete, and the written file has `"mashing"` after `"mashing_process"` with
+  `MashIn` before `MaltoseRest` before `MashOut`, one rest per line, and reads back the same. Changing the Maltose rest's fields
+  changes the plan; unticking both rests leaves only `MashIn`, and clearing its field too removes `mashing` from the recipe.
 - `ACC-060` (EDT-033) A Maltose rest at 70 °C shows "⚠ Outside the typical range" after the typical range
   "60–65 °C" in the Typical column, and the field and the range are marked; the recipe stays complete and can be downloaded. At 60 °C and 65 °C there is no warning.
 - `ACC-061` (EDT-035, FMT-004) A planned Maltose rest whose temperature is cleared is reported as "Mashing, Maltose
@@ -107,9 +107,9 @@ a release that changes sign-in or Drive behaviour.
   reported.
 - `ACC-062` (QE-33, EDT-036) The rest data holds every rest once, with its typical temperature inside its range and
   not above 78 °C, enzymes and texts; sorted by typical temperature
-  the rests are 25, 35, 40, 45, 52, 63, 67, 72, 78 °C; rests whose ranges overlap or
+  the rests and the mash-in (`QE-78`) are 25, 35, 38 (the mash-in), 40, 45, 52, 63, 67, 72, 78 °C; rests whose ranges overlap or
   touch never share a lane; labels spread by the ladder keep their gap and stay inside the chart.
-- `ACC-063` (EDT-039) Pre-mash 35 °C 15 min → Maltose rest 63 °C 45 min → Saccharification rest 72 °C 30 min →
+- `ACC-063` (EDT-039) Soak 35 °C 15 min → Maltose rest 63 °C 45 min → Saccharification rest 72 °C 30 min →
   Mash-out 78 °C 5 min at 1 °C/min gives the step profile 0/35, 15/35, 43/63, 88/63, 97/72, 127/72, 133/78,
   138/78 (minute/°C): 95 min of rests, 43 min heating, 138 min in total, and no warnings; at 2 °C/min the heating
   takes 21.5 min. A start temperature of 20 °C before a maltose rest adds 43 min. A plan's steps are taken in table
@@ -118,10 +118,10 @@ a release that changes sign-in or Drive behaviour.
   before); Mash-out at 80 °C (above 78 °C); Protein rest and Maltose rest only (no conversion); Maltose rest 90 min
   and Saccharification rest 10 min (outside their typical durations). None for a Combined rest of 60 min, or a
   pre-mash of 240 min. The warnings are listed below the ladder and the recipe stays complete.
-- `ACC-065` (EDT-036, EDT-037) The ladder is above the table, below the heading "Temperature Ladder"; it has a band and a label for each of the 9 rests,
+- `ACC-065` (EDT-036, EDT-037, QE-76) The ladder is above the table, below the heading "Temperature Ladder"; it has a band and a label for each of the 9 rests and the mash-in (`QE-78`),
   sorted by typical temperature, each label with its short name and typical temperature only (no effect), and
-  a tooltip with its enzymes; the acid rest says "(obsolete)"; the limit reads "max 78 °C". Planning the pre-mash at 30 °C shows "Pre-mash 30 °C" with its tick
-  at 30 °C and "Planned: 30 °C for 20 min" in its tooltip; unticking it shows "Pre-mash 25 °C" again. Without planned rests it says "No
+  a tooltip with its enzymes; the acid rest says "(obsolete)"; the limit reads "max 78 °C". Planning the soak at 30 °C shows "Soak 30 °C" with its tick
+  at 30 °C and "Planned: 30 °C for 20 min" in its tooltip; unticking it shows "Soak 25 °C" again. Without planned rests it says "No
   rests planned yet." and "Tick rests below to draw the schedule." (with a ticked rest without values "Enter the
   temperature and duration of the ticked rests." and "Enter their temperature and duration to draw the schedule.") Clicking the Protein rest in the ladder opens its
   texts in the table.
@@ -307,6 +307,15 @@ a release that changes sign-in or Drive behaviour.
 
 ## 9.3 Browser drafts
 
+- `ACC-103` (EDT-031, EDT-032, EDT-033, EDT-034, EDT-038, EDT-039, QE-77, QE-78, app Q-48) The Rests table's first row is "Mash in
+  (35–40 °C)", without a check box, with an empty Temperature field and no Duration field; its ⓘ shows "What happens: …" and
+  "Which temperature: …". Without rests an empty mash-in is no problem; with the Maltose rest at 63 °C for 45 min and the
+  Saccharification rest at 72 °C for 30 min it is reported as "Mashing, Mash in: The mash-in needs a temperature." and
+  its field is marked; at 38 °C the recipe is complete, the ladder's band reads "Mash-in 38 °C" and the schedule
+  "Total mash time 1 h 49 min: 1 h 15 min of rests, 34 min heating at 1 °C/min."; at 45 °C it shows "⚠ Outside the
+  typical range" and its field is marked amber, the recipe staying complete; at 65 °C it warns "⚠ Maltose rest at 63 °C is lower than the mash-in
+  (65 °C): the steps should rise.", the recipe stays complete, and the file has `"MashIn": { "temperature": 65 }`
+  first in `mashing`.
 - `ACC-020` (BRW-001) A draft stored, then the store opened again (a reload), gives the same draft; it can be
   deleted.
 - `ACC-021` (BRW-002, BRW-003) The banner says "only stored in this browser and can be lost" when the storage works

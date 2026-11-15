@@ -13,9 +13,11 @@ import {
   batchOf,
   fermentationOf,
   ingredientsOf,
+  MASH_IN,
   isMashRestId,
   mashThickness,
   mashingOf,
+  mashInTemperature,
   outsideTypicalRange,
   typicalTemperature,
   validAlpha,
@@ -52,7 +54,7 @@ export function warningsOf(recipe: Recipe): Warning[] {
   // The mashing plan (EDT-033, EDT-038): a rest's temperature outside its typical range, and the schedule's warnings.
   const plan = mashingOf(recipe);
   for (const [id, rest] of Object.entries(plan)) {
-    if (isMashRestId(id) && typeof rest === "object" && rest !== null) {
+    if ((isMashRestId(id) || id === MASH_IN) && typeof rest === "object" && rest !== null) {
       const temperature = (rest as { temperature?: unknown }).temperature;
       if (finite(temperature) && temperature >= 0 && temperature <= 110 && outsideTypicalRange(id, temperature)) {
         warnings.push({
@@ -63,7 +65,7 @@ export function warningsOf(recipe: Recipe): Warning[] {
       }
     }
   }
-  for (const w of scheduleWarnings(stepsOf(plan))) {
+  for (const w of scheduleWarnings(stepsOf(plan), mashInTemperature(plan))) {
     const field = w.field ?? "temperature";
     warnings.push({
       path: w.restId ? `mashing.${w.restId}.${field}` : "mashing",

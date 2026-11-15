@@ -10,7 +10,8 @@
 
 import type { ComponentChildren } from "preact";
 import { useState } from "preact/hooks";
-import { MASH_RESTS, MASH_TEMPERATURE_LIMIT, MASH_REST_IDS, type MashRestId } from "../mashRests";
+import { MASH_BAND_IDS, MASH_IN, MASH_RESTS, MASH_TEMPERATURE_LIMIT, bandInfo, type MashBandId } from "../mashRests";
+import { mashInTemperature } from "../model";
 import {
   DEFAULT_HEATING_RATE,
   bandLanes,
@@ -39,11 +40,11 @@ export function formatMinutes(minutes: number): string {
   return m >= 60 ? `${Math.floor(m / 60)} h${m % 60 ? ` ${m % 60} min` : ""}` : `${m} min`;
 }
 
-function tooltip(id: MashRestId, step?: MashStep): string {
-  const info = MASH_RESTS[id];
+function tooltip(id: MashBandId, planned?: string): string {
+  const info = bandInfo(id);
   return [
     `${info.label}: ${info.range}`,
-    ...(step ? [plannedText(step)] : []),
+    ...(planned ? [planned] : []),
     ...info.about.map(([term, text]) => `${term}: ${text}`),
   ].join("\n");
 }
@@ -52,25 +53,37 @@ function plannedText(step: MashStep): string {
   return `Planned: ${step.targetTemp} °C for ${formatMinutes(step.holdMinutes)}`;
 }
 
-export function MashLadder(props: { plan: Record<string, unknown>; selected?: MashRestId; onSelect: (id: MashRestId) => void }) {
+export function MashLadder(props: { plan: Record<string, unknown>; selected?: MashBandId; onSelect: (id: MashBandId) => void }) {
   const { box, width } = useWidth();
   const [rateValue, setRateValue] = useState<unknown>(DEFAULT_HEATING_RATE);
   const rate = typeof rateValue === "number" && rateValue > 0 ? rateValue : DEFAULT_HEATING_RATE;
   const steps = stepsOf(props.plan);
   // Ticked rests without both values yet (no presets, QE-63): the chart asks for them.
-  const ticked = Object.keys(props.plan).length > 0;
-  const profile = mashProfile(steps, rate);
-  const warnings = scheduleWarnings(steps);
-  const planned = new Set(steps.map((s) => s.restId));
+  const ticked = Object.keys(props.plan).some((id) => id !== MASH_IN);
+  // The schedule starts at the mash-in temperature (EDT-039, QE-77), else at the first step's.
+  const mashIn = mashInTemperature(props.plan);
+  const profile = mashProfile(steps, rate, mashIn);
+  const warnings = scheduleWarnings(steps, mashIn);
+  // The planned bands: the rests with both values, the mash-in with its temperature (QE-78).
+  const planned = new Set<MashBandId>(steps.map((s) => s.restId));
+  if (mashIn !== undefined) {
+    planned.add(MASH_IN);
+  }
   const stepOf = new Map(steps.map((s) => [s.restId, s]));
-  /** The temperature a rest shows in the ladder: the planned one when it is planned, else the typical (EDT-036). */
-  const shown = (id: MashRestId) => stepOf.get(id)?.targetTemp ?? MASH_RESTS[id].tempTypical;
+  /** The temperature a band shows in the ladder: the planned one when it is planned, else the typical (EDT-036). */
+  const shown = (id: MashBandId) => (id === MASH_IN ? mashIn : stepOf.get(id)?.targetTemp) ?? bandInfo(id).tempTypical;
+  /** What a planned band says it is planned for. */
+  const plannedOf = (id: MashBandId) => {
+    const step = id === MASH_IN ? undefined : stepOf.get(id);
+    return step ? plannedText(step) : id === MASH_IN && mashIn !== undefined ? `Planned: ${mashIn} °C` : undefined;
+  };
 
   // Temperature scale: every band, the limit and every step fit, in 5 °C steps.
   const temps = [
-    ...MASH_REST_IDS.flatMap((id) => [MASH_RESTS[id].tempMin, MASH_RESTS[id].tempMax]),
+    ...MASH_BAND_IDS.flatMap((id) => [bandInfo(id).tempMin, bandInfo(id).tempMax]),
     MASH_TEMPERATURE_LIMIT,
     ...steps.map((s) => s.targetTemp),
+    ...(mashIn !== undefined ? [mashIn] : []),
   ];
   const tMin = Math.floor((Math.min(...temps) - 3) / 5) * 5;
   const tMax = Math.ceil((Math.max(...temps) + 3) / 5) * 5;
@@ -131,9 +144,9 @@ export function MashLadder(props: { plan: Record<string, unknown>; selected?: Ma
     <>
           {/* The rests: bands in lanes, typical temperature ticked, labels beside them */}
           {order.map((id, k) => {
-            const info = MASH_RESTS[id];
+            const info = bandInfo(id);
             const bx = railX + lanes[id] * LANE;
-            const step = stepOf.get(id);
+            const plannedFor = plannedOf(id);
             const ty = y(shown(id));
             const ly = labelY[k];
             const isPlanned = planned.has(id);
@@ -145,7 +158,7 @@ export function MashLadder(props: { plan: Record<string, unknown>; selected?: Ma
                 data-ladder-rest={id}
                 role="button"
                 tabIndex={0}
-                aria-label={`${info.label}, ${info.range}${step ? `, ${plannedText(step).toLowerCase()}` : ""}: about this rest`}
+                aria-label={`${info.label}, ${info.range}${plannedFor ? `, ${plannedFor.toLowerCase()}` : ""}: about this ${id === MASH_IN ? "step" : "rest"}`}
                 aria-pressed={isSelected}
                 class="cursor-pointer focus:outline-none [&:focus-visible_.ladder-name]:underline"
                 onClick={() => props.onSelect(id)}
@@ -156,7 +169,7 @@ export function MashLadder(props: { plan: Record<string, unknown>; selected?: Ma
                   }
                 }}
               >
-                <title>{tooltip(id, step)}</title>
+                <title>{tooltip(id, plannedFor)}</title>
                 <rect
                   x={bx}
                   y={y(info.tempMax)}
@@ -210,8 +223,8 @@ export function MashLadder(props: { plan: Record<string, unknown>; selected?: Ma
                   key={id}
                   x={plotX}
                   width={plotW}
-                  y={y(MASH_RESTS[id].tempMax)}
-                  height={Math.max(2, y(MASH_RESTS[id].tempMin) - y(MASH_RESTS[id].tempMax))}
+                  y={y(bandInfo(id).tempMax)}
+                  height={Math.max(2, y(bandInfo(id).tempMin) - y(bandInfo(id).tempMax))}
                   class="fill-berry-light"
                   opacity={0.14}
                 />
@@ -350,7 +363,7 @@ export function MashLadder(props: { plan: Record<string, unknown>; selected?: Ma
         </ul>
       )}
       <p class={`${HINT_STYLE} mt-1`}>
-        Click a rest in the ladder for what it does. The profile starts at the first rest's temperature.
+        Click a rest in the ladder for what it does. The profile starts at the mash-in temperature.
       </p>
     </div>
   );

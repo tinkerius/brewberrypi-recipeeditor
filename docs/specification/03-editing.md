@@ -327,6 +327,12 @@ temperature of their own. The typical durations of `EDT-038` and the flags:
   addition two: ingredient and amount, then its bar. The Boil Ingredients tables' headings Hops and Other additions
   carry the same icons. Rows with an amount but no cooking time are named in a hint ("No cooking time yet: hop 4.");
   without any cooking time it says "Enter the amounts and cooking times to see when each goes into the boil."
+- `EDT-075` The Boil Schedule ends with the row **Whirlpool** (`QE-83`, app `RCP-018`), after the end of the boil,
+  like the Rests table's iodine test (`EDT-031`, `QE-79`): a check box, its name and an ⓘ ("What: …", "How long: …"),
+  and "after the boil" in the timeline column; no amount and no bar. Unticked its name is grey; ticked the row is
+  highlighted like a planned rest and the file has `"boil": { "whirlpool": true }`; unticking it removes `boil`. The
+  row is there also while the schedule has no additions yet (below "Enter the amounts and cooking times …"). It
+  changes neither the total boil time, the bitterness nor the water estimate, and is shown nowhere else.
 - `EDT-055` Below the beer colour, a **colour scale** shows where it lies among common beers: the SRM colour chart
   as a bar from 0 to 80 EBC (numbers 0, 20, 40, 60, "80+"), a marker at the beer's colour (a darker beer at the end),
   and the styles Pils, Pale Ale, Märzen, Dunkel and Stout at their typical colours; no line below it naming the

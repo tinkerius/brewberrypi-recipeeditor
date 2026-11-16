@@ -321,6 +321,15 @@ a release that changes sign-in or Drive behaviour.
   the mash-in at 38 °C, the Saccharification rest at 72 °C for 30 min and the Mash-out at 78 °C for 5 min, ticking
   it shows no fields, leaves the total mash time unchanged, the recipe stays complete, and the file has
   `"IodineTest": {}` on its own line between `SaccharificationRest` and `MashOut`; unticking it removes it.
+- `ACC-107` (EDT-075, FMT-006, QE-83, app RCP-018) On the Boiling tab the Boil Schedule's last row is "Whirlpool",
+  unticked, with "after the boil" and an ⓘ showing "What: …" and "How long: …". Ticking it highlights the row, leaves
+  the total boil time and the bitterness unchanged, the recipe stays complete, and the file has
+  `"boil": { "whirlpool": true }` on its own line after `water` and before `fermentation`; unticking it removes `boil`.
+- `ACC-108` (EDT-075) Without any boil additions the Boil Schedule says "Enter the amounts and cooking times to see
+  when each goes into the boil." and still has the Whirlpool row, which can be ticked.
+- `ACC-109` (FMT-004, app RCP-018) A recipe whose `boil` is not an object, has a `whirlpool` that is not true or
+  false, or another field has a problem shown on the Boiling tab and is not saved or downloaded; `boil` `{}` and
+  `{ "whirlpool": false }` are valid.
 - `ACC-020` (BRW-001) A draft stored, then the store opened again (a reload), gives the same draft; it can be
   deleted.
 - `ACC-021` (BRW-002, BRW-003) The banner says "only stored in this browser and can be lost" when the storage works

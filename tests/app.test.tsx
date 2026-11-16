@@ -1521,7 +1521,7 @@ describe("App, the Malt and Hops tabs (QE-34, QE-35)", () => {
     expect(recipe().querySelector("[data-ingredient-total-all]")).toBeNull();
     // In the schedule: added 45 min after the start, as a grey square.
     const schedule = recipe().querySelector("[data-hop-schedule]")!;
-    const items = [...schedule.querySelectorAll<HTMLTableRowElement>("[data-schedule-list] tbody tr")].map((tr) => [...tr.cells].map((td) => td.textContent));
+    const items = [...schedule.querySelectorAll<HTMLTableRowElement>("[data-schedule-list] tbody tr[data-schedule-row]")].map((tr) => [...tr.cells].map((td) => td.textContent));
     expect(items).toEqual([
       ["0 min (start)", "Hallertauer Tradition (5.5 % α)", "30 g", "60 min"],
       ["45 min", "Irish Moss", "10 g", "15 min"],
@@ -1547,6 +1547,67 @@ describe("App, the Malt and Hops tabs (QE-34, QE-35)", () => {
     expect(recipe().querySelector("#tab-hops")!.getAttribute("aria-selected")).toBe("true");
   });
 
+  it("ACC-107 the Boil Schedule ends with the Whirlpool row; ticking it writes boil.whirlpool, unticking removes it", async () => {
+    await open({
+      version: 3,
+      name: "Brew",
+      mashing_process: { goals: [{ type: "MashIn" }] },
+      ingredients: { hops: [{ name: "Hallertauer", alpha: 5.5, additions: [{ minutes: 60, grams: 30 }] }] },
+      batch: { liters: 20, plato: 12.6 },
+      water: { mash: 16 },
+      fermentation: { co2: 5 },
+    });
+    await showTab("hops");
+    const schedule = () => recipe().querySelector("[data-hop-schedule]")!;
+    const whirlpool = () => schedule().querySelector<HTMLTableRowElement>("[data-schedule-whirlpool]")!;
+    const box = () => whirlpool().querySelector<HTMLInputElement>("input[type=checkbox]")!;
+    const rows = [...schedule().querySelectorAll("[data-schedule-list] tbody > tr")];
+    expect(rows[rows.length - 1]).toBe(whirlpool());
+    expect(whirlpool().textContent).toContain("Whirlpool");
+    expect(whirlpool().querySelector("[data-schedule-whirlpool-when]")!.textContent).toBe("after the boil");
+    expect(whirlpool().querySelector("[data-schedule-bar]")).toBeNull();
+    expect(box().checked).toBe(false);
+    expect(whirlpool().hasAttribute("data-planned")).toBe(false);
+    await act(async () => whirlpool().querySelector<HTMLButtonElement>("button[aria-expanded]")!.click());
+    const about = schedule().querySelector("[data-whirlpool-info]")!.textContent!;
+    expect(about).toContain("What: ");
+    expect(about).toContain("How long: ");
+    const before = [schedule().querySelector("[data-boil-time]")!.textContent, figure()];
+    await act(async () => box().click());
+    expect(box().checked).toBe(true);
+    expect(whirlpool().hasAttribute("data-planned")).toBe(true);
+    expect([schedule().querySelector("[data-boil-time]")!.textContent, figure()]).toEqual(before);
+    expect(await status()).toContain("Complete: BrewberryPi can load this recipe.");
+    expect(await download()).toContain('  "water": { "mash": 16 },\n  "boil": { "whirlpool": true },\n  "fermentation": { "co2": 5 }\n');
+    await act(async () => box().click());
+    expect(await download()).not.toContain('"boil"');
+  });
+
+  it("ACC-108 without boil additions the Boil Schedule still has the Whirlpool row", async () => {
+    await open();
+    await showTab("hops");
+    const schedule = () => recipe().querySelector("[data-hop-schedule]")!;
+    expect(schedule().textContent).toContain("Enter the amounts and cooking times to see when each goes into the boil.");
+    const box = () => schedule().querySelector<HTMLInputElement>("[data-schedule-whirlpool] input[type=checkbox]")!;
+    await act(async () => box().click());
+    expect(box().checked).toBe(true);
+    expect(await download()).toContain('"boil": { "whirlpool": true }');
+  });
+
+  it("ACC-109 an invalid boil is a problem on the Boiling tab and blocks the download", async () => {
+    await open({ version: 3, name: "Brew", mashing_process: { goals: [{ type: "MashIn" }] }, boil: { whirlpool: "yes" } });
+    expect(await status()).toContain("Whirlpool: The whirlpool must be yes or no (true or false).");
+    await expect(download()).rejects.toThrow("not downloaded");
+    await showStatus();
+    await act(async () => button("Whirlpool").click());
+    expect(recipe().querySelector("#tab-hops")!.getAttribute("aria-selected")).toBe("true");
+    // Ticking the row writes a valid value.
+    const box = () => recipe().querySelector<HTMLInputElement>("[data-schedule-whirlpool] input[type=checkbox]")!;
+    expect(box().checked).toBe(false);
+    await act(async () => box().click());
+    expect(await status()).toContain("Complete: BrewberryPi can load this recipe.");
+  });
+
   it("ACC-086 a hop goes into the boil more than once: its additions are summed, each boils and is scheduled on its own", async () => {
     await open();
     await showTab("hops");
@@ -1569,7 +1630,7 @@ describe("App, the Malt and Hops tabs (QE-34, QE-35)", () => {
     expect(figure()).toBe("15 IBU");
     // One schedule entry per addition, both in the hop's colour.
     const schedule = recipe().querySelector("[data-hop-schedule]")!;
-    const items = [...schedule.querySelectorAll<HTMLTableRowElement>("[data-schedule-list] tbody tr")].map((tr) => [...tr.cells].map((td) => td.textContent));
+    const items = [...schedule.querySelectorAll<HTMLTableRowElement>("[data-schedule-list] tbody tr[data-schedule-row]")].map((tr) => [...tr.cells].map((td) => td.textContent));
     expect(items).toEqual([
       ["0 min (start)", "Hallertauer Tradition (5.5 % α)", "20 g", "60 min"],
       ["50 min", "Hallertauer Tradition (5.5 % α)", "10 g", "10 min"],
@@ -1602,7 +1663,7 @@ describe("App, the Malt and Hops tabs (QE-34, QE-35)", () => {
     await type(nameField("others", 0), "Irish Moss");
     await type(field("others", 0, "grams"), "5");
     await type(field("others", 0, "minutes"), "10");
-    const list = () => [...recipe().querySelectorAll<HTMLTableRowElement>("[data-schedule-list] tbody tr")];
+    const list = () => [...recipe().querySelectorAll<HTMLTableRowElement>("[data-schedule-list] tbody tr[data-schedule-row]")];
     // The add time is shown once per group, with the number of additions; the other rows only read it out.
     expect(list().map((tr) => tr.hasAttribute("data-schedule-first"))).toEqual([true, false, true, false]);
     expect(list().map((tr) => tr.querySelector("[data-schedule-at]")!.textContent)).toEqual(["0 min (start)2×", "0 min (start)", "50 min2×", "50 min"]);
@@ -1896,7 +1957,7 @@ describe("App, the Malt and Hops tabs (QE-34, QE-35)", () => {
     const heads = [...schedule().querySelectorAll("[data-schedule-list] thead th")];
     expect(heads.slice(0, 3).map((th) => th.textContent)).toEqual(["Add at", "Ingredient", "Amount"]);
     expect(heads[3].querySelector(".sr-only")!.textContent).toBe("Cooking time");
-    const items = [...schedule().querySelectorAll<HTMLTableRowElement>("[data-schedule-list] tbody tr")].map((tr) => [...tr.cells].map((td) => td.textContent));
+    const items = [...schedule().querySelectorAll<HTMLTableRowElement>("[data-schedule-list] tbody tr[data-schedule-row]")].map((tr) => [...tr.cells].map((td) => td.textContent));
     expect(items).toEqual([
       ["0 min (start)", "Hallertauer Tradition", "30 g", "60 min"],
       ["50 min", "Tettnanger", "20 g", "10 min"],

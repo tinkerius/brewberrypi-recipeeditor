@@ -40,6 +40,8 @@ import {
   type Addition,
   type IngredientKind,
   type Recipe,
+  whirlpoolOf,
+  withWhirlpool,
 } from "../model";
 import { ADD_ROW_LINE, AddRowButton } from "./AddRow";
 import { AdditionIcon } from "./AdditionIcon";
@@ -822,6 +824,70 @@ export function additionText(addAt: number, boil: number, cooking: number): stri
   return addAt === 0 ? "0 min (start)" : cooking === 0 ? `${addAt} min (flame-out)` : `${addAt} min`;
 }
 
+/** What the whirlpool's ⓘ says (EDT-075). */
+const WHIRLPOOL_INFO: [string, string][] = [
+  ["What", "Right after the boil, stir the hot wort into a circular flow and let it settle: the trub and hop matter gather in a cone in the middle of the kettle, so the clear wort can be drawn off from the side."],
+  ["How long", "Stir for a few minutes, then let it rest for about 10–20 min before chilling."],
+];
+
+/**
+ * The whirlpool's row (EDT-075, QE-83): the Boil Schedule's last row, after the end of the boil, like the Rests
+ * table's iodine test (QE-79): a check box and its name, no amount, no bar; planned, highlighted.
+ */
+function WhirlpoolRows(props: { planned: boolean; problems: Problem[]; open: boolean; onToggle: () => void; onChange: (on: boolean) => void }) {
+  const notes = notesWhere({ problems: props.problems, warnings: [] }, (p) => p === "boil" || p.startsWith("boil."));
+  const ROW = "max-sm:grid max-sm:grid-cols-[auto_1fr_auto] max-sm:items-start max-sm:px-1";
+  return (
+    <>
+      <tr
+        class={`${ROW} border-t border-line first:border-t-0 dark:border-white/10 ${props.planned ? "bg-berry-light/10 dark:bg-berry-light/5" : ""}`}
+        data-schedule-whirlpool
+        data-planned={props.planned ? "" : undefined}
+      >
+        <td class={`${CELL} w-5`}>
+          <input
+            id="boil-whirlpool"
+            type="checkbox"
+            class="mt-0.5 size-4 accent-berry"
+            checked={props.planned}
+            onChange={(e) => props.onChange(e.currentTarget.checked)}
+          />
+        </td>
+        <td class={CELL} colSpan={2}>
+          <span class="inline-flex items-center gap-2">
+            <label
+              for="boil-whirlpool"
+              class={`cursor-pointer font-semibold ${props.planned ? "text-ink dark:text-ink-light" : "text-stone-500 dark:text-stone-400"}`}
+            >
+              Whirlpool
+            </label>
+            <InfoButton open={props.open} label="About: Whirlpool" controls="boil-whirlpool-info" onClick={props.onToggle} />
+          </span>
+          <FieldNotes notes={notes} class="mt-0.5" />
+        </td>
+        <td class={`${CELL} text-stone-500 max-sm:text-right dark:text-stone-400`} data-schedule-whirlpool-when>
+          <span class="mx-2">after the boil</span>
+        </td>
+      </tr>
+      {props.open && (
+        <tr class="max-sm:block">
+          <td colSpan={4} class={`${CELL} max-sm:block`}>
+            <div id="boil-whirlpool-info" class={INFO_PANEL} data-whirlpool-info>
+              <dl class="space-y-1">
+                {WHIRLPOOL_INFO.map(([term, text]) => (
+                  <div key={term}>
+                    <dt class="inline font-semibold">{term}:</dt> <dd class="inline">{text}</dd>
+                  </div>
+                ))}
+              </dl>
+            </div>
+          </td>
+        </tr>
+      )}
+    </>
+  );
+}
+
 /**
  * The hop schedule (EDT-054): the boil lasts as long as the longest cooking time; each hop goes in at that boil time
  * minus its own cooking time, counted from the start of the boil. Shown as one table in the order of addition (QE-51):
@@ -829,7 +895,23 @@ export function additionText(addAt: number, boil: number, cooking: number): stri
  * timeline from the start of the boil (left) to its end (right) for how long it cooks, in the row's colour. Additions
  * without a cooking time are named in a hint.
  */
-function HopSchedule(props: { hops: Ingredient[]; others: Ingredient[] }) {
+function HopSchedule(props: {
+  hops: Ingredient[];
+  others: Ingredient[];
+  whirlpool: boolean;
+  problems: Problem[];
+  onWhirlpool: (on: boolean) => void;
+}) {
+  const [whirlpoolOpen, setWhirlpoolOpen] = useState(false);
+  const whirlpool = (
+    <WhirlpoolRows
+      planned={props.whirlpool}
+      problems={props.problems}
+      open={whirlpoolOpen}
+      onToggle={() => setWhirlpoolOpen(!whirlpoolOpen)}
+      onChange={props.onWhirlpool}
+    />
+  );
   const { box, width } = useWidth();
   // One entry per addition (EDT-061): the hop (or other addition) `h`, row `i`, its addition `a`, number `j`.
   type Entry = { h: Ingredient; i: number; a: Addition; j: number; kind: "hops" | "others" };
@@ -861,6 +943,12 @@ function HopSchedule(props: { hops: Ingredient[]; others: Ingredient[] }) {
       <div ref={box} data-hop-schedule>
         <p class={HINT_STYLE}>Enter the amounts and cooking times to see when each goes into the boil.</p>
         {missing}
+        {/* The whirlpool row also without additions, so it can be ticked at any time (EDT-075). */}
+        <div class="mt-2 rounded-lg ring-1 ring-line dark:ring-white/10">
+          <table class="w-full border-collapse text-sm max-sm:block" aria-label="After the boil">
+            <tbody class="max-sm:block">{whirlpool}</tbody>
+          </table>
+        </div>
       </div>
     );
   }
@@ -1007,6 +1095,7 @@ function HopSchedule(props: { hops: Ingredient[]; others: Ingredient[] }) {
                 </tr>
               );
             })}
+            {whirlpool}
           </tbody>
         </table>
         <p class={`${HINT_STYLE} px-3 pb-2 pt-1 text-right text-[11px]`} data-schedule-caption>
@@ -1064,7 +1153,13 @@ export function IngredientsTab(props: {
           <h3 id="boil-schedule-title" class={`${SECTION_TITLE_STYLE} mb-2`}>
             Boil Schedule
           </h3>
-          <HopSchedule hops={list} others={ingredientsOf(props.recipe, "others")} />
+          <HopSchedule
+            hops={list}
+            others={ingredientsOf(props.recipe, "others")}
+            whirlpool={whirlpoolOf(props.recipe)}
+            problems={props.problems}
+            onWhirlpool={(on) => props.onChange(withWhirlpool(props.recipe, on))}
+          />
         </section>
       )}
       <section class="mt-6" aria-labelledby={`${kind}-table-title`}>

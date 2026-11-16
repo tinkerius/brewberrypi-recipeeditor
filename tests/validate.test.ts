@@ -214,6 +214,16 @@ const CASES: [string, unknown][] = [
   ["fermentation yeast a string", { ...valid, fermentation: { yeast: "WB-06" } }],
   ["fermentation co2 0", { ...valid, fermentation: { co2: 0 } }],
   ["fermentation co2 a string", { ...valid, fermentation: { co2: "6.5" } }],
+  // After the boil (app RCP-018, Q-50)
+  ["boil whirlpool", { ...valid, boil: { whirlpool: true } }],
+  ["boil whirlpool false", { ...valid, boil: { whirlpool: false } }],
+  ["boil empty", { ...valid, boil: {} }],
+  ["boil not an object", { ...valid, boil: [] }],
+  ["boil true", { ...valid, boil: true }],
+  ["boil whirlpool a string", { ...valid, boil: { whirlpool: "yes" } }],
+  ["boil whirlpool a number", { ...valid, boil: { whirlpool: 1 } }],
+  ["boil whirlpool null", { ...valid, boil: { whirlpool: null } }],
+  ["boil extra field", { ...valid, boil: { minutes: 60 } }],
 ];
 
 describe("validateRecipe", () => {

@@ -31,7 +31,7 @@ export interface Problem {
   message: string;
 }
 
-const TOP_LEVEL = new Set(["$schema", "version", "name", "description", "mashing_process", "mashing", "ingredients", "batch", "water", "fermentation"]);
+const TOP_LEVEL = new Set(["$schema", "version", "name", "description", "mashing_process", "mashing", "ingredients", "batch", "water", "boil", "fermentation"]);
 export const GOALS_PATH = "mashing_process.goals";
 export const MASHING_PATH = "mashing";
 export const INGREDIENTS_PATH = "ingredients";
@@ -354,6 +354,21 @@ function checkTreatment(treatment: unknown, problems: Problem[]) {
   }
 }
 
+/** After the boil (app RCP-018, Q-50): whether a whirlpool follows, a boolean; no other field. */
+function checkBoil(boil: unknown, problems: Problem[]) {
+  if (!isObject(boil)) {
+    problems.push({ path: "boil", message: "The boil must be an object with the whirlpool." });
+    return;
+  }
+  for (const [key, value] of Object.entries(boil)) {
+    if (key !== "whirlpool") {
+      problems.push({ path: `boil.${key}`, message: `The boil has no field "${key}".` });
+    } else if (typeof value !== "boolean") {
+      problems.push({ path: "boil.whirlpool", message: "The whirlpool must be yes or no (true or false)." });
+    }
+  }
+}
+
 /** The fermentation (app RCP-017, Q-45): the yeast with its name and maybe grams, the target carbonation. */
 function checkFermentation(fermentation: unknown, problems: Problem[]) {
   if (!isObject(fermentation)) {
@@ -425,6 +440,9 @@ export function validateRecipe(recipe: unknown): Problem[] {
   }
   if ("water" in recipe) {
     checkWater(recipe.water, problems);
+  }
+  if ("boil" in recipe) {
+    checkBoil(recipe.boil, problems);
   }
   if ("fermentation" in recipe) {
     checkFermentation(recipe.fermentation, problems);

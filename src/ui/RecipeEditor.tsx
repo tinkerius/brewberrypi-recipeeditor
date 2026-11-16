@@ -46,6 +46,8 @@ const PATH_LABELS: Record<string, string> = {
   [`${WATER_PATH}.treatment.acid_malt`]: "Acid malt",
   [`${WATER_PATH}.treatment.lactic_acid`]: "Lactic acid",
   [`${WATER_PATH}.treatment.result`]: "Water treatment",
+  boil: "Whirlpool",
+  "boil.whirlpool": "Whirlpool",
   fermentation: "Fermentation",
   "fermentation.yeast": "Yeast",
   "fermentation.yeast.name": "Yeast",
@@ -64,12 +66,12 @@ type DesignTab = "malts" | "hops" | "water" | "fermentation";
 
 /**
  * The tab a problem of the ingredients, the batch or the water is on (EDT-045, EDT-051, QE-56), where it is entered:
- * the hops and other additions on Boiling; the water and the knockout volume on Water; the gravities on
+ * the hops, other additions and the whirlpool on Boiling; the water and the knockout volume on Water; the gravities on
  * Fermentation; else Malt.
  */
 function ingredientsTab(path: string): DesignTab | undefined {
   const about = (prefix: string) => path === prefix || path.startsWith(`${prefix}.`);
-  if (path.startsWith(`${INGREDIENTS_PATH}.hops`) || path.startsWith(`${INGREDIENTS_PATH}.others`)) {
+  if (path.startsWith(`${INGREDIENTS_PATH}.hops`) || path.startsWith(`${INGREDIENTS_PATH}.others`) || about("boil")) {
     return "hops";
   }
   if (about(`${BATCH_PATH}.plato`) || about(`${BATCH_PATH}.final_plato`) || about("fermentation")) {

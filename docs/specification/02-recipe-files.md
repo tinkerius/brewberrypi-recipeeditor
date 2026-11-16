@@ -47,6 +47,7 @@ commit (`NFR-030`).
   object, a volume that is not a number ≥ 0, in its `treatment` (`Q-46`, `EDT-069`): not an object, a residual
   alkalinity that is not a number, a carbonate hardness, gypsum or lactic acid below 0 or not a number, acid malt
   outside 0–100 %, boiling that is not yes or no, boiling without the carbonate hardness (app `Q-47`), any other field; any other field; a `description` that is not a string; in the
+  boil (app `RCP-018`): not an object, a whirlpool that is not yes or no, any other field; in the
   fermentation (app `RCP-017`): not an object, a yeast that is not an object, without a name (or an empty one), with
   grams not above 0 or any other field, a CO₂ target not above 0, any other field; any other key. An entry is named by its table and number ("Malt 2"), an addition by its entry and number ("Hop 2, addition 1"). A rest is named by its short name
   ("Mashing, Maltose rest"). A temperature outside a rest's typical range is not a problem (`EDT-033`).
@@ -60,7 +61,7 @@ commit (`NFR-030`).
   line in the brewer's order (keys `name`, `grams`, `ebc`, `alpha`, `additions`; a hop's or another addition's
   `additions` inline, each `minutes` before `grams`), then `batch` (if any) on one line, `liters`, `plato`, `final_plato`, then `water` (if any) on one line, `mash`,
   `sparge`, `top_up`, `treatment` inline (`alkalinity`, `carbonate_hardness`, `boil`, `gypsum`, `acid_malt`,
-  `lactic_acid`), then `fermentation` (if any) on one line, `yeast` (`name`, `grams`), `co2`; no `$schema`. Reading a written file gives the same recipe.
+  `lactic_acid`), then `boil` (if any) on one line, `whirlpool`, then `fermentation` (if any) on one line, `yeast` (`name`, `grams`), `co2`; no `$schema`. Reading a written file gives the same recipe.
 - `FMT-007` The samples are exactly the app's shipped recipes (app `RCP-002`; today `BENIWEISS` and `WaterBoil`);
   `EDT-016` uses `BENIWEISS`.
   The editor MUST NOT contain other recipes, not even in tests (app `Q-32`).

@@ -50,6 +50,8 @@ export interface Recipe {
   batch?: unknown;
   /** The brewing-day water in litres (app RCP-015); absent while none is set. */
   water?: unknown;
+  /** After the boil: the whirlpool (app RCP-018); absent while it is not ticked. */
+  boil?: unknown;
   /** The yeast and the target carbonation (app RCP-017); absent while neither is set. */
   fermentation?: unknown;
   [key: string]: unknown;
@@ -278,6 +280,27 @@ export function waterOf(recipe: Recipe): Record<string, unknown> {
 }
 
 /** The recipe with a water volume set, or removed when `value` is undefined; empty water leaves the file (EDT-051). */
+/** Whether the brewer does a whirlpool after the boil (app RCP-018, EDT-075). */
+export function whirlpoolOf(recipe: Recipe): boolean {
+  return isObject(recipe.boil) && recipe.boil.whirlpool === true;
+}
+
+/**
+ * The recipe with the whirlpool ticked or not (EDT-075): ticked, `boil.whirlpool` is true; unticked, it is left out,
+ * and `boil` too while it holds nothing. Any other key of `boil` is kept.
+ */
+export function withWhirlpool(recipe: Recipe, on: boolean): Recipe {
+  const { whirlpool: _whirlpool, ...more } = isObject(recipe.boil) ? recipe.boil : {};
+  const next: Record<string, unknown> = { ...(on ? { whirlpool: true } : {}), ...more };
+  const { boil: _old, ...others } = recipe;
+  if (Object.keys(next).length === 0) {
+    return others as Recipe;
+  }
+  // In the file's place: after the water, before the fermentation (FMT-006).
+  const { fermentation, ...head } = others;
+  return { ...head, boil: next, ...(fermentation !== undefined ? { fermentation } : {}) } as Recipe;
+}
+
 /** The fermentation (app RCP-017, EDT-066): the yeast and the target carbonation. */
 export function fermentationOf(recipe: Recipe): Record<string, unknown> {
   return isObject(recipe.fermentation) ? recipe.fermentation : {};
@@ -827,11 +850,11 @@ function formatEntry(entry: Record<string, unknown>): string {
 /**
  * The file content, formatted like the app's shipped recipes: "version" first (RCP-008), one line per goal, then the
  * mashing plan, one line per rest in catalogue order, then the ingredients, one line per malt and hop, then the
- * batch and the water, each on one line (FMT-006). The editor does not write "$schema" (optional,
+ * batch, the water, the boil and the fermentation, each on one line (FMT-006). The editor does not write "$schema" (optional,
  * ignored by the app).
  */
 export function serializeRecipe(recipe: Recipe): string {
-  const { $schema: _schema, version, name, description, mashing_process: process, mashing, ingredients, batch, water, fermentation, ...rest } =
+  const { $schema: _schema, version, name, description, mashing_process: process, mashing, ingredients, batch, water, boil, fermentation, ...rest } =
     recipe;
   const { goals, ...processRest } = process;
   const lines: string[] = [];
@@ -914,6 +937,11 @@ export function serializeRecipe(recipe: Recipe): string {
     // One line: { "mash": 16, "sparge": 14, "top_up": 2, "treatment": { "alkalinity": 10.3 } } (FMT-006).
     lines[lines.length - 1] += ",";
     lines.push(`  "water": ${oneLine(water)}`);
+  }
+  if (boil !== undefined) {
+    // One line: { "whirlpool": true } (FMT-006).
+    lines[lines.length - 1] += ",";
+    lines.push(`  "boil": ${oneLine(boil)}`);
   }
   if (fermentation !== undefined) {
     // One line: { "yeast": { "name": "WB-06", "grams": 11.5 }, "co2": 6.5 } (FMT-006).

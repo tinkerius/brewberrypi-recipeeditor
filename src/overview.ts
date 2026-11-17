@@ -8,7 +8,9 @@ import {
   INGREDIENT_LABELS,
   WATER_FIELDS,
   WATER_LABELS,
+  WATER_RULES,
   additionsOf,
+  batchOf,
   boilMinutesOf,
   entryGrams,
   ingredientsOf,
@@ -20,8 +22,10 @@ import {
   validAlpha,
   validBoilMinutes,
   validGrams,
+  validLiters,
   validWater,
   waterOf,
+  whirlpoolOf,
   yeastOf,
   type Ingredient,
   type Recipe,
@@ -139,54 +143,36 @@ export function ingredientList(recipe: Recipe): ListGroup[] {
 /** The boil's temperature, °C. */
 export const BOIL_TEMPERATURE = 100;
 
-/** The mash schedule at the default heating rate (the Mashing tab's rate is a view setting, not stored). */
-function mashOf(recipe: Recipe) {
-  const plan = restsOf(recipe);
-  const steps = stepsOf(plan);
-  return steps.length > 0 ? mashProfile(steps, DEFAULT_HEATING_RATE, mashInTemperature(plan)) : undefined;
-}
-
 /**
- * Heating to the boil (EDT-077, QE-91): from the mash schedule's last temperature (the mash-out) to 100 °C at the
- * same default heating rate as the mash; undefined without a mash schedule (no temperature to start from) or a boil.
+ * The rules of thumb for the brew-day steps the recipe has no time for (EDT-077, QE-92): the lauter rest and how fast
+ * the wort runs off, the whirlpool, filtering the wort off the trub, and how fast it is cooled.
  */
-function heatToBoilOf(profile: ReturnType<typeof mashOf>, boil: number | undefined) {
-  if (!profile || boil === undefined) {
-    return undefined;
-  }
-  const fromTemp = profile.points[profile.points.length - 1].temp;
-  return { fromTemp, minutes: Math.max(0, BOIL_TEMPERATURE - fromTemp) / DEFAULT_HEATING_RATE };
-}
+export const BREW_DAY_RULES = {
+  lauterRestMinutes: 15,
+  runOffLitresPerMinute: 1,
+  whirlpoolMinutes: 5,
+  filteringMinutes: 5,
+  coolingMinutesPerLitre: 1,
+} as const;
 
-export interface BrewingTime {
-  /** The mash schedule (EDT-039): its total, of which rests and heating; undefined while no rest has both values. */
-  mash?: { total: number; rests: number; heating: number };
-  /** Heating from the mash's last temperature to the boil (QE-91); undefined without the mash or the boil. */
-  heatToBoil?: { fromTemp: number; minutes: number };
-  /** The boil time (EDT-054); undefined while no boil addition has an amount and a cooking time. */
-  boil?: number;
-  /** Mash + heating to the boil + boil, while the mash and the boil are known. */
-  total?: number;
-  missing: ("mash" | "boil")[];
-}
+/** The steps of the brew day between and after the mash and the boil, in this order (QE-91, QE-92). */
+export type StageId = "lautering" | "heat-to-boil" | "whirlpool" | "filtering" | "cooling";
 
-/**
- * The brewing time (EDT-077, QE-85, QE-91): the mash schedule as on the Mashing tab, heating to the boil, and the boil
- * as in the Boil Schedule, all at the default heating rate.
- */
-export function brewingTime(recipe: Recipe): BrewingTime {
-  const profile = mashOf(recipe);
-  const mash = profile ? { total: profile.totalMinutes, rests: profile.holdMinutes, heating: profile.rampMinutes } : undefined;
-  const boil = boilMinutesOf(recipe);
-  const heatToBoil = heatToBoilOf(profile, boil);
-  const missing = [...(mash ? [] : (["mash"] as const)), ...(boil !== undefined ? [] : (["boil"] as const))];
-  return {
-    mash,
-    heatToBoil,
-    boil,
-    total: mash && heatToBoil && boil !== undefined ? mash.total + heatToBoil.minutes + boil : undefined,
-    missing,
-  };
+export const STAGE_LABELS: Record<StageId, string> = {
+  lautering: "Lautering",
+  "heat-to-boil": "Heating to the boil",
+  whirlpool: "Whirlpool",
+  filtering: "Filtering",
+  cooling: "Cooling",
+};
+
+/** One of those steps on the brew day: when, and how its time is worked out. */
+export interface TimelineStage {
+  id: StageId;
+  from: number;
+  to: number;
+  /** How its time is worked out ("15 min lauter rest + 26 L ÷ 1 L/min"). */
+  rule: string;
 }
 
 /** One addition on the brew-day timeline: what, its row (for its colour, as in the Boil Schedule), and when it goes in. */
@@ -214,20 +200,42 @@ export interface TimelineSegment {
 }
 
 export interface BrewDayTimeline {
+  /** The mash schedule, from 0:00. */
   mash?: { minutes: number; segments: TimelineSegment[] };
-  /** Heating to the boil (QE-91), right after the mash. */
-  heatToBoil?: { from: number; to: number; fromTemp: number };
+  /** Lautering and heating to the boil before the boil, whirlpool, filtering and cooling after it, in time order. */
+  stages: TimelineStage[];
   boil?: { start: number; minutes: number; additions: TimelineAddition[] };
   total: number;
 }
 
+/** One decimal for the rules' litres: "26 L", "12.5 L". */
+const litresText = (value: number) => `${oneDecimal(value)} L`;
+
 /**
- * The brew-day timeline (EDT-078, QE-87): the brewing time of EDT-077 as one line of time. The mash schedule's
- * heating and rests (as on the Mashing tab, at the default heating rate), heating to the boil (QE-91), then the boil
- * with each boil addition at the minute it goes in. Undefined while there is neither a mash schedule nor a boil.
+ * The brew day (EDT-077, EDT-078, QE-85, QE-91, QE-92): the mash schedule as on the Mashing tab (at the default
+ * heating rate; the tab's rate is a view setting, not stored), lautering, heating from the mash's last temperature to
+ * the boil at the same rate, the boil as in the Boil Schedule, the whirlpool while it is ticked, filtering and cooling.
+ * The steps the recipe has no time for are estimated from its water (BREW_DAY_RULES); a step that can't be estimated
+ * yet is left out and named in `missing`. Undefined while there is neither a mash schedule nor a boil.
  */
-export function brewDayTimeline(recipe: Recipe): BrewDayTimeline | undefined {
-  const profile = mashOf(recipe);
+function brewDay(recipe: Recipe): (BrewDayTimeline & { missing: string[] }) | undefined {
+  const plan = restsOf(recipe);
+  const steps = stepsOf(plan);
+  const profile = steps.length > 0 ? mashProfile(steps, DEFAULT_HEATING_RATE, mashInTemperature(plan)) : undefined;
+  const boilMinutes = boilMinutesOf(recipe);
+  if (!profile && boilMinutes === undefined) {
+    return undefined;
+  }
+  const rules = BREW_DAY_RULES;
+  const water = waterOf(recipe);
+  const knockout = batchOf(recipe).target_knockout_volume;
+  const stages: TimelineStage[] = [];
+  const missing: string[] = [];
+  let minute = 0;
+  const add = (id: StageId, minutes: number, rule: string) => {
+    stages.push({ id, from: minute, to: minute + minutes, rule });
+    minute += minutes;
+  };
   const mash = profile && {
     minutes: profile.totalMinutes,
     segments: profile.segments.map(
@@ -241,35 +249,114 @@ export function brewDayTimeline(recipe: Recipe): BrewDayTimeline | undefined {
       }),
     ),
   };
-  const minutes = boilMinutesOf(recipe);
-  const heat = heatToBoilOf(profile, minutes);
-  const heatToBoil = mash && heat ? { from: mash.minutes, to: mash.minutes + heat.minutes, fromTemp: heat.fromTemp } : undefined;
-  const start = heatToBoil?.to ?? mash?.minutes ?? 0;
-  const boil =
-    minutes === undefined
-      ? undefined
-      : {
-          start,
-          minutes,
-          additions: (["hops", "others"] as const)
-            .flatMap((kind) =>
-              ingredientsOf(recipe, kind).flatMap((entry, row) =>
-                additionsOf(entry)
-                  .filter((a) => validGrams(a.grams) && validBoilMinutes(a.minutes))
-                  .map((a) => ({
-                    kind,
-                    row,
-                    name: typeof entry.name === "string" && entry.name.trim() !== "" ? entry.name : `${INGREDIENT_LABELS[kind].one} ${row + 1}`,
-                    grams: a.grams as number,
-                    cooking: a.minutes as number,
-                    minute: start + minutes - (a.minutes as number),
-                  })),
-              ),
-            )
-            .sort((a, b) => a.minute - b.minute),
-        };
-  if (!mash && !boil) {
+  if (profile) {
+    minute = profile.totalMinutes;
+    // Lautering: the lauter rest, then the first wort (the mash water the grain does not keep) and the sparge water run off.
+    const mashWater = water.mash;
+    if (validWater(mashWater)) {
+      const kg = totalGrams(maltsWithAcidMalt(recipe)) / 1000;
+      const firstWort = Math.max(0, mashWater - kg * WATER_RULES.absorptionPerKg);
+      const sparge = validWater(water.sparge) ? water.sparge : 0;
+      const runOff = (firstWort + sparge) / rules.runOffLitresPerMinute;
+      add(
+        "lautering",
+        Math.round(rules.lauterRestMinutes + runOff),
+        `${rules.lauterRestMinutes} min lauter rest + (${litresText(firstWort)} first wort + ${litresText(sparge)} sparge water) ÷ ` +
+          `${rules.runOffLitresPerMinute} L/min`,
+      );
+    } else {
+      missing.push("Enter the mash water on the Water tab for the lautering.");
+    }
+    if (boilMinutes !== undefined) {
+      const fromTemp = profile.points[profile.points.length - 1].temp;
+      add(
+        "heat-to-boil",
+        Math.max(0, BOIL_TEMPERATURE - fromTemp) / DEFAULT_HEATING_RATE,
+        `from ${fromTemp} °C to ${BOIL_TEMPERATURE} °C at ${DEFAULT_HEATING_RATE} °C/min`,
+      );
+    }
+  }
+  let boil: BrewDayTimeline["boil"];
+  if (boilMinutes !== undefined) {
+    const start = minute;
+    boil = {
+      start,
+      minutes: boilMinutes,
+      additions: (["hops", "others"] as const)
+        .flatMap((kind) =>
+          ingredientsOf(recipe, kind).flatMap((entry, row) =>
+            additionsOf(entry)
+              .filter((a) => validGrams(a.grams) && validBoilMinutes(a.minutes))
+              .map((a) => ({
+                kind,
+                row,
+                name: typeof entry.name === "string" && entry.name.trim() !== "" ? entry.name : `${INGREDIENT_LABELS[kind].one} ${row + 1}`,
+                grams: a.grams as number,
+                cooking: a.minutes as number,
+                minute: start + boilMinutes - (a.minutes as number),
+              })),
+          ),
+        )
+        .sort((a, b) => a.minute - b.minute),
+    };
+    minute += boilMinutes;
+    if (whirlpoolOf(recipe)) {
+      add("whirlpool", rules.whirlpoolMinutes, `${rules.whirlpoolMinutes} min whirlpool`);
+    }
+    // The wort is filtered off the trub first, then cooled (QE-92).
+    add("filtering", rules.filteringMinutes, `${rules.filteringMinutes} min filtering`);
+    if (validLiters(knockout)) {
+      add("cooling", Math.round(knockout * rules.coolingMinutesPerLitre), `${litresText(knockout)} × ${rules.coolingMinutesPerLitre} min/L`);
+    } else {
+      missing.push("Enter the knockout volume on the Water tab for the cooling.");
+    }
+  }
+  return { mash, stages, boil, total: minute, missing };
+}
+
+export interface BrewingTime {
+  /** The mash schedule (EDT-039): its total, of which rests and heating; undefined while no rest has both values. */
+  mash?: { total: number; rests: number; heating: number };
+  /** The boil time (EDT-054); undefined while no boil addition has an amount and a cooking time. */
+  boil?: number;
+  /** The steps besides the mash and the boil, with their minutes (QE-91, QE-92). */
+  stages: { id: StageId; minutes: number; rule: string }[];
+  /** The whole brew day, while the mash and the boil are known. */
+  total?: number;
+  /** What to enter for what is not counted yet, one sentence each. */
+  missing: string[];
+}
+
+/** The brewing time (EDT-077): the brew day's total while the mash and the boil are known, and what is missing. */
+export function brewingTime(recipe: Recipe): BrewingTime {
+  const day = brewDay(recipe);
+  const profileMash = day?.mash;
+  const rests = profileMash?.segments.filter((s) => s.kind === "rest").reduce((sum, s) => sum + s.to - s.from, 0) ?? 0;
+  const mash = profileMash ? { total: profileMash.minutes, rests, heating: profileMash.minutes - rests } : undefined;
+  const boil = day?.boil?.minutes;
+  const missing = [
+    ...(mash ? [] : ["Plan the rests on the Mashing tab."]),
+    ...(boil !== undefined ? [] : ["Enter the cooking times on the Boiling tab."]),
+    ...(day?.missing ?? []),
+  ];
+  return {
+    mash,
+    boil,
+    stages: (day?.stages ?? []).map((s) => ({ id: s.id, minutes: s.to - s.from, rule: s.rule })),
+    total: mash && boil !== undefined ? day!.total : undefined,
+    missing,
+  };
+}
+
+/**
+ * The brew-day timeline (EDT-078, QE-87): the brew day as one line of time. Undefined while there is neither a mash
+ * schedule nor a boil.
+ */
+export function brewDayTimeline(recipe: Recipe): BrewDayTimeline | undefined {
+  const day = brewDay(recipe);
+  if (!day) {
     return undefined;
   }
-  return { mash, heatToBoil, boil, total: start + (boil?.minutes ?? 0) };
+  const { missing: _missing, ...timeline } = day;
+  return timeline;
 }

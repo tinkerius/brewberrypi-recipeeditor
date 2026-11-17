@@ -59,43 +59,81 @@ describe("the Overview's ingredient list (EDT-076, QE-85)", () => {
   });
 });
 
-describe("the Overview's brewing time (EDT-077, QE-85)", () => {
+describe("the Overview's brewing time (EDT-077, QE-85, QE-91, QE-92)", () => {
   const rests = { MashIn: { temperature: 57 }, MaltoseRest: { temperature: 63, minutes: 45 }, MashOut: { temperature: 78, minutes: 10 } };
   const hops = [{ name: "H", additions: [{ minutes: 60, grams: 20 }, { minutes: 10, grams: 10 }] }];
+  /** 5 kg of malt, 18 L mash and 14 L sparge water, 24 L knockout volume. */
+  const brewDay = {
+    mashing: { malts: [{ name: "Pilsner malt", grams: 5000 }], rests },
+    boiling: { whirlpool: true, hops },
+    water: { mash: 18, sparge: 14, target_knockout_volume: 24 },
+  };
 
-  it("ACC-112 adds the mash schedule at 1 °C/min, heating from the mash-out to the boil, and the boil", () => {
+  it("ACC-112 adds the mash schedule, heating to the boil and the boil, with the estimated steps", () => {
     const profile = mashProfile(stepsOf(rests), 1, 57);
-    const time = brewingTime(recipe({ mashing: { rests }, boiling: { whirlpool: true, hops } }));
-    expect(time).toEqual({
-      mash: { total: profile.totalMinutes, rests: 55, heating: 21 },
-      heatToBoil: { fromTemp: 78, minutes: 22 },
-      boil: 60,
-      total: profile.totalMinutes + 22 + 60,
-      missing: [],
-    });
     expect(profile.totalMinutes).toBe(76);
+    const time = brewingTime(recipe(brewDay));
+    expect(time.mash).toEqual({ total: 76, rests: 55, heating: 21 });
+    expect(time.boil).toBe(60);
+    expect(time.stages).toEqual([
+      { id: "lautering", minutes: 42, rule: "15 min lauter rest + (13 L first wort + 14 L sparge water) ÷ 1 L/min" },
+      { id: "heat-to-boil", minutes: 22, rule: "from 78 °C to 100 °C at 1 °C/min" },
+      { id: "whirlpool", minutes: 5, rule: "5 min whirlpool" },
+      { id: "filtering", minutes: 5, rule: "5 min filtering" },
+      { id: "cooling", minutes: 24, rule: "24 L × 1 min/L" },
+    ]);
+    expect([time.total, time.missing]).toEqual([76 + 42 + 22 + 60 + 5 + 5 + 24, []]);
+  });
+
+  it("ACC-114 estimates lautering without sparge water from the first wort, and leaves out an unticked whirlpool", () => {
+    const time = brewingTime(recipe({ ...brewDay, boiling: { hops }, water: { mash: 18, target_knockout_volume: 24 } }));
+    expect(time.stages.map((s) => [s.id, s.minutes])).toEqual([
+      ["lautering", 28],
+      ["heat-to-boil", 22],
+      ["filtering", 5],
+      ["cooling", 24],
+    ]);
+  });
+
+  it("ACC-114 counts what it can and says which water is missing for the estimates", () => {
+    const time = brewingTime(recipe({ mashing: { rests }, boiling: { hops } }));
+    expect(time.stages.map((s) => s.id)).toEqual(["heat-to-boil", "filtering"]);
+    expect([time.total, time.missing]).toEqual([
+      76 + 22 + 60 + 5,
+      ["Enter the mash water on the Water tab for the lautering.", "Enter the knockout volume on the Water tab for the cooling."],
+    ]);
   });
 
   it("ACC-112 says what is missing", () => {
-    expect(brewingTime(recipe({}))).toEqual({ mash: undefined, heatToBoil: undefined, boil: undefined, total: undefined, missing: ["mash", "boil"] });
-    // Without a mash schedule there is no temperature to heat to the boil from.
-    expect(brewingTime(recipe({ boiling: { hops } })).heatToBoil).toBeUndefined();
-    expect(brewingTime(recipe({ mashing: { rests: { MashIn: { temperature: 57 } } }, boiling: { hops } })).missing).toEqual(["mash"]);
-    expect(brewingTime(recipe({ mashing: { rests }, boiling: { hops: [{ name: "H", additions: [{ grams: 5 }] }] } })).missing).toEqual(["boil"]);
+    expect(brewingTime(recipe({}))).toEqual({
+      mash: undefined,
+      boil: undefined,
+      stages: [],
+      total: undefined,
+      missing: ["Plan the rests on the Mashing tab.", "Enter the cooking times on the Boiling tab."],
+    });
+    // Without a mash schedule there is no lautering and no temperature to heat to the boil from.
+    expect(brewingTime(recipe({ boiling: { hops }, water: { mash: 18, target_knockout_volume: 24 } })).stages.map((s) => s.id)).toEqual(["filtering", "cooling"]);
+    expect(brewingTime(recipe({ mashing: { rests: { MashIn: { temperature: 57 } } }, boiling: { hops } })).missing[0]).toBe("Plan the rests on the Mashing tab.");
+    expect(brewingTime(recipe({ mashing: { rests }, boiling: { hops: [{ name: "H", additions: [{ grams: 5 }] }] } })).missing).toEqual([
+      "Enter the cooking times on the Boiling tab.",
+      "Enter the mash water on the Water tab for the lautering.",
+    ]);
   });
 });
 
 describe("the Overview's brew-day timeline (EDT-078, QE-87)", () => {
-  it("ACC-113 puts the mash's heating and rests, heating to the boil, then the boil, each addition at its minute", () => {
+  it("ACC-113 puts the mash's heating and rests, lautering, heating to the boil, the boil and what follows in time order", () => {
     const rests = { MashIn: { temperature: 57 }, MaltoseRest: { temperature: 63, minutes: 45 }, MashOut: { temperature: 78, minutes: 10 } };
     const timeline = brewDayTimeline(
       recipe({
-        mashing: { rests },
+        mashing: { malts: [{ name: "Pilsner malt", grams: 5000 }], rests },
         boiling: {
           whirlpool: true,
           hops: [{ name: "H", additions: [{ minutes: 60, grams: 20 }, { minutes: 10, grams: 10 }, { grams: 5 }] }, { name: "", additions: [{ minutes: 0, grams: 5 }] }],
           others: [{ name: "Irish Moss", additions: [{ minutes: 10, grams: 5 }] }],
         },
+        water: { mash: 18, sparge: 14, target_knockout_volume: 24 },
       }),
     )!;
     // The Mashing tab's schedule at 1 °C/min, as stretches of heating and rests.
@@ -106,23 +144,29 @@ describe("the Overview's brew-day timeline (EDT-078, QE-87)", () => {
       { kind: "heat", restId: "MashOut", fromTemp: 63, temp: 78, from: 51, to: 66 },
       { kind: "rest", restId: "MashOut", fromTemp: 78, temp: 78, from: 66, to: 76 },
     ]);
-    expect(timeline.heatToBoil).toEqual({ from: 76, to: 98, fromTemp: 78 });
-    expect([timeline.boil!.start, timeline.boil!.minutes, timeline.total]).toEqual([98, 60, 158]);
+    expect(timeline.stages.map((s) => [s.id, s.from, s.to])).toEqual([
+      ["lautering", 76, 118],
+      ["heat-to-boil", 118, 140],
+      ["whirlpool", 200, 205],
+      ["filtering", 205, 210],
+      ["cooling", 210, 234],
+    ]);
+    expect([timeline.boil!.start, timeline.boil!.minutes, timeline.total]).toEqual([140, 60, 234]);
     // In the order they go in; one without a cooking time is left out; one without a name is called by its row.
     expect(timeline.boil!.additions.map((a) => [a.kind, a.row, a.name, a.minute])).toEqual([
-      ["hops", 0, "H", 98],
-      ["hops", 0, "H", 148],
-      ["others", 0, "Irish Moss", 148],
-      ["hops", 1, "Hop 2", 158],
+      ["hops", 0, "H", 140],
+      ["hops", 0, "H", 190],
+      ["others", 0, "Irish Moss", 190],
+      ["hops", 1, "Hop 2", 200],
     ]);
   });
 
   it("ACC-113 has only the boil without a mash schedule, only the mash without a boil, and nothing without both", () => {
     const hops = [{ name: "H", additions: [{ minutes: 60, grams: 20 }] }];
     const onlyBoil = brewDayTimeline(recipe({ boiling: { hops } }))!;
-    expect([onlyBoil.mash, onlyBoil.boil!.start, onlyBoil.total]).toEqual([undefined, 0, 60]);
+    expect([onlyBoil.mash, onlyBoil.boil!.start, onlyBoil.total, onlyBoil.stages.map((s) => s.id)]).toEqual([undefined, 0, 65, ["filtering"]]);
     const onlyMash = brewDayTimeline(recipe({ mashing: { rests: { MashIn: { temperature: 63 }, MaltoseRest: { temperature: 63, minutes: 45 } } } }))!;
-    expect([onlyMash.boil, onlyMash.total, onlyMash.mash!.segments.map((s) => s.kind)]).toEqual([undefined, 45, ["rest"]]);
+    expect([onlyMash.boil, onlyMash.total, onlyMash.mash!.segments.map((s) => s.kind), onlyMash.stages]).toEqual([undefined, 45, ["rest"], []]);
     expect(brewDayTimeline(recipe({}))).toBeUndefined();
   });
 });

@@ -1,7 +1,7 @@
 /**
  * The brew-day timeline on the Overview tab (EDT-078, QE-87): the brewing time as one bar of time, left to right. The
- * mash's heating (striped) and rests (solid berry, with their temperature and name where they fit), heating to the
- * boil (striped brass, QE-91), the boil in brass; above the bar one
+ * mash's heating (striped) and rests (solid berry, with their temperature and name where they fit), the lautering,
+ * heating to the boil (striped brass, QE-91), the boil in brass, then the whirlpool, filtering and cooling (QE-92); above the bar one
  * icon at each minute something goes into the boil, in its Boil Schedule colour (QE-89), with all that goes in then in
  * its tooltip. Below it a brew-day clock (h:mm) and a legend.
  */
@@ -9,7 +9,7 @@
 import type { ComponentChildren } from "preact";
 import { MASH_IN_INFO, MASH_RESTS, isMashRestId } from "../model";
 import { formatMinutes } from "../mashSchedule";
-import type { BrewDayTimeline as Timeline, TimelineAddition, TimelineSegment } from "../overview";
+import { STAGE_LABELS, type BrewDayTimeline as Timeline, type StageId, type TimelineAddition, type TimelineSegment, type TimelineStage } from "../overview";
 import { AdditionIcon } from "./AdditionIcon";
 import { rowColour } from "./IngredientsTab";
 import { useWidth } from "./useWidth";
@@ -23,6 +23,15 @@ export const clock = (minute: number) => `${Math.floor(minute / 60)}:${String(Ma
 
 /** The heating's stripes over the rest colour, light and dark. */
 const STRIPES = { backgroundImage: "repeating-linear-gradient(135deg, transparent 0 4px, rgb(255 255 255 / 0.45) 4px 7px)" };
+
+/** How each step besides the mash and the boil looks on the bar (QE-91, QE-92). */
+const STAGE_STYLES: Record<StageId, { bar: string; striped?: boolean }> = {
+  lautering: { bar: "bg-leaf-light text-ink dark:bg-leaf dark:text-ink-light" },
+  "heat-to-boil": { bar: "bg-brass-light/60 dark:bg-brass/60", striped: true },
+  whirlpool: { bar: "bg-brass-light text-ink dark:bg-brass/70 dark:text-ink-light" },
+  cooling: { bar: "bg-sky-300 text-ink dark:bg-sky-700 dark:text-ink-light" },
+  filtering: { bar: "bg-stone-300 text-ink dark:bg-stone-600 dark:text-ink-light" },
+};
 
 const restName = (id: string) => (isMashRestId(id) ? MASH_RESTS[id].short : id === "MashIn" ? MASH_IN_INFO.label : id);
 
@@ -83,6 +92,31 @@ export function BrewDayTimeline(props: { timeline: Timeline }) {
   // The icon shown at each minute, and so the kinds the legend explains.
   const shownAt = (all: TimelineAddition[]) => all.find((a) => a.kind === "hops") ?? all[0];
   const kinds = new Set([...atMinute.values()].map((all) => shownAt(all).kind));
+  // Lautering, heating to the boil, whirlpool, filtering and cooling (QE-91, QE-92): before or after the boil.
+  const stages = timeline.stages;
+  const boilStart = boil?.start ?? Infinity;
+  const stage = (st: TimelineStage) => {
+    const style = STAGE_STYLES[st.id];
+    const minutes = st.to - st.from;
+    return (
+      <div
+        key={st.id}
+        class={`absolute inset-y-0 flex items-center justify-center overflow-hidden whitespace-nowrap text-[11px] font-semibold ${style.bar}`}
+        style={{ left: pct(st.from), width: pct(minutes), ...(style.striped ? STRIPES : {}) }}
+        title={`${STAGE_LABELS[st.id]}: ${st.id === "heat-to-boil" ? "" : "≈ "}${formatMinutes(minutes)}, from ${clock(st.from)} (${st.rule})`}
+        data-timeline-segment={st.id}
+      >
+        {style.striped ? undefined : fit(minutes, STAGE_LABELS[st.id])}
+      </div>
+    );
+  };
+  const stageKey = (st: TimelineStage) => (
+    <Key
+      key={st.id}
+      swatch={<span class={`h-3 w-5 rounded-sm ${STAGE_STYLES[st.id].bar}`} style={STAGE_STYLES[st.id].striped ? STRIPES : undefined} />}
+      label={STAGE_LABELS[st.id]}
+    />
+  );
   return (
     <div ref={box} class="mb-3" data-brew-day-timeline>
       <div>
@@ -137,17 +171,7 @@ export function BrewDayTimeline(props: { timeline: Timeline }) {
                 </div>
               );
             })}
-            {/* Heating to the boil (QE-91): striped, in the boil's colour. */}
-            {timeline.heatToBoil && (
-              <div
-                class="absolute inset-y-0 bg-brass-light/60 dark:bg-brass/60"
-                style={{ left: pct(timeline.heatToBoil.from), width: pct(timeline.heatToBoil.to - timeline.heatToBoil.from), ...STRIPES }}
-                title={`Heating to the boil from ${timeline.heatToBoil.fromTemp} °C to 100 °C: ${formatMinutes(
-                  timeline.heatToBoil.to - timeline.heatToBoil.from,
-                )}, from ${clock(timeline.heatToBoil.from)}`}
-                data-timeline-segment="heat-to-boil"
-              />
-            )}
+            {stages.filter((st) => st.to <= boilStart).map(stage)}
             {boil && (
               <div
                 class="absolute inset-y-0 flex items-center justify-center overflow-hidden whitespace-nowrap bg-brass text-[11px] font-semibold text-ink dark:bg-brass-light"
@@ -158,6 +182,7 @@ export function BrewDayTimeline(props: { timeline: Timeline }) {
                 {fit(boil.minutes, "Boil 100 °C", "Boil", "100°")}
               </div>
             )}
+            {stages.filter((st) => st.to > boilStart).map(stage)}
             {/* Each addition's minute, as a notch through the boil. */}
             {[...atMinute.keys()].map((minute) => (
               <span key={`n${minute}`} class="absolute inset-y-0 w-0.5 -translate-x-1/2 bg-white/80 dark:bg-surface-dark/80" style={{ left: pct(minute) }} />
@@ -186,10 +211,9 @@ export function BrewDayTimeline(props: { timeline: Timeline }) {
             <Key swatch={<span class="h-3 w-5 rounded-sm bg-berry dark:bg-berry-light" />} label="Rest" />
           </>
         )}
-        {timeline.heatToBoil && (
-          <Key swatch={<span class="h-3 w-5 rounded-sm bg-brass-light/60 dark:bg-brass/60" style={STRIPES} />} label="Heating to the boil" />
-        )}
+        {stages.filter((st) => st.to <= boilStart).map(stageKey)}
         {boil && <Key swatch={<span class="h-3 w-5 rounded-sm bg-brass dark:bg-brass-light" />} label="Boil" />}
+        {stages.filter((st) => st.to > boilStart).map(stageKey)}
         {kinds.has("hops") && <Key swatch={<AdditionIcon kind="hops" colour="var(--hop-1)" size={14} />} label="Hop" />}
         {kinds.has("others") && <Key swatch={<AdditionIcon kind="others" colour="var(--addition-1)" size={14} />} label="Other addition" />}
       </div>

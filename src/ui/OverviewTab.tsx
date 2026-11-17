@@ -9,7 +9,7 @@ import { useState } from "preact/hooks";
 import type { Problem } from "../validate";
 import { withDescription, type Recipe } from "../model";
 import { DEFAULT_HEATING_RATE, formatMinutes } from "../mashSchedule";
-import { brewDayTimeline, brewingTime, ingredientList, type ListGroup, type ListLine, type ListTab } from "../overview";
+import { STAGE_LABELS, brewDayTimeline, brewingTime, ingredientList, type ListGroup, type ListLine, type ListTab } from "../overview";
 import { BrewDayTimeline } from "./BrewDayTimeline";
 import { TextField } from "./fields";
 import { InfoButton, InfoContent, INFO_PANEL } from "./info";
@@ -98,11 +98,8 @@ export function OverviewTab(props: {
   const time = brewingTime(props.recipe);
   const timeline = brewDayTimeline(props.recipe);
   const [about, setAbout] = useState(false);
-  // What to enter while a part of the brewing time is missing.
-  const missing = [
-    ...(time.mash ? [] : ["Plan the rests on the Mashing tab."]),
-    ...(time.boil !== undefined ? [] : ["Enter the cooking times on the Boiling tab."]),
-  ];
+  // What to enter while a part of the brewing time is missing (or can't be estimated yet).
+  const missing = time.missing;
   return (
     <>
       <section aria-labelledby="description-title">
@@ -146,10 +143,21 @@ export function OverviewTab(props: {
               <InfoContent
                 info={{
                   explanation:
-                    "The mash schedule of the Mashing tab (heating to each rest and the rests), heating from its last temperature to " +
-                    "the boil, and the total boil time of the Boil Schedule. Not counted: heating the water to the mash-in, " +
-                    "lautering, the whirlpool, filtering and cooling.",
-                  calculation: `Heating at ${DEFAULT_HEATING_RATE} °C/min.`,
+                    "The whole brew day: the mash schedule of the Mashing tab, lautering, heating to the boil, the Boil " +
+                    "Schedule's boil, the whirlpool (while it is ticked), filtering and cooling. Not counted: heating the water to " +
+                    "the mash-in. The steps the recipe has no time for are rules of thumb, worked out from its water:",
+                  calculation: (
+                    <ul class="list-disc pl-4" data-brew-time-rules>
+                      <li>Mashing and heating to the boil: heating at {DEFAULT_HEATING_RATE} °C/min.</li>
+                      {time.stages
+                        .filter((st) => st.id !== "heat-to-boil")
+                        .map((st) => (
+                          <li key={st.id}>
+                            {STAGE_LABELS[st.id]}: {formatMinutes(st.minutes)} = {st.rule}.
+                          </li>
+                        ))}
+                    </ul>
+                  ),
                 }}
               />
             </div>

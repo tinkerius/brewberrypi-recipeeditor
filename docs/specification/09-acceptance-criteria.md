@@ -357,21 +357,30 @@ a release that changes sign-in or Drive behaviour.
   then under "Other additions" Irish Moss 10 g), Yeast (WB-06 11.5 g), Water (Mash water 16 L, Sparge water 14 L, Total 30 L)
   and Water treatment (Brewing gypsum 2.4 g); a group's link opens its tab. An empty recipe shows "No ingredients
   yet.".
-- `ACC-112` (EDT-077, QE-85, QE-88, QE-91) For a plan of mash-in 57 °C, Maltose rest 63 °C 45 min and Mash-out 78 °C 10 min
-  (the Mashing tab's "Total mash time 1 h 16 min" at 1 °C/min) and hops of 60 and 10 min, the line right below the
-  heading Brewing time and above the timeline reads "Total brewing time: 2 h 38 min" (with 22 min heating from 78 °C to
-  the boil), its ⓘ saying what is not counted; the section has no table of figures. Without rests and cooking times the total is "–" with "Plan the
-  rests on the Mashing tab. Enter the cooking times on the Boiling tab."; with only the boil, "–" with "Plan the
-  rests on the Mashing tab.".
-- `ACC-113` (EDT-078, QE-87, QE-88, QE-89, QE-91) For that plan, hops Hallertauer 20 g 60 min and 10 g 10 min, Irish Moss 5 g
-  10 min and the whirlpool ticked, the brew-day timeline below the total brewing time has the phases "Mashing · 1 h
-  16 min" and "Boil · 60 min" over a bar of heating 0:00–0:06, "Maltose rest 63°" 0:06–0:51, heating, the Mash-out
-  from 1:06, "Heating to the boil from 78 °C to 100 °C: 22 min, from 1:16" and the boil from 1:38 (tooltips
-  "Heating from 57 °C to 63 °C: 6 min, from 0:00", …); above it two hop icons, at 1:38 ("Hallertauer: 20 g at 1:38,
-  cooks 60 min") and at 2:28, which the hop and the Irish Moss share (both in its tooltip); no whirlpool; the clock
-  from 0:00, and the legend Heating, Rest, Heating to the boil, Boil, Hop; its label reads "Brew day: mashing 1 h 16 min in 2 rests, boil 60 min with 3
-  additions.". The stretches are the Mashing tab's; without a mash schedule the boil starts at 0:00, without a boil
-  there is only the mash, and without both there is no timeline.
+- `ACC-112` (EDT-077, QE-85, QE-88, QE-91, QE-92) For a plan of mash-in 57 °C, Maltose rest 63 °C 45 min and Mash-out
+  78 °C 10 min (the Mashing tab's "Total mash time 1 h 16 min" at 1 °C/min), 5 kg of malt, hops of 60 and 10 min,
+  the whirlpool ticked, 18 L mash and 14 L sparge water and 24 L knockout volume, the line right below the heading
+  Brewing time and above the timeline reads "Total brewing time: 3 h 54 min" (1 h 16 min + 42 min lautering + 22 min
+  heating to the boil + 60 min + 5 min whirlpool + 5 min filtering + 24 min cooling), its ⓘ saying that heating the
+  water to the mash-in is not counted and listing the rules ("Lautering: 42 min = 15 min lauter rest + (13 L first
+  wort + 14 L sparge water) ÷ 1 L/min.", "Whirlpool: 5 min = 5 min whirlpool.", "Filtering: 5 min = 5 min
+  filtering.", "Cooling: 24 min = 24 L × 1 min/L."); the section has no table of figures. Without rests and cooking
+  times the total is "–" with "Plan the rests on the Mashing tab. Enter the cooking times on the Boiling tab.".
+- `ACC-113` (EDT-078, QE-87, QE-88, QE-89, QE-91, QE-92) For that brew day the timeline below the total brewing time
+  has the phases "Mashing · 1 h 16 min" and "Boil · 60 min" over a bar, in this order, of heating from 0:00,
+  "Maltose rest 63°" from 0:06, heating, the Mash-out from 1:06, "Lautering: ≈ 42 min, from 1:16 (…)", "Heating to
+  the boil: 22 min, from 1:58 (from 78 °C to 100 °C at 1 °C/min)", the boil from 2:20, "Whirlpool: ≈ 5 min, from
+  3:20", "Filtering: ≈ 5 min, from 3:25" and "Cooling: ≈ 24 min, from 3:30"; above it two hop icons, at 2:20
+  ("Hallertauer: 20 g at 2:20, cooks 60 min") and at 3:10, which the hop and the Irish Moss (10 min) share (both in
+  its tooltip); no whirlpool icon; the clock 0:00 … 3:30 and the end 3:54; the legend Heating, Rest, Lautering,
+  Heating to the boil, Boil, Whirlpool, Filtering, Cooling, Hop; its label reads "Brew day: mashing 1 h 16 min in 2
+  rests, boil 60 min with 3 additions.". Without a mash schedule the boil starts at 0:00 (then filtering), without a
+  boil there is only the mash, and without both there is no timeline.
+- `ACC-114` (EDT-077, QE-92) Without sparge water the lautering runs off the first wort only (18 L mash water, 5 kg
+  malt: 15 + 13 = 28 min); an unticked whirlpool is left out. The same brew day without water is "Total brewing
+  time: 2 h 48 min" (no lautering, no cooling) with "Enter the mash water on the Water tab for the lautering. Enter
+  the knockout volume on the Water tab for the cooling."; with only the boil, "–" with "Plan the rests on the
+  Mashing tab. Enter the knockout volume on the Water tab for the cooling.".
 - `ACC-020` (BRW-001) A draft stored, then the store opened again (a reload), gives the same draft; it can be
   deleted.
 - `ACC-021` (BRW-002, BRW-003) The banner says "only stored in this browser and can be lost" when the storage works

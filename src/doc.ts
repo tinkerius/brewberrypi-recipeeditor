@@ -40,8 +40,16 @@ export function problemsOf(doc: Doc): Problem[] {
   return [...validateId(doc.id), ...validateRecipe(doc.recipe)];
 }
 
+/**
+ * 32 random hex digits. Not crypto.randomUUID: browsers offer it only on https:// and localhost pages, so the editor
+ * would fail when the dev server is opened from another computer by its IP address.
+ */
+export function randomHex(): string {
+  return Array.from(crypto.getRandomValues(new Uint8Array(16)), (b) => b.toString(16).padStart(2, "0")).join("");
+}
+
 export function randomKey(): string {
-  return `draft-${crypto.randomUUID()}`;
+  return `draft-${randomHex()}`;
 }
 
 export function newDoc(id: string, recipe: Recipe): Doc {

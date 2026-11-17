@@ -56,10 +56,14 @@ At [console.cloud.google.com](https://console.cloud.google.com):
      needed. Google may still review the branding (logo, name) before the logo is shown.
    - **Clients** → Create client → **Web application**, name `recipes.brewberrypi.org`:
      - Authorized JavaScript origins: `https://recipes.brewberrypi.org` and `http://localhost:5173` (development).
+       For a GitHub codespace opened in the browser, also its forwarded address
+       `https://<codespace-name>-5173.app.github.dev` (one per codespace; Google allows no wildcards). Remove it when
+       the codespace is deleted.
      - Authorized redirect URIs: none (the token model uses a pop-up).
      - Note the **client ID**.
 4. APIs & Services → **Credentials** → Create credentials → **API key** (for the Picker):
-   - Application restrictions: **Websites**: `https://recipes.brewberrypi.org/*` and `http://localhost:5173/*`.
+   - Application restrictions: **Websites**: `https://recipes.brewberrypi.org/*` and `http://localhost:5173/*`
+     (and a codespace's `https://<codespace-name>-5173.app.github.dev/*`, as above).
    - API restrictions: **Google Picker API** only.
    - Note the **key**.
 5. Project settings (☰ → IAM & Admin → Settings): note the **project number**. The Picker needs it so that picked

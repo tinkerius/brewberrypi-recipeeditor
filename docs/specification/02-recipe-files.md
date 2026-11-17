@@ -6,17 +6,36 @@ commit (`NFR-030`).
 
 ## 2.1 Format and validation
 
-- `FMT-001` The editor reads and writes the app's **latest recipe file format version** (today 2):
-  `{"version": 2, "name": …, "mashing_process": {"goals": [ … ]}}`, one recipe per file. The goals MAY be empty
-  (app `Q-34`); `mashing_process` is always there.
+- `FMT-001` The editor reads and writes the app's **latest recipe file format version** (today 3):
+  `{"version": 3, "name": …, "description": …, "mashing_process": {"goals": [ … ]}, "mashing": {"malts", "rests"},
+  "boiling": {"whirlpool", "hops", "others"}, "water": { …, "target_knockout_volume", "treatment" },
+  "fermentation": {"original_gravity", "final_gravity", "yeast", "co2"}}`, one recipe per file (app `Q-51`, `QE-84`). The goals MAY be empty (app `Q-34`); `mashing_process` is always there. `mashing` (app
+  `RCP-012`) holds the malts (`mashing.malts`, app `RCP-013`, `QE-34`, only while there is a malt, `EDT-042`) and the mashing
+  plan (`mashing.rests`, `QE-32`, only while the brewer plans a rest or enters the mash-in temperature, `EDT-034`); `boiling` (app
+  `RCP-018`) the whirlpool (`EDT-075`) and the hops and other additions (`boiling.hops`, `boiling.others`, only while there is one,
+  `EDT-042`, `EDT-060`); a section is there only while it holds something. The knockout volume (app `RCP-014`, `QE-35`) is
+  `water.target_knockout_volume`, the gravities `fermentation.original_gravity` and `final_gravity` (`EDT-050`); `water` (app `RCP-015`, `QE-36`) only while a water volume, the knockout volume or a water treatment field (`EDT-069`) is set
+  (`EDT-051`); `description` (app `RCP-016`, `QE-55`) only while it is not empty (`EDT-065`); `fermentation` (app
+  `RCP-017`, `QE-57`) only while a gravity, a yeast field or the CO₂ target is set (`EDT-066`).
 - `FMT-002` The file name is the recipe id: `^[A-Za-z0-9_-]+$` (app `RCP-001`). Files carry no `id` field.
 - `FMT-003` Reading a file:
-  - without `version`, or in version 1 → read as the latest version, content unchanged (app migrator 1 → 2
-    changes nothing but the version);
+  - without `version`, or in version 1 or 2 → read as the latest version, content unchanged (app migrators 1 → 2
+    and 2 → 3 change nothing but the version);
   - old flat format (`goals` at the top level, before app `Q-31`) → the goals are moved into `mashing_process`
     and the editor says so (`EDT-021`);
-  - a `version` that is not 1 or 2 and not a whole number above 2 → written as the latest version, and the editor
-    says so;
+  - a `version` that is not 1, 2 or 3 and not a whole number above 3 → written as the latest version, and the
+    editor says so;
+  - a hop or other addition with an amount or cooking time of its own (`grams`, `minutes`; version 3 before app
+    `Q-43`, never released) → moved into its additions (`EDT-061`): its only addition while it has none, else its
+    first unless an addition with the same values is there; nothing is dropped, and the editor says so ("Converted:
+    hop 1 "Hallertauer": its own amount and cooking time are moved into its additions."). Drafts kept in the browser
+    are converted the same way when the editor starts (`QE-53`);
+  - the sections of an earlier draft of version 3 (before app `Q-51`, never released; `QE-84`) → moved to their
+    places: the rests directly in `mashing` into `mashing.rests`, `ingredients.malts` into `mashing`, `ingredients.hops`
+    and `others` and `boil.whirlpool` into `boiling`, `batch.liters` into `water.target_knockout_volume`, `batch.plato`
+    and `final_plato` into `fermentation.original_gravity` and `final_gravity`. A value is moved only where its new place
+    is free and its old section is an object; what can't be moved stays (and is a problem, `FMT-004`), so nothing is
+    dropped; the editor says so ("Converted: its malts are moved into "mashing"; …").
   - a `version` above the latest → **refused**: the recipe cannot be opened, with the message that it was written
     for a newer BrewberryPi app. The editor MUST NOT drop what it does not know.
   - not JSON → refused with the parser's message (upload: listed as not opened; Drive: shown as a load error).
@@ -24,13 +43,36 @@ commit (`NFR-030`).
   problem with where it is (file name, recipe name, goal n and its field). Problems:
   file name missing or invalid; name empty; `mashing_process` or its `goals` missing or not a list; unknown goal
   type; a parameter missing, of the wrong type or out of range (temperature 0…110 °C, minutes a whole number ≥ 0);
-  a Rest with only one of name and description; a field the goal type does not take; any other key.
+  a Rest with only one of name and description; a field the goal type does not take; in the mashing plan
+  (app `RCP-012`): not an object, an unknown rest, a rest that is not an object, a rest without temperature or
+  minutes or with any other field, a plan without the mash-in's temperature or a mash-in with any other field (app `Q-48`), an iodine test that is
+  not an empty object (app `Q-49`), the same ranges as for goals; in `mashing` (app `RCP-012`): not an object, a field other
+  than `malts` and `rests`; in `boiling` (app `RCP-018`): not an object, a whirlpool that is not yes or no, a field other than
+  `whirlpool`, `hops` and `others`; in the ingredient lists (app `RCP-013`): a list that is not a list, an entry that is not an object, without a name
+  (or an empty one), a malt without grams, grams that are not a whole number ≥ 1, a malt's EBC below 0, a hop's alpha
+  acid outside 0–100, a hop or another addition without `additions` (a list of at least one; app `Q-43`, `QE-49`),
+  an addition that is not an object, without grams, with a boil time that is not a whole number ≥ 0 or with any
+  other field, alpha acid on another addition, any other field of an entry; in the water (app `RCP-015`): not an
+  object, a volume that is not a number ≥ 0, a knockout volume not above 0 (app `RCP-014`), in its `treatment` (`Q-46`, `EDT-069`): not an object, a residual
+  alkalinity that is not a number, a carbonate hardness, gypsum or lactic acid below 0 or not a number, acid malt
+  outside 0–100 %, boiling that is not yes or no, boiling without the carbonate hardness (app `Q-47`), any other field; any other field; a `description` that is not a string; in the
+  fermentation (app `RCP-017`): not an object, an original or final gravity outside 0–40 °P, a yeast that is not an object, without a name (or an empty one), with
+  grams not above 0 or any other field, a CO₂ target not above 0, any other field; any other key (also the draft sections
+  `ingredients`, `batch` and `boil` where they could not be converted). An entry is named by its table and number ("Malt 2"), an addition by its entry and number ("Hop 2, addition 1"). A rest is named by its short name
+  ("Mashing, Maltose rest"). A temperature outside a rest's typical range is not a problem (`EDT-033`).
   Messages name goal types by their display name (e.g. "A Heat Up goal needs a temperature."), never by the type
   name of the file; only a type the editor does not know is quoted as written in the file (`QE-24`).
 - `FMT-005` A file with problems is still opened, keeping every field it had, so the brewer sees and fixes the
   problems (`EDT-020`). Fields a goal type does not take can be removed with one action.
 - `FMT-006` Written files (download, Drive) are formatted like the app's shipped recipes: `version` first, then
-  `name`, then `mashing_process` with one goal per line; no `$schema`. Reading a written file gives the same recipe.
+  `name`, then `description` (if any) on one line, then `mashing_process` with one goal per line, then `mashing` (if any):
+  `malts` with one entry per line, then `rests` with one rest per line in the
+  order of the rest table (`EDT-031`, the mash-in first, the iodine test as `{}` before the mash-out), then `boiling` (if any):
+  `whirlpool`, then `hops` and `others` with one entry per line; entries in the brewer's order (keys `name`, `grams`,
+  `ebc`, `alpha`, `additions`; a hop's or another addition's `additions` inline, each `minutes` before `grams`), then
+  `water` (if any) on one line, `mash`, `sparge`, `top_up`, `target_knockout_volume`, `treatment` inline (`alkalinity`,
+  `carbonate_hardness`, `boil`, `gypsum`, `acid_malt`, `lactic_acid`), then `fermentation` (if any) on one line,
+  `original_gravity`, `final_gravity`, `yeast` (`name`, `grams`), `co2`; no `$schema` (app `Q-51`). Reading a written file gives the same recipe.
 - `FMT-007` The samples are exactly the app's shipped recipes (app `RCP-002`; today `BENIWEISS` and `WaterBoil`);
   `EDT-016` uses `BENIWEISS`.
   The editor MUST NOT contain other recipes, not even in tests (app `Q-32`).

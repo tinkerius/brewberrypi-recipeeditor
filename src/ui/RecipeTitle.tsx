@@ -2,8 +2,19 @@
 
 import { useEffect, useLayoutEffect, useRef, useState } from "preact/hooks";
 import { INVALID_INPUT, TITLE_STYLE } from "./styles";
+import { FieldNotes, type Note } from "./notes";
 
-export function RecipeTitle(props: { docKey: string; name: string; invalid: boolean; onChange: (name: string) => void }) {
+export function RecipeTitle(props: { docKey: string; name: string; invalid: boolean; notes?: Note[]; onChange: (name: string) => void }) {
+  return (
+    <div>
+      <TitleField {...props} />
+      {/* The name's error at the title (EDT-062). */}
+      <FieldNotes notes={props.notes ?? []} class="mt-1" />
+    </div>
+  );
+}
+
+function TitleField(props: { docKey: string; name: string; invalid: boolean; onChange: (name: string) => void }) {
   // A recipe without a name (a new one) starts with the field open.
   const [editing, setEditing] = useState(props.name === "");
   const before = useRef(props.name);

@@ -37,7 +37,11 @@ export const INPUT_STYLE =
   "placeholder:text-stone-400 focus-visible:outline-2 focus-visible:outline-berry-light " +
   "dark:bg-white/10 dark:text-ink-light dark:ring-white/10 dark:focus-visible:outline-berry-light";
 
-export const INVALID_INPUT = "ring-red-400 dark:ring-red-400/60";
+/** Missing or wrong data (EDT-062): a red ring, like the warning's amber one. */
+export const INVALID_INPUT = "ring-2! ring-red-500! dark:ring-red-400!";
+
+/** A value worth a second look, but valid (EDT-033). */
+export const WARN_INPUT = "ring-2! ring-amber-500! dark:ring-brass-light!";
 
 export const SELECT_STYLE =
   "rounded-md bg-white px-3 py-2 text-sm font-medium text-ink ring-1 ring-line-2 ring-inset " +
@@ -49,6 +53,9 @@ export const CARD_STYLE = "rounded-lg bg-white p-4 ring-1 ring-line sm:p-6 dark:
 
 /** Card and dialog titles: Zilla Slab Bold, as the website's headings. */
 export const TITLE_STYLE = "font-brand text-xl font-bold leading-tight text-ink dark:text-ink-light";
+
+/** Section headings inside a tab (the Mashing tab's "Temperature Ladder" and "Rests"): one size smaller. */
+export const SECTION_TITLE_STYLE = "font-brand text-lg font-bold leading-tight text-ink dark:text-ink-light";
 
 export const LABEL_STYLE = "block text-xs font-medium text-stone-600 dark:text-stone-300";
 

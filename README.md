@@ -3,8 +3,17 @@
 Web editor for BrewberryPi brewing recipes: **https://recipes.brewberrypi.org**
 
 BrewberryPi is a Raspberry Pi controller for a home-brewing mash kettle. It brews from recipes: JSON files, one per
-recipe, in its recipe folder (`{"version": 2, "name": …, "mashing_process": {"goals": […]}}`; the goals may be empty,
-then the app lists the recipe but can't brew it). The editor writes the
+recipe, in its recipe folder (`{"version": 3, "name": …, "description": …, "mashing_process": {"goals": […]}, "mashing": {"malts": […], "rests": {…}},
+"boiling": {"whirlpool": true, "hops": […], "others": […]}, "water": {…, "target_knockout_volume": …}, "fermentation": {"original_gravity": …, "final_gravity": …, …}}`; the goals may be empty, then the app lists the recipe but
+can't brew it). A recipe has seven tabs: **Overview**, the recipe's description; **Malt**, the malts with their amounts, shares and colours, and the beer
+colour; **Mashing**, the brewer's mashing plan (the rests planned, each with temperature and duration); **Boiling**,
+the boil schedule, the hops (alpha acid, one or more additions each with cooking time and amount, shares, the bitterness) and other boil additions;
+**Water**, the mash, sparge and top-up water with their typical values, the knockout volume, total water and mash
+thickness, and the water treatment (the residual alkalinity after boiling, gypsum, acid malt and lactic acid); **Fermentation**,
+the original and final gravity with the alcohol, the yeast and the CO₂ target; and **Mash Process**,
+the goals the app brews. The app keeps the description, the mashing (malts and plan), the boiling, the water and the fermentation in the
+file but doesn't use them. Errors (missing or wrong data) and warnings (values outside their typical range) are shown
+at their fields, listed on the Overview tab and counted on each tab. The editor writes the
 app's current format version. Files in the old format (goals at the top level) are converted when opened; files of a
 newer format version are refused. This editor creates and edits those files in the browser. It is a static site on GitHub
 Pages, with no backend.
@@ -53,10 +62,16 @@ within seconds.
 | `scripts/sync-upstream.sh` | Copies those files again; `--check` (CI) fails if they differ |
 | `tests/` | Vitest, each test named after the acceptance criterion it checks (`ACC-nnn ...`): validator (checked against Ajv and the schema), stores (fake IndexedDB, fake Drive), sync, components; `spec.test.ts` fails when an automated criterion has no test |
 | `docs/google-setup.md` | One-time setup: Google Cloud, domain, DNS, GitHub Pages, repository variables |
+| `.devcontainer/` | Development container (Node 22, Claude Code) for VS Code and GitHub Codespaces |
+| `.env.example` | Template for `.env.local`, the Google settings of the dev server (Development) |
 
 ## Development
 
-Node 22.
+Node 22, either installed on your machine or in the development container: in VS Code, *Dev Containers: Reopen in
+Container* (needs Docker), or create a GitHub codespace. The container runs `npm ci` itself, has Claude Code (the
+`claude` command and the VS Code extension; sign in once; locally the sign-in survives a rebuild of the container), and forwards the dev
+server to `http://localhost:5173`. Only this repository is in the container: run `scripts/sync-upstream.sh` on the
+host, or clone brewberrypi-app and brewberrypi inside.
 
 ```bash
 npm ci
@@ -67,13 +82,23 @@ npm run dev
 ```
 
 Opens http://localhost:5173. Without Google settings the editor works signed out, and the sign-in button is disabled. To
-sign in locally, put the values from `docs/google-setup.md` into `.env.local` (git-ignored):
+sign in locally, also in the development container, copy the template `.env.example` to `.env.local` (git-ignored),
+fill in the values from `docs/google-setup.md` §4 (the same as the repository variables of §5) and restart the dev
+server:
 
 ```bash
-VITE_GOOGLE_CLIENT_ID=…apps.googleusercontent.com
-VITE_GOOGLE_API_KEY=…
-VITE_GOOGLE_APP_ID=…
+cp .env.example .env.local
 ```
+
+Sign in at `http://localhost:5173`, the origin registered with Google, not by IP address.
+
+In a GitHub codespace, set the same three as **Codespaces secrets** of this repository instead (github.com →
+Settings → Codespaces → Codespaces secrets; Vite reads `VITE_*` from the environment), then create the codespace
+(or rebuild it). Google accepts only registered origins: either open the codespace in VS Code on the desktop, which
+forwards the dev server to `http://localhost:5173`, or register the browser address
+`https://<codespace-name>-5173.app.github.dev` as in `docs/google-setup.md` §3–4. Signed in, the dev server works on
+your real Drive folder `BrewberryPi/recipes`, which BrewberryPi's Cloud Sync reads: a recipe saved there is written
+in this branch's format version, which an older app release skips.
 
 Checks (CI runs the same):
 

@@ -2506,7 +2506,7 @@ describe("App, the Overview's ingredients and brewing time (QE-85)", () => {
     );
   });
 
-  it("ACC-113 the brew-day timeline shows the mash's heating and rests, the boil, the additions and the whirlpool", async () => {
+  it("ACC-113 the brew-day timeline shows the mash's heating and rests, the boil and one icon per addition time, no whirlpool", async () => {
     await open({
       version: 3,
       name: "Brew",
@@ -2523,7 +2523,7 @@ describe("App, the Overview's ingredients and brewing time (QE-85)", () => {
     expect(timeline().previousElementSibling!.hasAttribute("data-brew-total-line")).toBe(true);
     expect(timeline().nextElementSibling).toBeNull();
     expect(timeline().querySelector("[data-timeline-bar]")!.getAttribute("aria-label")).toBe(
-      "Brew day: mashing 1 h 16 min in 2 rests, boil 60 min with 3 additions, then the whirlpool.",
+      "Brew day: mashing 1 h 16 min in 2 rests, boil 60 min with 3 additions.",
     );
     expect([...timeline().querySelectorAll("[data-timeline-phase]")].map((p) => p.textContent)).toEqual(["Mashing · 1 h 16 min", "Boil · 60 min"]);
     expect([...timeline().querySelectorAll("[data-timeline-segment]")].map((s) => [s.getAttribute("data-timeline-segment"), s.getAttribute("title")])).toEqual([
@@ -2536,20 +2536,20 @@ describe("App, the Overview's ingredients and brewing time (QE-85)", () => {
     // The Maltose rest is wide enough for its name and temperature.
     expect(timeline().querySelector("[data-timeline-rest=MaltoseRest][data-timeline-segment=rest]")!.textContent).toBe("Maltose rest 63°");
     expect(timeline().querySelector("[data-timeline-jump]")!.getAttribute("title")).toBe("Heating to the boil (not counted)");
-    // Each addition at the minute it goes in, with its icon; the two at 2:06 stacked.
+    // One icon at each minute something goes in: the hop and the Irish Moss at 2:06 share one hop icon (QE-89).
     expect([...timeline().querySelectorAll("[data-timeline-addition]")].map((a) => [a.getAttribute("data-timeline-addition"), a.getAttribute("title")])).toEqual([
       ["hop", "Hallertauer: 20 g at 1:16, cooks 60 min"],
-      ["hop", "Hallertauer: 10 g at 2:06, cooks 10 min"],
-      ["other", "Irish Moss: 5 g at 2:06, cooks 10 min"],
+      ["hop", "Hallertauer: 10 g at 2:06, cooks 10 min\nIrish Moss: 5 g at 2:06, cooks 10 min"],
     ]);
-    expect(timeline().querySelector("[data-timeline-whirlpool]")!.getAttribute("title")).toBe("Whirlpool after the boil");
+    expect(timeline().querySelectorAll("[data-addition-icon]")).toHaveLength(2 + 1); // and the legend's hop
+    // The whirlpool (ticked) is not shown.
+    expect(timeline().textContent).not.toContain("Whirlpool");
+    expect(timeline().querySelector("[data-whirlpool-icon]")).toBeNull();
     expect([...timeline().querySelectorAll("[data-timeline-key]")].map((k) => k.textContent)).toEqual([
       "Heating",
       "Rest",
       "Boil",
-      "Hop",
-      "Other addition",
-      "Whirlpool",
+      "Hop", // no jar is shown, so no "Other addition"
     ]);
     expect([...timeline().querySelectorAll("[data-timeline-axis] span")].map((s) => s.textContent)).toEqual([
       "0:00",

@@ -516,18 +516,19 @@ temperature of their own. The typical durations of `EDT-038` and the flags:
   While a part is missing the total is "–" with what to enter: "Plan the rests on the Mashing tab.", "Enter the
   cooking times on the Boiling tab.". The two parts' own times are the timeline's phases (`EDT-078`); there is no
   table of figures.
-- `EDT-078` (`QE-86`, `QE-87`, `QE-88`) Below the total brewing time, while there is a mash schedule or a boil, the
+- `EDT-078` (`QE-86`, `QE-87`, `QE-88`, `QE-89`) Below the total brewing time, while there is a mash schedule or a boil, the
   **brew-day timeline**: the brewing time of `EDT-077` as one bar of time, left to right, on a clock from "0:00"
   (h:mm; the end, e.g. "3:08", where there is room). The mash schedule as on the Mashing tab (`EDT-039`): its heating
   striped, its rests solid berry with their temperature ("63°") and, where it fits, name ("Maltose rest 63°"); then,
   after a divider because heating to the boil is not counted, the boil in brass ("Boil 100 °C" where it fits). Above
-  the bar each boil addition with an amount and a cooking time as its icon and colour of the Boil Schedule
-  (`EDT-054`, `QE-46`, `QE-47`, `QE-48`) at the minute it goes in, with a notch in the bar there (additions at the
-  same minute stacked, from the fourth "+n"); the whirlpool (`EDT-075`) as a swirl after the bar. Above that the
-  phases "Mashing · 1 h 16 min" and "Boil · 60 min" (as much as fits); below the clock a legend of what is shown
-  (Heating, Rest, Boil, Hop, Other addition, Whirlpool). Each stretch's and addition's details are in its tooltip
-  ("Heating from 57 °C to 63 °C: 6 min, from 0:00", "Hallertauer: 20 g at 1:16, cooks 60 min"). It fits the tab's
-  width, also on a phone.
+  the bar **one icon at each minute** something goes into the boil (a boil addition with an amount and a cooking
+  time), with a notch in the bar there: a hop cone while a hop goes in then, else the jar of another addition, in the
+  Boil Schedule colour of the first of them (`EDT-054`, `QE-46`, `QE-47`, `QE-48`); its tooltip names everything that
+  goes in then, one per line ("Hallertauer: 10 g at 2:06, cooks 10 min", "Irish Moss: 5 g at 2:06, cooks 10 min").
+  The whirlpool is not shown. Above that the phases "Mashing · 1 h 16 min" and "Boil · 60 min" (as much as fits);
+  below the clock a legend of what is shown (Heating, Rest, Boil, and Hop or Other addition while such an icon is
+  shown). Each stretch's details are in its tooltip ("Heating from 57 °C to 63 °C: 6 min, from 0:00"). It fits the
+  tab's width, also on a phone.
 
 ## 3.11 Water treatment (`QE-61`)
 

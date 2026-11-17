@@ -363,15 +363,15 @@ a release that changes sign-in or Drive behaviour.
   counted; the section has no table of figures. Without rests and cooking times the total is "–" with "Plan the
   rests on the Mashing tab. Enter the cooking times on the Boiling tab."; with only the boil, "–" with "Plan the
   rests on the Mashing tab.".
-- `ACC-113` (EDT-078, QE-87, QE-88) For that plan, hops Hallertauer 20 g 60 min and 10 g 10 min, Irish Moss 5 g 10 min and
-  the whirlpool ticked, the brew-day timeline below the total brewing time has the phases "Mashing · 1 h 16 min" and "Boil · 60
-  min" over a bar of heating 0:00–0:06, "Maltose rest 63°" 0:06–0:51, heating, the Mash-out from 1:06, the divider
-  "Heating to the boil (not counted)" and the boil from 1:16 (tooltips "Heating from 57 °C to 63 °C: 6 min, from
-  0:00", …); above it the hop at 1:16 and the hop and Irish Moss stacked at 2:06 ("Hallertauer: 20 g at 1:16, cooks
-  60 min", …), the whirlpool after the bar, the clock from 0:00, and the legend Heating, Rest, Boil, Hop, Other
-  addition, Whirlpool; its label reads "Brew day: mashing 1 h 16 min in 2 rests, boil 60 min with 3 additions, then
-  the whirlpool.". The stretches are the Mashing tab's; without a mash schedule the boil starts at 0:00, without a
-  boil there is only the mash, and without both there is no timeline.
+- `ACC-113` (EDT-078, QE-87, QE-88, QE-89) For that plan, hops Hallertauer 20 g 60 min and 10 g 10 min, Irish Moss 5 g
+  10 min and the whirlpool ticked, the brew-day timeline below the total brewing time has the phases "Mashing · 1 h
+  16 min" and "Boil · 60 min" over a bar of heating 0:00–0:06, "Maltose rest 63°" 0:06–0:51, heating, the Mash-out
+  from 1:06, the divider "Heating to the boil (not counted)" and the boil from 1:16 (tooltips "Heating from 57 °C to
+  63 °C: 6 min, from 0:00", …); above it two hop icons, at 1:16 ("Hallertauer: 20 g at 1:16, cooks 60 min") and at
+  2:06, which the hop and the Irish Moss share (both in its tooltip); no whirlpool; the clock from 0:00, and the
+  legend Heating, Rest, Boil, Hop; its label reads "Brew day: mashing 1 h 16 min in 2 rests, boil 60 min with 3
+  additions.". The stretches are the Mashing tab's; without a mash schedule the boil starts at 0:00, without a boil
+  there is only the mash, and without both there is no timeline.
 - `ACC-020` (BRW-001) A draft stored, then the store opened again (a reload), gives the same draft; it can be
   deleted.
 - `ACC-021` (BRW-002, BRW-003) The banner says "only stored in this browser and can be lost" when the storage works

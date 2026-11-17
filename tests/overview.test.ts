@@ -81,7 +81,7 @@ describe("the Overview's brewing time (EDT-077, QE-85)", () => {
 });
 
 describe("the Overview's brew-day timeline (EDT-078, QE-87)", () => {
-  it("ACC-113 puts the mash's heating and rests, then the boil, each addition at its minute, the whirlpool after it", () => {
+  it("ACC-113 puts the mash's heating and rests, then the boil, each addition at its minute", () => {
     const rests = { MashIn: { temperature: 57 }, MaltoseRest: { temperature: 63, minutes: 45 }, MashOut: { temperature: 78, minutes: 10 } };
     const timeline = brewDayTimeline(
       recipe({
@@ -101,7 +101,7 @@ describe("the Overview's brew-day timeline (EDT-078, QE-87)", () => {
       { kind: "heat", restId: "MashOut", fromTemp: 63, temp: 78, from: 51, to: 66 },
       { kind: "rest", restId: "MashOut", fromTemp: 78, temp: 78, from: 66, to: 76 },
     ]);
-    expect([timeline.boil!.start, timeline.boil!.minutes, timeline.total, timeline.whirlpool]).toEqual([76, 60, 136, true]);
+    expect([timeline.boil!.start, timeline.boil!.minutes, timeline.total]).toEqual([76, 60, 136]);
     // In the order they go in; one without a cooking time is left out; one without a name is called by its row.
     expect(timeline.boil!.additions.map((a) => [a.kind, a.row, a.name, a.minute])).toEqual([
       ["hops", 0, "H", 76],
@@ -114,7 +114,7 @@ describe("the Overview's brew-day timeline (EDT-078, QE-87)", () => {
   it("ACC-113 has only the boil without a mash schedule, only the mash without a boil, and nothing without both", () => {
     const hops = [{ name: "H", additions: [{ minutes: 60, grams: 20 }] }];
     const onlyBoil = brewDayTimeline(recipe({ boiling: { hops } }))!;
-    expect([onlyBoil.mash, onlyBoil.boil!.start, onlyBoil.total, onlyBoil.whirlpool]).toEqual([undefined, 0, 60, false]);
+    expect([onlyBoil.mash, onlyBoil.boil!.start, onlyBoil.total]).toEqual([undefined, 0, 60]);
     const onlyMash = brewDayTimeline(recipe({ mashing: { rests: { MashIn: { temperature: 63 }, MaltoseRest: { temperature: 63, minutes: 45 } } } }))!;
     expect([onlyMash.boil, onlyMash.total, onlyMash.mash!.segments.map((s) => s.kind)]).toEqual([undefined, 45, ["rest"]]);
     expect(brewDayTimeline(recipe({}))).toBeUndefined();

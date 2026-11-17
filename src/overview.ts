@@ -22,7 +22,6 @@ import {
   validGrams,
   validWater,
   waterOf,
-  whirlpoolOf,
   yeastOf,
   type Ingredient,
   type Recipe,
@@ -177,15 +176,14 @@ export interface TimelineSegment {
 export interface BrewDayTimeline {
   mash?: { minutes: number; segments: TimelineSegment[] };
   boil?: { start: number; minutes: number; additions: TimelineAddition[] };
-  whirlpool: boolean;
   total: number;
 }
 
 /**
  * The brew-day timeline (EDT-078, QE-87): the brewing time of EDT-077 as one line of time. The mash schedule's
  * heating and rests (as on the Mashing tab, at the default heating rate), then the boil right after it (heating to the
- * boil is not counted, so it takes no time here), with each boil addition at the minute it goes in and the whirlpool
- * after the boil. Undefined while there is neither a mash schedule nor a boil.
+ * boil is not counted, so it takes no time here), with each boil addition at the minute it goes in. Undefined while
+ * there is neither a mash schedule nor a boil.
  */
 export function brewDayTimeline(recipe: Recipe): BrewDayTimeline | undefined {
   const plan = restsOf(recipe);
@@ -232,5 +230,5 @@ export function brewDayTimeline(recipe: Recipe): BrewDayTimeline | undefined {
   if (!mash && !boil) {
     return undefined;
   }
-  return { mash, boil, whirlpool: whirlpoolOf(recipe), total: start + (boil?.minutes ?? 0) };
+  return { mash, boil, total: start + (boil?.minutes ?? 0) };
 }

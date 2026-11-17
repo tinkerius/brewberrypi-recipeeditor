@@ -1,9 +1,9 @@
 /**
  * The brew-day timeline on the Overview tab (EDT-078, QE-87): the brewing time as one bar of time, left to right. The
  * mash's heating (striped) and rests (solid berry, with their temperature and name where they fit), a divider for the
- * jump to the boil (heating to the boil is not counted, so it takes no time), the boil in brass; above the bar each
- * hop and other addition at the minute it goes in, in its Boil Schedule colour and icon; the whirlpool's swirl after
- * the bar. Below it a brew-day clock (h:mm) and a legend.
+ * jump to the boil (heating to the boil is not counted, so it takes no time), the boil in brass; above the bar one
+ * icon at each minute something goes into the boil, in its Boil Schedule colour (QE-89), with all that goes in then in
+ * its tooltip. Below it a brew-day clock (h:mm) and a legend.
  */
 
 import type { ComponentChildren } from "preact";
@@ -15,10 +15,6 @@ import { rowColour } from "./IngredientsTab";
 import { useWidth } from "./useWidth";
 
 const ICON = 18;
-/** At most this many icons stacked at one minute; more say "+n". */
-const STACK = 3;
-/** Room right of the bar for the whirlpool's swirl, in px. */
-const AFTER = 28;
 /** About how wide a character of the bar's 11 px labels is, in px. */
 const CHAR = 6.2;
 
@@ -29,22 +25,6 @@ export const clock = (minute: number) => `${Math.floor(minute / 60)}:${String(Ma
 const STRIPES = { backgroundImage: "repeating-linear-gradient(135deg, transparent 0 4px, rgb(255 255 255 / 0.45) 4px 7px)" };
 
 const restName = (id: string) => (isMashRestId(id) ? MASH_RESTS[id].short : id === "MashIn" ? MASH_IN_INFO.label : id);
-
-/** The whirlpool: a swirl. */
-function Swirl(props: { size?: number }) {
-  const size = props.size ?? 16;
-  return (
-    <svg width={size} height={size} viewBox="0 0 16 16" aria-hidden="true" class="shrink-0" data-whirlpool-icon>
-      <path
-        d="M8 7.2 a0.9 0.9 0 0 1 0.9 0.9 a1.8 1.8 0 0 1 -1.8 1.8 a2.7 2.7 0 0 1 -2.7 -2.7 a3.6 3.6 0 0 1 3.6 -3.6 a4.5 4.5 0 0 1 4.5 4.5 a5.4 5.4 0 0 1 -1.6 3.8"
-        fill="none"
-        stroke-width={1.6}
-        stroke-linecap="round"
-        class="stroke-ink dark:stroke-ink-light"
-      />
-    </svg>
-  );
-}
 
 /** One entry of the legend: its swatch or icon, and what it means. */
 function Key(props: { swatch: ComponentChildren; label: string }) {
@@ -59,18 +39,17 @@ function Key(props: { swatch: ComponentChildren; label: string }) {
 export function BrewDayTimeline(props: { timeline: Timeline }) {
   const { timeline } = props;
   const { box, width } = useWidth();
-  const barW = Math.max(120, width - AFTER);
+  const barW = Math.max(120, width);
   const span = Math.max(1, timeline.total);
   const pct = (minute: number) => `${(minute / span) * 100}%`;
   const px = (minutes: number) => (minutes / span) * barW;
   const mashEnd = timeline.mash?.minutes ?? 0;
   const boil = timeline.boil;
-  // Additions at the same minute are stacked above the bar.
-  const stacks = new Map<number, TimelineAddition[]>();
+  // What goes in at the same minute shares one icon (QE-89): a hop's while a hop is among it, in the first one's colour.
+  const atMinute = new Map<number, TimelineAddition[]>();
   for (const a of boil?.additions ?? []) {
-    stacks.set(a.minute, [...(stacks.get(a.minute) ?? []), a]);
+    atMinute.set(a.minute, [...(atMinute.get(a.minute) ?? []), a]);
   }
-  const highest = Math.min(STACK, Math.max(0, ...[...stacks.values()].map((s) => s.length)));
   /** The longest of these texts that fits `minutes` of the bar, or none. */
   const fit = (minutes: number, ...texts: string[]) => texts.find((t) => t.length * CHAR + 10 <= px(minutes));
   const step = [15, 30, 60, 120, 180].find((s) => span / s <= Math.max(2, Math.floor(barW / 56))) ?? 240;
@@ -98,39 +77,39 @@ export function BrewDayTimeline(props: { timeline: Timeline }) {
     [
       timeline.mash && `mashing ${formatMinutes(timeline.mash.minutes)} in ${timeline.mash.segments.filter((s) => s.kind === "rest").length} rests`,
       boil && `boil ${boil.minutes} min with ${boil.additions.length} additions`,
-      timeline.whirlpool && boil && "then the whirlpool",
     ]
       .filter(Boolean)
       .join(", ") + ".";
-  const kinds = new Set((boil?.additions ?? []).map((a) => a.kind));
+  // The icon shown at each minute, and so the kinds the legend explains.
+  const shownAt = (all: TimelineAddition[]) => all.find((a) => a.kind === "hops") ?? all[0];
+  const kinds = new Set([...atMinute.values()].map((all) => shownAt(all).kind));
   return (
     <div ref={box} class="mb-3" data-brew-day-timeline>
-      <div style={{ marginRight: `${AFTER}px` }}>
+      <div>
         {/* The phases, over their part of the bar. */}
         <div class="relative h-4" aria-hidden="true">
           {timeline.mash && phase(0, mashEnd, "Mashing", formatMinutes(mashEnd), "text-berry dark:text-berry-light", "mash")}
           {boil && phase(boil.start, boil.start + boil.minutes, "Boil", `${boil.minutes} min`, "text-brass dark:text-brass-light", "boil")}
         </div>
-        {/* The boil additions, each where it goes in. */}
-        <div class="relative" style={{ height: `${highest * ICON + (highest ? 2 : 0)}px` }}>
-          {[...stacks.entries()].map(([minute, stack]) =>
-            stack.slice(0, STACK).map((a, k) => (
-              <span
-                key={`${minute}-${k}`}
-                class="absolute flex -translate-x-1/2 justify-center"
-                style={{ left: pct(minute), bottom: `${k * ICON}px`, width: `${ICON}px` }}
-                title={`${a.name}: ${a.grams} g at ${clock(a.minute)}, cooks ${a.cooking} min`}
-                data-timeline-addition={a.kind === "hops" ? "hop" : "other"}
-              >
-                {k === STACK - 1 && stack.length > STACK ? (
-                  <span class="text-[10px] font-semibold text-ink dark:text-ink-light">+{stack.length - STACK + 1}</span>
-                ) : (
-                  <AdditionIcon kind={a.kind} colour={rowColour(a.kind, a.row)} size={ICON} />
-                )}
-              </span>
-            )),
-          )}
-        </div>
+        {/* The boil additions: one icon at each minute something goes in. */}
+        {atMinute.size > 0 && (
+          <div class="relative" style={{ height: `${ICON + 2}px` }}>
+            {[...atMinute.entries()].map(([minute, all]) => {
+              const shown = shownAt(all);
+              return (
+                <span
+                  key={minute}
+                  class="absolute bottom-0 flex -translate-x-1/2 justify-center"
+                  style={{ left: pct(minute), width: `${ICON}px` }}
+                  title={all.map((a) => `${a.name}: ${a.grams} g at ${clock(a.minute)}, cooks ${a.cooking} min`).join("\n")}
+                  data-timeline-addition={shown.kind === "hops" ? "hop" : "other"}
+                >
+                  <AdditionIcon kind={shown.kind} colour={rowColour(shown.kind, shown.row)} size={ICON} />
+                </span>
+              );
+            })}
+          </div>
+        )}
         {/* The bar. */}
         <div class="relative mt-0.5">
           <div
@@ -169,7 +148,7 @@ export function BrewDayTimeline(props: { timeline: Timeline }) {
               </div>
             )}
             {/* Each addition's minute, as a notch through the boil. */}
-            {[...stacks.keys()].map((minute) => (
+            {[...atMinute.keys()].map((minute) => (
               <span key={`n${minute}`} class="absolute inset-y-0 w-0.5 -translate-x-1/2 bg-white/80 dark:bg-surface-dark/80" style={{ left: pct(minute) }} />
             ))}
             {/* Heating to the boil takes no time here: a divider. */}
@@ -182,11 +161,6 @@ export function BrewDayTimeline(props: { timeline: Timeline }) {
               />
             )}
           </div>
-          {timeline.whirlpool && boil && (
-            <span class="absolute top-1/2 left-full ml-1.5 -translate-y-1/2" title="Whirlpool after the boil" data-timeline-whirlpool>
-              <Swirl size={18} />
-            </span>
-          )}
         </div>
         {/* The brew-day clock. */}
         <div class="relative h-4 text-[10px] text-stone-500 tabular-nums dark:text-stone-400" aria-hidden="true" data-timeline-axis>
@@ -213,7 +187,6 @@ export function BrewDayTimeline(props: { timeline: Timeline }) {
         {boil && <Key swatch={<span class="h-3 w-5 rounded-sm bg-brass dark:bg-brass-light" />} label="Boil" />}
         {kinds.has("hops") && <Key swatch={<AdditionIcon kind="hops" colour="var(--hop-1)" size={14} />} label="Hop" />}
         {kinds.has("others") && <Key swatch={<AdditionIcon kind="others" colour="var(--addition-1)" size={14} />} label="Other addition" />}
-        {timeline.whirlpool && boil && <Key swatch={<Swirl size={14} />} label="Whirlpool" />}
       </div>
     </div>
   );

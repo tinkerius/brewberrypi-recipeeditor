@@ -177,13 +177,15 @@ a release that changes sign-in or Drive behaviour.
   Top-up water and Knockout volume (target) (L) with their hints in their ⓘ (`QE-75`), and no gravity (`ACC-081`); 16, 14 and 2 are written as
   `"water": { "mash": 16, "sparge": 14, "top_up": 2 }`; −1 is a problem whose entry opens the Water tab; clearing
   all three removes `water`.
-- `ACC-079` (EDT-052, EDT-050) With 5000 g of malt: total water "–", then 14 L, then with 16 L mash and 2.5 L
-  top-up water 32.5 L and a mash thickness of 3.2 L/kg (typical 2.5–5 L/kg in its ⓘ); "Enter the mash water." before, and
+- `ACC-079` (EDT-052, EDT-050, EDT-074, QE-80, QE-81) With 5000 g of malt: no total water, then 14 L, then with 16 L mash
+  and 2.5 L top-up water 32.5 L and a mash thickness of 3.2 L/kg (typical 2.5–5 L/kg in its ⓘ), both in the Water
+  Overview above the Water fields; "Enter the mash water." before, and
   "Enter the malts on the Malt tab." without malts. With a knockout volume of 20 L the Malt tab no longer asks for it.
 - `ACC-080` (EDT-055) At 9 EBC the colour scale has the styles Pils, Pale Ale, Märzen, Dunkel, Stout, the marker
   between Pils and Pale Ale, the label "9 EBC on a scale from 0 to 80 EBC, like Helles, Weissbier" and no line
   naming the styles; with roasted barley above 80 EBC the marker is at the scale's end; no scale without a colour.
-- `ACC-081` (EDT-057, EDT-045, FMT-006, QE-56) The Water tab has only the heading Water; the Fermentation tab the
+- `ACC-081` (EDT-057, EDT-045, FMT-006, QE-56) The Water tab has the headings Water Overview, Water and Water
+  treatment, no Gravity; the Fermentation tab the
   headings Gravity, Yeast and Carbonation; Gravity has Original
   gravity (target) and Final gravity (°P). The alcohol is "–" with "Enter the original gravity and the final
   gravity."; 12 °P and 2.5 °P give 5.1 % vol and 79 % apparent attenuation and are written as
@@ -262,7 +264,7 @@ a release that changes sign-in or Drive behaviour.
   the sparge water's asks for the knockout volume and the malts. With 4.5 kg of malt the mash water is "11.3–22.5 L
   (2.5–5 L/kg of malt)" and the ⓘ adds 18–22.5, 15.8–18, 13.5–15.8, 11.3–13.5 L; with 24 L knockout volume the sparge
   water's ⓘ shows "… ≈ 24 L + 2.4 L (60 min assumed, ~10 %/h) + 4.5 L (~1 L/kg) + 1 L = 31.9 L"; with 18 L mash and
-  3 L top-up water the sparge water is "≈ 10.9 L (estimate)" and the Total water figure's ⓘ "≈ 31.9 L"; 18 L for 4.5 kg
+  3 L top-up water the sparge water is "≈ 10.9 L (estimate)" and the Total water's ⓘ "≈ 31.9 L"; 18 L for 4.5 kg
   (4 L/kg) is no warning; with hop additions of 90 and 10 min and 20 L: "20 L + 3 L (90 min, ~10 %/h) + 4.5 L
   (~1 L/kg) + 1 L = 28.5 L". The hop table's heads read "α %" and "Additions (cooking time · amount)", their ⓘ
   "Typical: 2–20 %" and "Typical: a cooking time up to 90 min".
@@ -321,6 +323,19 @@ a release that changes sign-in or Drive behaviour.
   the mash-in at 38 °C, the Saccharification rest at 72 °C for 30 min and the Mash-out at 78 °C for 5 min, ticking
   it shows no fields, leaves the total mash time unchanged, the recipe stays complete, and the file has
   `"IodineTest": {}` on its own line between `SaccharificationRest` and `MashOut`; unticking it removes it.
+- `ACC-105` (EDT-073, QE-80) Without mash water there is no mash thickness scale. With 5 kg of malt and 16 L mash
+  water (3.2 L/kg) the scale has the bands "Bock, Stout", "Märzen, Dunkel", "Weizen, IPA", "Pils, Helles", the marker
+  in the band "Märzen, Dunkel", the line "Suits Märzen, Dunkel, Amber." and the label "3.2 L/kg
+  on a scale from 0 to 7 L/kg, suits Märzen, Dunkel, Amber"; 17.5 L (3.5 L/kg) suits "Weizen, Pale Ale, IPA and
+  Märzen, Dunkel, Amber"; 10 L (2 L/kg) is "Thicker than typical (2.5–5 L/kg).", 40 L (8 L/kg) "Thinner than typical
+  (2.5–5 L/kg)." with the marker at the bar's end.
+- `ACC-106` (EDT-074, QE-81, QE-82) Without water volumes the Water Overview has no donut, only the mash thickness box
+  at the right. With 16 L mash, 14 L sparge and 2.5 L top-up water and no knockout volume the ring is plain with
+  "32.5 L" in its middle and "Enter the knockout volume to see the losses."; with a knockout volume of 24 L it has the
+  slices Knockout volume and Losses, the tooltip "Knockout volume: 24 L, 73.8 %" and the legend Knockout volume 24 L
+  73.8 %, Losses 8.5 L 26.2 %; with 40 L "The knockout volume is more than the total water." and one slice. The Total
+  water's ⓘ shows "The sum of the water volumes entered; the losses are what does not reach the knockout volume
+  (boil-off, grain absorption, trub).".
 - `ACC-107` (EDT-075, FMT-006, QE-83, app RCP-018) On the Boiling tab the Boil Schedule's last row is "Whirlpool",
   unticked, with "after the boil" and an ⓘ showing "What: …" and "How long: …". Ticking it highlights the row, leaves
   the total boil time and the bitterness unchanged, the recipe stays complete, and the file has

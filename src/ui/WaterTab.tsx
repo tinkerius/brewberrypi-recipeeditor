@@ -2,7 +2,8 @@
  * The Water tab (EDT-051..053, EDT-067; QE-36, QE-38, QE-56, QE-58, QE-60): the brewing-day water volumes (mash,
  * sparge and top-up water, app RCP-015) and the knockout volume (the batch's, app RCP-014), each with its typical
  * value (EDT-068): the mash water for the recipe's malt by beer style, the sparge water as an estimate, the top-up
- * water usually 0; then the total water and the mash thickness. The gravity is on the Fermentation tab
+ * water usually 0. Above them the Water Overview (EDT-074, QE-81, QE-82): the total water against the knockout volume, and
+ * the mash thickness with its scale (EDT-073, QE-80). The gravity is on the Fermentation tab
  * (`FermentationTab`), which shares the batch fields from here. Computed values are never stored.
  */
 
@@ -32,6 +33,8 @@ import { NumberField } from "./fields";
 import { FieldGrid, FieldRow } from "./FieldGrid";
 import { FigureRow, type Info } from "./info";
 import { HINT_STYLE, SECTION_TITLE_STYLE } from "./styles";
+import { MashThicknessScale } from "./StyleScale";
+import { WaterDonut } from "./WaterDonut";
 import { WaterTreatment } from "./WaterTreatment";
 
 /** Litres with at most one decimal: "32 L", "14.5 L". */
@@ -44,6 +47,8 @@ const oneDecimal = (value: number) => String(Math.round(value * 10) / 10);
 
 export const FIGURES =
   "mt-4 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 rounded-lg bg-stone-50 p-3 text-sm ring-1 ring-line dark:bg-white/5 dark:ring-white/10";
+/** The mash thickness's box at the right of the Water Overview (EDT-074), like the hops' figure box. */
+const THICKNESS_BOX = `${FIGURES.replace("mt-4 ", "")} min-w-0 flex-1`;
 export const TERM = "font-medium text-ink dark:text-ink-light";
 export const VALUE = "font-semibold tabular-nums text-ink dark:text-ink-light";
 
@@ -136,6 +141,9 @@ export function WaterTab(props: { recipe: Recipe; problems: Problem[]; warnings:
   const issues = { problems: props.problems, warnings: props.warnings };
   const total = totalWater(props.recipe);
   const thickness = mashThickness(props.recipe);
+  // The knockout volume, for the Water Overview's donut (EDT-074, QE-82).
+  const liters = batchOf(props.recipe).liters;
+  const knockout = typeof liters === "number" && Number.isFinite(liters) && liters > 0 ? liters : undefined;
   const kg = totalGrams(maltsWithAcidMalt(props.recipe)) / 1000; // the acid malt too (EDT-070)
   const estimate = waterEstimate(props.recipe);
   const { min, max } = TYPICAL.mashThickness;
@@ -184,77 +192,92 @@ export function WaterTab(props: { recipe: Recipe; problems: Problem[]; warnings:
     top_up: { explanation: WATER_LABELS.top_up.hint, typical: "usually 0 L" },
   };
   return (
-    <section aria-labelledby="water-title">
-      <h3 id="water-title" class={`${SECTION_TITLE_STYLE} mb-3`}>
-        Water
-      </h3>
-      <FieldGrid data-water-fields>
-        {WATER_FIELDS.map((field) => (
-          <div key={field} class="contents" data-water={field}>
-            <FieldRow
-              id={`water-${field}`}
-              field={
-                <NumberField
-                  label={WATER_LABELS[field].label}
-                  unit="L"
-                  value={water[field]}
-                  invalid={props.problems.some((p) => p.path === `water.${field}`)}
-                  warn={props.warnings.some((w) => w.path === `water.${field}`)}
-                  onChange={(v) => props.onChange(withWaterField(props.recipe, field, v))}
-                />
+    <>
+      <section aria-labelledby="water-overview-title">
+        <h3 id="water-overview-title" class={`${SECTION_TITLE_STYLE} mb-2`}>
+          Water Overview
+        </h3>
+        {/* The donut of the volumes at the left, the mash thickness at the right (EDT-074, QE-81); stacked on a phone. */}
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-start" data-water-overview>
+          {total !== undefined && total > 0 && (
+            <div class="shrink-0">
+              <WaterDonut
+                total={total}
+                knockout={knockout}
+                info={{
+                  explanation:
+                    "The sum of the water volumes entered; the losses are what does not reach the knockout volume (boil-off, grain absorption, trub).",
+                  typical: "missing" in estimate ? undefined : `≈ ${litres(estimate.total)} (estimate, see the sparge water's ⓘ)`,
+                }}
+                open={figure === "total-water"}
+                onToggle={() => setFigure(figure === "total-water" ? undefined : "total-water")}
+              />
+            </div>
+          )}
+          {/* The mash thickness and where it lies among the beer styles (EDT-052, EDT-073, QE-80). */}
+          <dl class={THICKNESS_BOX} data-thickness-figure>
+            <FigureRow
+              id="mash-thickness"
+              term="Mash thickness"
+              termClass={TERM}
+              value={
+                <span data-mash-thickness class={VALUE}>
+                  {"value" in thickness ? `${oneDecimal(thickness.value)} L/kg` : "–"}
+                </span>
               }
-              label={`About: ${WATER_LABELS[field].label}`}
-              info={infos[field]}
-              notes={notesAt(issues, `water.${field}`)}
+              missing={
+                "value" in thickness
+                  ? undefined
+                  : `Enter ${thickness.missing.map((m) => (m === "mash" ? "the mash water" : "the malts on the Malt tab")).join(" and ")}.`
+              }
+              info={{
+                explanation: "The mash water per kg of malt (the acid malt included).",
+                typical: `${min}–${max} L/kg`,
+                calculation: "mash water [L] ÷ total malt [kg]",
+              }}
+              open={figure === "mash-thickness"}
+              onToggle={() => setFigure(figure === "mash-thickness" ? undefined : "mash-thickness")}
             />
-          </div>
-        ))}
-        {/* The batch's knockout volume (EDT-050): entered here only; the Malt and Boiling tabs use it. */}
-        <div class="contents" data-knockout>
-          <BatchFieldRow field="liters" {...props} />
+            {"value" in thickness && (
+              <dd class="col-span-2">
+                <MashThicknessScale value={thickness.value} min={min} max={max} />
+              </dd>
+            )}
+          </dl>
         </div>
-      </FieldGrid>
-      <dl class={FIGURES} data-water-figures>
-        <FigureRow
-          id="total-water"
-          term="Total water"
-          termClass={TERM}
-          value={
-            <span data-total-water class={VALUE}>
-              {total === undefined ? "–" : litres(total)}
-            </span>
-          }
-          info={{
-            explanation: "The sum of the water volumes entered.",
-            typical: "missing" in estimate ? undefined : `≈ ${litres(estimate.total)} (estimate, see the sparge water's ⓘ)`,
-          }}
-          open={figure === "total-water"}
-          onToggle={() => setFigure(figure === "total-water" ? undefined : "total-water")}
-        />
-        <FigureRow
-          id="mash-thickness"
-          term="Mash thickness"
-          termClass={TERM}
-          value={
-            <span data-mash-thickness class={VALUE}>
-              {"value" in thickness ? `${oneDecimal(thickness.value)} L/kg` : "–"}
-            </span>
-          }
-          missing={
-            "value" in thickness
-              ? undefined
-              : `Enter ${thickness.missing.map((m) => (m === "mash" ? "the mash water" : "the malts on the Malt tab")).join(" and ")}.`
-          }
-          info={{
-            explanation: "The mash water per kg of malt (the acid malt included).",
-            typical: `${min}–${max} L/kg`,
-            calculation: "mash water [L] ÷ total malt [kg]",
-          }}
-          open={figure === "mash-thickness"}
-          onToggle={() => setFigure(figure === "mash-thickness" ? undefined : "mash-thickness")}
-        />
-      </dl>
-      <WaterTreatment {...props} />
-    </section>
+      </section>
+      <section class="mt-6" aria-labelledby="water-title">
+        <h3 id="water-title" class={`${SECTION_TITLE_STYLE} mb-3`}>
+          Water
+        </h3>
+        <FieldGrid data-water-fields>
+          {WATER_FIELDS.map((field) => (
+            <div key={field} class="contents" data-water={field}>
+              <FieldRow
+                id={`water-${field}`}
+                field={
+                  <NumberField
+                    label={WATER_LABELS[field].label}
+                    unit="L"
+                    value={water[field]}
+                    invalid={props.problems.some((p) => p.path === `water.${field}`)}
+                    warn={props.warnings.some((w) => w.path === `water.${field}`)}
+                    onChange={(v) => props.onChange(withWaterField(props.recipe, field, v))}
+                  />
+                }
+                label={`About: ${WATER_LABELS[field].label}`}
+                info={infos[field]}
+                notes={notesAt(issues, `water.${field}`)}
+              />
+            </div>
+          ))}
+          {/* The batch's knockout volume (EDT-050): entered here only; the Malt and Boiling tabs use it. */}
+          <div class="contents" data-knockout>
+            <BatchFieldRow field="liters" {...props} />
+          </div>
+        </FieldGrid>
+        <WaterTreatment {...props} />
+      </section>
+    </>
   );
 }

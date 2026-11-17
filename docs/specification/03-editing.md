@@ -401,11 +401,32 @@ temperature of their own. The typical durations of `EDT-038` and the flags:
   ≥ 0 with its explanation in its ⓘ (`EDT-072`), and the **Knockout volume (target)** (`EDT-050`, `QE-50`, entered only here; the Malt and Boiling tabs use it). A
   field left empty is left out of the file, and `water` too when all three are. A volume below 0 is a problem
   ("Mash water: The mash water must be a number of at least 0 litres."); clicking it opens the Water tab.
-- `EDT-052` Below the fields, computed and never stored: **Total water**, the sum of the volumes entered ("32.5 L",
-  "–" while none is), and the **Mash thickness**, the mash water per kg of malt (the Malt tab's total weight), with
+- `EDT-052` Computed and never stored, in the Water Overview (`EDT-074`): the **Total water**, the sum of the volumes
+  entered ("32.5 L"), and the **Mash thickness**, the mash water per kg of malt (the Malt tab's total weight), with
   one decimal ("3.2 L/kg"), its ⓘ (`EDT-072`) showing "The mash water per kg of malt (the acid malt included).",
   "Typical: 2.5–5 L/kg" and "mash water [L] ÷ total malt [kg]"; without the mash water or malts it shows "–" and
   what to enter ("Enter the mash water.", "Enter the malts on the Malt tab.").
+- `EDT-074` The Water tab starts with the heading **Water Overview** (`QE-81`), like the Hops Overview (`EDT-047`):
+  at the left a **donut** of the total water against the knockout volume (`QE-82`): the ring is the total water
+  (`EDT-052`), with the total in its middle ("32.5 L"); one slice is the knockout volume (amber, the wort that comes
+  out), the other the **Losses**, total water − knockout volume (grey: boil-off, grain absorption, trub), each with a
+  tooltip ("Knockout volume: 24 L, 73.8 %") and in a legend (swatch, name, litres, share of the total water). Above
+  the legend "Total water" with its ⓘ (`EDT-072`): "The sum of the water volumes entered; the losses are what does not
+  reach the knockout volume (boil-off, grain absorption, trub)." and, once it can be worked out, the estimate as its
+  typical value ("≈ 31.9 L (estimate, see the sparge water's ⓘ)", `EDT-067`). Without a knockout volume the ring is
+  plain, without legend, and says "Enter the knockout volume to see the losses."; with a knockout volume above the
+  total water the ring is all knockout volume and says "The knockout volume is more than the total water.". No donut
+  while no volume is entered. At the right, in a box, the mash thickness (`EDT-052`) and its scale (`EDT-073`).
+  Stacked on a phone. Below follows the heading **Water** with the fields (`EDT-051`).
+- `EDT-073` Below the mash thickness, a **mash thickness scale** like the colour scale (`EDT-055`, `QE-80`): a bar
+  from 0 to 7 L/kg (numbers 0, 2.5, 3, 3.5, 4, 5, "7+"), grey outside the typical 2.5–5 L/kg and inside it four bands
+  of the beer styles of `EDT-067`, from dark (thick) to pale (thin), each named below it: "Bock, Stout" 2.5–3,
+  "Märzen, Dunkel" 3–3.5, "Weizen, IPA" 3.5–4, "Pils, Helles" 4–5 (staggered onto further rows where they would
+  collide); a marker at the mash thickness (a thinner one at the bar's end). Below the bar a line names the styles
+  of `EDT-067` whose range holds the value rounded to one decimal ("Suits Märzen, Dunkel, Amber.", at a limit both:
+  "Suits Weizen, Pale Ale, IPA and Märzen, Dunkel, Amber."), or else "Thicker than typical (2.5–5 L/kg)." or
+  "Thinner than typical (2.5–5 L/kg)."; the scale's label for screen readers says the same ("3.2 L/kg on a scale
+  from 0 to 7 L/kg, suits Märzen, Dunkel, Amber"). No scale while there is no mash thickness.
 - `EDT-067` The water fields' **typical values** (`QE-58`, `QE-60`; hints only, nothing stored), in their ⓘ
   (`EDT-072`, `QE-75`): the **Mash water** 2.5–5 L per kg of malt ("2.5–5 L/kg of malt"), with malts on the Malt tab
   in litres for their weight ("11.3–22.5 L (2.5–5 L/kg of malt)"); its calculation the mash water by beer style, per kg and in litres ("for your 4.5 kg of
@@ -416,7 +437,7 @@ temperature of their own. The typical durations of `EDT-038` and the flags:
   grain absorption (1 L per kg of malt) + 1 L of losses, each term shown ("≈ 24 L + 2.4 L (60 min assumed, ~10 %/h)
   + 4.5 L (~1 L/kg) + 1 L = 31.9 L"), and **Sparge water** ≈ total − mash water − top-up water ("= 10.9 L";
   "(enter the mash water)" without it), or what to enter for it (the knockout volume, the malts). The **Top-up
-  water** "usually 0 L". The figure Total water's ⓘ has the estimate as its typical value: "≈ 31.9 L (estimate, see
+  water** "usually 0 L". The Total water's ⓘ (`EDT-074`) has the estimate as its typical value: "≈ 31.9 L (estimate, see
   the sparge water's ⓘ)".
 - `EDT-068` Every field shows its typical value the same way (`QE-60`, `QE-75`): in its info field (`EDT-072`). On
   the Water and Fermentation tabs the fields are rows of label, field with its unit, the field's ⓘ and its errors

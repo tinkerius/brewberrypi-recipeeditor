@@ -382,11 +382,17 @@ export function mashThickness(recipe: Recipe): { value: number } | { missing: ("
 
 /** The mash water per kg of malt by beer style (EDT-067, QE-58): thin mashes for light beers, thick for strong ones. */
 export const MASH_WATER_BY_STYLE = [
-  { styles: "Pils, Helles", min: 4, max: 5 },
-  { styles: "Weizen, Pale Ale, IPA", min: 3.5, max: 4 },
-  { styles: "Märzen, Dunkel, Amber", min: 3, max: 3.5 },
-  { styles: "Bock, Stout, strong beers", min: 2.5, max: 3 },
+  { styles: "Pils, Helles", short: "Pils, Helles", min: 4, max: 5 },
+  { styles: "Weizen, Pale Ale, IPA", short: "Weizen, IPA", min: 3.5, max: 4 },
+  { styles: "Märzen, Dunkel, Amber", short: "Märzen, Dunkel", min: 3, max: 3.5 },
+  { styles: "Bock, Stout, strong beers", short: "Bock, Stout", min: 2.5, max: 3 },
 ] as const;
+
+/** The styles of EDT-067 whose mash water range holds a mash thickness, rounded to one decimal (EDT-073). */
+export function stylesOfMashThickness(value: number): string[] {
+  const rounded = Math.round(value * 10) / 10;
+  return MASH_WATER_BY_STYLE.filter((s) => s.min <= rounded && rounded <= s.max).map((s) => s.styles);
+}
 
 /** The rules of thumb of the water estimate (EDT-067): boil-off per hour, grain absorption per kg, other losses. */
 export const WATER_RULES = { boilOffPerHour: 0.1, absorptionPerKg: 1, losses: 1, defaultBoilMinutes: 60 } as const;

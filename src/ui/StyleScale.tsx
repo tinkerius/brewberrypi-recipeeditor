@@ -1,5 +1,5 @@
 /**
- * Where a figure lies among common beers (EDT-055, EDT-056): a bar from 0 to `max` in the figure's colours, a marker
+ * Where a figure lies among common beers (EDT-055, EDT-056; the mash thickness, EDT-073): a bar from 0 to `max` in the figure's colours, a marker
  * at the beer's value (a higher one at the bar's end), the scale's numbers and common styles at their typical value
  * (staggered onto a second row where they would collide), and the styles whose range holds it.
  */
@@ -16,6 +16,7 @@ import {
   stylesOfBitterness,
   stylesOfColour,
 } from "../brewMath";
+import { MASH_WATER_BY_STYLE, stylesOfMashThickness } from "../model";
 import { useWidth } from "./useWidth";
 
 type Style = { name: string; min: number; max: number; scale: boolean };
@@ -197,3 +198,99 @@ export function BalanceScale(props: { ratio: number }) {
   );
 }
 
+
+/** The bands' colours (EDT-073): from a dark, thick mash for strong beers to a pale, thin one for light beers. */
+const THICKNESS_FILLS: Record<string, string> = {
+  "Bock, Stout": "#6b3a1a",
+  "Märzen, Dunkel": "#a5612a",
+  "Weizen, IPA": "#d49a3a",
+  "Pils, Helles": "#ecc75a",
+};
+
+/** The end of the mash thickness scale (EDT-073), L/kg. */
+export const THICKNESS_SCALE_MAX = 7;
+
+/** One decimal, without a trailing ".0". */
+const oneDecimal = (value: number) => String(Math.round(value * 10) / 10);
+
+/**
+ * The mash thickness among the beer styles (EDT-073, QE-80): a bar from 0 to 7 L/kg, grey outside the typical range
+ * and inside it the styles' bands of the mash water guide (EDT-067) from dark to pale, each named below it (on further
+ * rows where they would collide), a marker at the value (a thinner mash at the end) and the styles it suits.
+ */
+export function MashThicknessScale(props: { value: number; min: number; max: number }) {
+  const { box, width } = useWidth();
+  const pad = 10;
+  const barY = 10;
+  const barH = 12;
+  const end = THICKNESS_SCALE_MAX;
+  const x = (v: number) => pad + (Math.min(Math.max(v, 0), end) / end) * (width - 2 * pad);
+  const marker = x(props.value);
+  const bands = [...MASH_WATER_BY_STYLE].sort((a, b) => a.min - b.min);
+  const rowEnds: number[] = [];
+  const labels = bands.map((b) => {
+    const at = x((b.min + b.max) / 2);
+    const half = b.short.length * 2.9 + 4;
+    let row = rowEnds.findIndex((e) => at - half >= e);
+    if (row < 0) {
+      row = rowEnds.length;
+    }
+    rowEnds[row] = at + half;
+    return { name: b.short, at, row };
+  });
+  const height = barY + barH + 32 + (rowEnds.length - 1) * 12;
+  const ticks = [0, props.min, ...bands.map((b) => b.max), end];
+  const holding = stylesOfMashThickness(props.value);
+  const rounded = Math.round(props.value * 10) / 10;
+  const typical = `${props.min}–${props.max} L/kg`;
+  const reading = holding.length
+    ? `suits ${holding.join(" and ")}`
+    : rounded < props.min
+      ? `thicker than typical (${typical})`
+      : `thinner than typical (${typical})`;
+  return (
+    <div ref={box} class="mt-2" data-thickness-scale>
+      <svg
+        width={width}
+        height={height}
+        viewBox={`0 0 ${width} ${height}`}
+        role="img"
+        aria-label={`${oneDecimal(props.value)} L/kg on a scale from 0 to ${end} L/kg, ${reading}`}
+        class="block max-w-full"
+      >
+        <rect x={pad} y={barY} width={width - 2 * pad} height={barH} rx={4} class="fill-stone-200 dark:fill-stone-600" />
+        {bands.map((b) => (
+          <rect
+            key={b.short}
+            data-thickness-band={b.short}
+            x={x(b.min)}
+            y={barY}
+            width={x(b.max) - x(b.min)}
+            height={barH}
+            fill={THICKNESS_FILLS[b.short]}
+          />
+        ))}
+        {ticks.map((t) => (
+          <text key={t} x={x(t)} y={barY + barH + 11} text-anchor="middle" class="fill-stone-500 text-[9px] dark:fill-stone-400">
+            {t === end ? `${t}+` : t}
+          </text>
+        ))}
+        {labels.map(({ name, at, row }) => (
+          <g key={name} data-scale-style={name}>
+            <line x1={at} x2={at} y1={barY + barH + 14} y2={barY + barH + 18} class="stroke-stone-400 dark:stroke-stone-500" />
+            <text x={at} y={barY + barH + 28 + row * 12} text-anchor="middle" class="fill-stone-600 text-[10px] dark:fill-stone-300">
+              {name}
+            </text>
+          </g>
+        ))}
+        <g data-scale-marker>
+          <path d={`M ${marker - 5} 1 L ${marker + 5} 1 L ${marker} ${barY - 1} Z`} class="fill-ink dark:fill-ink-light" />
+          <line x1={marker} x2={marker} y1={barY - 2} y2={barY + barH + 2} stroke-width={2} class="stroke-ink dark:stroke-ink-light" />
+        </g>
+      </svg>
+      <p class="mt-1 text-xs text-stone-600 dark:text-stone-300" data-thickness-styles>
+        {reading.charAt(0).toUpperCase() + reading.slice(1)}.
+      </p>
+    </div>
+  );
+}

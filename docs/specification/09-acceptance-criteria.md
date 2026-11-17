@@ -246,8 +246,8 @@ a release that changes sign-in or Drive behaviour.
   gypsum 3 g/10 L and acid malt 5 % none, 3.5 g/10 L and 6 %; for 9 EBC a treated residual alkalinity of 2 °dH none,
   2.5 °dH a warning, none without a beer colour;
   the recipe stays valid.
-- `ACC-094` (EDT-065, GUI-032, QE-55) A recipe opens on the Overview tab, the first one, with the heading
-  Description and a box of eight lines; "A cloudy wheat beer." and "Banana and clove." on two lines are written as
+- `ACC-094` (EDT-065, GUI-032, QE-55, QE-85) A recipe opens on the Overview tab, the first one, with the headings
+  Description, Ingredients, Brewing time and Status, and a box of eight lines for the description; "A cloudy wheat beer." and "Banana and clove." on two lines are written as
   `"description": "A cloudy wheat beer.\nBanana and clove."` right after `"name"`; cleared, `description` leaves
   the file. A description that is not text is "Description: The description must be text.", with the Overview tab's
   error count 1.
@@ -350,6 +350,18 @@ a release that changes sign-in or Drive behaviour.
   with them moved into `mashing` (`malts`, `rests`), `boiling` (`whirlpool`, `hops`, `others`), `water`
   (`target_knockout_volume`) and `fermentation` (`original_gravity`, `final_gravity`), with a notice naming each move,
   and is valid; a value whose new place is taken, or a draft section that is not an object, stays and is a problem.
+- `ACC-111` (EDT-076, QE-85) A recipe with Pilsner malt 4500 g, a second malt without an amount, acid malt 1 % in the
+  water treatment, Hallertauer 5.5 % with 20 g and 10 g, Saaz twice, Irish Moss 10 g, the yeast WB-06 11.5 g, 16 L
+  mash, 14 L sparge water and gypsum 1.5 g/10 L lists, in this order, Malt (Pilsner malt 4500 g, Malt 2 "–", Acid
+  malt 45 g "from the water treatment", Total 4545 g), Hops (Hallertauer 30 g "α 5.5 %", both Saaz lines, Total),
+  Other additions (Irish Moss 10 g), Yeast (WB-06 11.5 g), Water (Mash water 16 L, Sparge water 14 L, Total 30 L)
+  and Water treatment (Brewing gypsum 2.4 g); a group's link opens its tab. An empty recipe shows "No ingredients
+  yet.".
+- `ACC-112` (EDT-077, QE-85) For a plan of mash-in 57 °C, Maltose rest 63 °C 45 min and Mash-out 78 °C 10 min,
+  Mashing shows the Mashing tab's total mash time at 1 °C/min, with its rests and heating; with hops of 60 and
+  10 min, Boil is 60 min and Mash + boil the sum. Without rests Mashing is "–" with "Plan the rests on the Mashing
+  tab.", without cooking times Boil is "–" with "Enter the cooking times on the Boiling tab.", and Mash + boil is
+  "–" with "Needs the mashing and the boil.".
 - `ACC-020` (BRW-001) A draft stored, then the store opened again (a reload), gives the same draft; it can be
   deleted.
 - `ACC-021` (BRW-002, BRW-003) The banner says "only stored in this browser and can be lost" when the storage works

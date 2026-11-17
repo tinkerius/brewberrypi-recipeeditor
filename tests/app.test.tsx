@@ -1836,7 +1836,12 @@ describe("App, the Malt and Hops tabs (QE-34, QE-35)", () => {
     await store.put(newDoc("Brew", { version: 3, name: "Brew", mashing_process: { goals: [{ type: "MashIn" }] } }));
     await show(store);
     expect(recipe().querySelector("[role=tab][aria-selected=true]")!.id).toBe("tab-overview");
-    expect(recipe().querySelector("[role=tabpanel] h3")!.textContent?.trim()).toBe("Description");
+    expect([...recipe().querySelectorAll("[role=tabpanel] h3")].map((h) => h.textContent?.trim())).toEqual([
+      "Description",
+      "Ingredients",
+      "Brewing time",
+      "Status",
+    ]);
     const text = recipe().querySelector<HTMLTextAreaElement>("[data-description] textarea")!;
     expect(text.getAttribute("rows")).toBe("8");
     await act(async () => {
@@ -2424,5 +2429,91 @@ describe("App, the Water tab (QE-36)", () => {
     await showStatus();
     await act(async () => button("Final gravity").click());
     expect(recipe().querySelector("#tab-fermentation")!.getAttribute("aria-selected")).toBe("true");
+  });
+});
+
+describe("App, the Overview's ingredients and brewing time (QE-85)", () => {
+  const recipe = () => root.querySelector("[aria-label=Recipe]")!;
+  const overview = () => recipe().querySelector("[data-overview-ingredients]")!;
+  async function open(content: Recipe) {
+    const store = new MemoryStore();
+    await store.put(newDoc("Brew", content));
+    await show(store);
+  }
+  /** Each group as its title and its lines ("name amount note"), the Total last. */
+  const groups = () =>
+    [...overview().querySelectorAll("[data-overview-group]")].map((g) => [
+      g.querySelector("h4")!.firstChild!.textContent,
+      [...g.querySelectorAll("[data-overview-line], [data-overview-total]")].map((l) => l.textContent),
+    ]);
+
+  it("ACC-111 lists what the brew needs, by group, and a group's link opens its tab", async () => {
+    await open({
+      version: 3,
+      name: "Brew",
+      mashing_process: { goals: [] },
+      mashing: { malts: [{ name: "Pilsner malt", grams: 4500 }, { name: "Munich malt" }] },
+      boiling: {
+        hops: [
+          { name: "Hallertauer", alpha: 5.5, additions: [{ minutes: 60, grams: 20 }, { minutes: 10, grams: 10 }] },
+          { name: "Saaz", additions: [{ minutes: 5, grams: 10 }] },
+          { name: "Saaz", additions: [{ minutes: 0, grams: 5 }] },
+        ],
+        others: [{ name: "Irish Moss", additions: [{ minutes: 5, grams: 10 }] }],
+      },
+      water: { mash: 16, sparge: 14, treatment: { gypsum: 1.5, acid_malt: 1 } },
+      fermentation: { yeast: { name: "WB-06", grams: 11.5 } },
+    });
+    expect(recipe().querySelector("#tab-overview")!.getAttribute("aria-selected")).toBe("true");
+    expect(groups()).toEqual([
+      ["Malt", ["Pilsner malt4500 g", "Munich malt–", "Acid maltfrom the water treatment45 g", "Total4545 g"]],
+      ["Hops", ["Hallertauerα 5.5 %30 g", "Saaz10 g", "Saaz5 g", "Total45 g"]],
+      ["Other additions", ["Irish Moss10 g"]],
+      ["Yeast", ["WB-0611.5 g"]],
+      ["Water", ["Mash water16 L", "Sparge water14 L", "Total30 L"]],
+      ["Water treatment", ["Brewing gypsum2.4 g"]],
+    ]);
+    const link = overview().querySelector<HTMLButtonElement>("[data-overview-group=others] [data-tab-link]")!;
+    expect(link.textContent).toBe("Boiling tab");
+    await act(async () => link.click());
+    expect(recipe().querySelector("#tab-hops")!.getAttribute("aria-selected")).toBe("true");
+  });
+
+  it("ACC-111 an empty recipe has no ingredients yet", async () => {
+    await open({ version: 3, name: "Brew", mashing_process: { goals: [] } });
+    expect(overview().textContent).toContain("No ingredients yet.");
+    expect(overview().querySelector("[data-overview-group]")).toBeNull();
+  });
+
+  it("ACC-112 the brewing time is the Mashing tab's mash time plus the boil, or says what is missing", async () => {
+    const base = { version: 3, name: "Brew", mashing_process: { goals: [] } };
+    const rests = { MashIn: { temperature: 57 }, MaltoseRest: { temperature: 63, minutes: 45 }, MashOut: { temperature: 78, minutes: 10 } };
+    await open({ ...base, mashing: { rests }, boiling: { hops: [{ name: "H", additions: [{ minutes: 60, grams: 20 }, { minutes: 10, grams: 10 }] }] } });
+    const time = () => recipe().querySelector("[data-brewing-time]")!;
+    const value = (id: string) => time().querySelector(`[data-${id}]`)!.textContent;
+    expect([value("mash-time"), value("boil-time-total"), value("brew-time")]).toEqual([
+      "1 h 16 min (55 min of rests, 21 min heating)",
+      "60 min", // as the Boil Schedule says it
+      "2 h 16 min",
+    ]);
+    // The same as the Mashing tab's total mash time.
+    await act(async () => recipe().querySelector<HTMLElement>("#tab-mashing")!.click());
+    expect(recipe().querySelector("[data-mash-total]")!.textContent).toBe("Total mash time 1 h 16 min: 55 min of rests, 21 min heating at 1 °C/min.");
+    await act(async () => recipe().querySelector<HTMLElement>("#tab-overview")!.click());
+    await act(async () => time().querySelector<HTMLButtonElement>("[aria-controls=figure-info-brew-time]")!.click());
+    expect(time().querySelector("[data-figure-info=brew-time]")!.textContent).toContain(
+      "Not counted: heating the water to the mash-in, lautering, heating to the boil, the whirlpool and cooling.",
+    );
+  });
+
+  it("ACC-112 without rests or cooking times the brewing time says what to enter", async () => {
+    await open({ version: 3, name: "Brew", mashing_process: { goals: [] } });
+    const missing = (id: string) => recipe().querySelector(`[data-figure-missing=${id}]`)!.textContent;
+    expect([missing("mash-time"), missing("boil-time"), missing("brew-time")]).toEqual([
+      "Plan the rests on the Mashing tab.",
+      "Enter the cooking times on the Boiling tab.",
+      "Needs the mashing and the boil.",
+    ]);
+    expect(recipe().querySelector("[data-brew-time]")!.textContent).toBe("–");
   });
 });

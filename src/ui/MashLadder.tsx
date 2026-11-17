@@ -15,6 +15,7 @@ import { mashInTemperature } from "../model";
 import {
   DEFAULT_HEATING_RATE,
   bandLanes,
+  formatMinutes,
   mashProfile,
   restsByTypical,
   scheduleWarnings,
@@ -34,11 +35,6 @@ const LANE = 10;
 /** Below this width the schedule goes below the ladder (EDT-036). */
 const NARROW = 560;
 
-/** Minutes as "1 h 18 min" or "45 min". */
-export function formatMinutes(minutes: number): string {
-  const m = Math.round(minutes);
-  return m >= 60 ? `${Math.floor(m / 60)} h${m % 60 ? ` ${m % 60} min` : ""}` : `${m} min`;
-}
 
 function tooltip(id: MashBandId, planned?: string): string {
   const info = bandInfo(id);

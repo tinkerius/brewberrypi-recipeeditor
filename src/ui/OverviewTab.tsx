@@ -1,34 +1,178 @@
 /**
  * The Overview tab (EDT-065, QE-55): the first tab, open when a recipe is opened. It holds the recipe's description,
- * the brewer's free text about it (app RCP-016), with as many lines as needed.
+ * the brewer's free text about it (app RCP-016), with as many lines as needed; below it the list of everything the
+ * brew needs (EDT-076) and the brewing time (EDT-077, QE-85), both computed, never stored.
  */
 
+import { useState } from "preact/hooks";
 import type { Problem } from "../validate";
 import { withDescription, type Recipe } from "../model";
+import { DEFAULT_HEATING_RATE, formatMinutes } from "../mashSchedule";
+import { brewingTime, ingredientList, type ListGroup, type ListTab } from "../overview";
 import { TextField } from "./fields";
+import { FigureRow } from "./info";
 import { FieldNotes, notesAt } from "./notes";
-import { SECTION_TITLE_STYLE } from "./styles";
+import { HINT_STYLE, LINK_STYLE, SECTION_TITLE_STYLE } from "./styles";
+import { FIGURES, TERM, VALUE } from "./WaterTab";
 
-export function OverviewTab(props: { recipe: Recipe; problems: Problem[]; onChange: (recipe: Recipe) => void }) {
-  const notes = notesAt({ problems: props.problems, warnings: [] }, "description");
+/** The tabs the Overview links to. */
+export type OverviewLinkTab = ListTab | "mashing";
+
+const TAB_NAMES: Record<OverviewLinkTab, string> = {
+  malts: "Malt tab",
+  mashing: "Mashing tab",
+  hops: "Boiling tab",
+  water: "Water tab",
+  fermentation: "Fermentation tab",
+};
+
+/** One group of the ingredient list: its heading (a link to the tab it is entered on), its lines and its total. */
+function Group(props: { group: ListGroup; onTab?: (tab: OverviewLinkTab) => void }) {
+  const { group } = props;
+  const id = `overview-${group.id}`;
   return (
-    <section aria-labelledby="description-title">
-      <h3 id="description-title" class={`${SECTION_TITLE_STYLE} mb-2`}>
-        Description
-      </h3>
-      <div class="[&_textarea]:min-h-40 [&_textarea]:resize-y" data-description>
-        <TextField
-          label="Description"
-          compact
-          multiline
-          rows={8}
-          placeholder="What is this beer? Style, ideas, notes for the brew day …"
-          value={props.recipe.description}
-          invalid={notes.length > 0}
-          onChange={(text) => props.onChange(withDescription(props.recipe, text))}
-        />
-      </div>
-      <FieldNotes notes={notes} class="mt-1" />
-    </section>
+    <div class="rounded-lg p-3 ring-1 ring-line dark:ring-white/10" data-overview-group={group.id}>
+      <h4 id={id} class="mb-1 flex items-baseline justify-between gap-2 text-sm font-semibold text-ink dark:text-ink-light">
+        {group.title}
+        {props.onTab && (
+          <button type="button" class={`${LINK_STYLE} text-xs! font-medium!`} data-tab-link={group.tab} onClick={() => props.onTab!(group.tab)}>
+            {TAB_NAMES[group.tab]}
+          </button>
+        )}
+      </h4>
+      <dl class="grid grid-cols-[1fr_auto] gap-y-1 text-sm" aria-labelledby={id}>
+        {group.lines.map((line, i) => (
+          <div key={i} class="contents" data-overview-line>
+            <dt class="min-w-0 text-stone-700 dark:text-stone-300">
+              <span data-overview-name>{line.name}</span>
+              {line.note && (
+                <span class="ml-1.5 text-xs text-stone-500 dark:text-stone-400" data-overview-note>
+                  {line.note}
+                </span>
+              )}
+            </dt>
+            <dd class="pl-4 text-right tabular-nums text-ink dark:text-ink-light" data-overview-amount>
+              {line.amount}
+            </dd>
+          </div>
+        ))}
+        {group.total !== undefined && (
+          <div class="contents" data-overview-total>
+            <dt class="border-t border-line pt-1 font-medium text-ink dark:border-white/10 dark:text-ink-light">Total</dt>
+            <dd class="border-t border-line pt-1 pl-4 text-right font-semibold tabular-nums text-ink dark:border-white/10 dark:text-ink-light">
+              {group.total}
+            </dd>
+          </div>
+        )}
+      </dl>
+    </div>
+  );
+}
+
+export function OverviewTab(props: {
+  recipe: Recipe;
+  problems: Problem[];
+  onChange: (recipe: Recipe) => void;
+  onTab?: (tab: OverviewLinkTab) => void;
+}) {
+  const notes = notesAt({ problems: props.problems, warnings: [] }, "description");
+  const groups = ingredientList(props.recipe);
+  const time = brewingTime(props.recipe);
+  // One figure's info open at a time.
+  const [figure, setFigure] = useState<string>();
+  const toggle = (id: string) => setFigure(figure === id ? undefined : id);
+  return (
+    <>
+      <section aria-labelledby="description-title">
+        <h3 id="description-title" class={`${SECTION_TITLE_STYLE} mb-2`}>
+          Description
+        </h3>
+        <div class="[&_textarea]:min-h-40 [&_textarea]:resize-y" data-description>
+          <TextField
+            label="Description"
+            compact
+            multiline
+            rows={8}
+            placeholder="What is this beer? Style, ideas, notes for the brew day …"
+            value={props.recipe.description}
+            invalid={notes.length > 0}
+            onChange={(text) => props.onChange(withDescription(props.recipe, text))}
+          />
+        </div>
+        <FieldNotes notes={notes} class="mt-1" />
+      </section>
+      <section class="mt-6" aria-labelledby="overview-ingredients-title" data-overview-ingredients>
+        <h3 id="overview-ingredients-title" class={`${SECTION_TITLE_STYLE} mb-2`}>
+          Ingredients
+        </h3>
+        {groups.length === 0 ? (
+          <p class={HINT_STYLE}>No ingredients yet.</p>
+        ) : (
+          <div class="grid gap-3 sm:grid-cols-2">
+            {groups.map((group) => (
+              <Group key={group.id} group={group} onTab={props.onTab} />
+            ))}
+          </div>
+        )}
+      </section>
+      <section class="mt-6" aria-labelledby="brewing-time-title" data-brewing-time>
+        <h3 id="brewing-time-title" class={`${SECTION_TITLE_STYLE} mb-2`}>
+          Brewing time
+        </h3>
+        <dl class={FIGURES.replace("mt-4 ", "")}>
+          <FigureRow
+            id="mash-time"
+            term="Mashing"
+            termClass={TERM}
+            value={
+              <span class={VALUE} data-mash-time>
+                {time.mash
+                  ? `${formatMinutes(time.mash.total)} (${formatMinutes(time.mash.rests)} of rests, ${formatMinutes(time.mash.heating)} heating)`
+                  : "–"}
+              </span>
+            }
+            missing={time.mash ? undefined : "Plan the rests on the Mashing tab."}
+            info={{
+              explanation: "The mash schedule of the Mashing tab: heating from the mash-in to each rest, and the rests.",
+              calculation: `Heating at ${DEFAULT_HEATING_RATE} °C/min.`,
+            }}
+            open={figure === "mash-time"}
+            onToggle={() => toggle("mash-time")}
+          />
+          <FigureRow
+            id="boil-time"
+            term="Boil"
+            termClass={TERM}
+            value={
+              <span class={VALUE} data-boil-time-total>
+                {time.boil !== undefined ? `${time.boil} min` : "–"}
+              </span>
+            }
+            missing={time.boil !== undefined ? undefined : "Enter the cooking times on the Boiling tab."}
+            info={{ explanation: "The total boil time of the Boil Schedule: the longest cooking time of the boil additions." }}
+            open={figure === "boil-time"}
+            onToggle={() => toggle("boil-time")}
+          />
+          <FigureRow
+            id="brew-time"
+            term="Mash + boil"
+            termClass={TERM}
+            value={
+              <span class={VALUE} data-brew-time>
+                {time.total !== undefined ? formatMinutes(time.total) : "–"}
+              </span>
+            }
+            missing={time.total !== undefined ? undefined : "Needs the mashing and the boil."}
+            info={{
+              explanation:
+                "The mashing and the boil. Not counted: heating the water to the mash-in, lautering, heating to the boil, " +
+                "the whirlpool and cooling.",
+            }}
+            open={figure === "brew-time"}
+            onToggle={() => toggle("brew-time")}
+          />
+        </dl>
+      </section>
+    </>
   );
 }

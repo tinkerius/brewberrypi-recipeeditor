@@ -494,9 +494,27 @@ temperature of their own. The typical durations of `EDT-038` and the flags:
   **Description** (app `RCP-016`): the brewer's free text about the recipe, in a box of eight lines that can be made
   taller, with as many lines as needed. It is written as `"description"` right after `name` (its line breaks as
   `\n`); an empty description is left out of the file. A description that is not text is an error ("The
-  description must be text.") on the Overview tab. Below the description, under **Status**, the recipe's errors and
+  description must be text.") on the Overview tab. Below the description the **Ingredients** (`EDT-076`) and the
+  **Brewing time** (`EDT-077`), then, under **Status**, the recipe's errors and
   warnings (`EDT-020`, `QE-59`); the other tabs show theirs at the fields and count them on the tab (`EDT-062`,
   `EDT-063`).
+- `EDT-076` (`QE-85`) Under **Ingredients**, everything the brew needs, computed from the other tabs and never
+  stored, in groups in this order, each left out while empty: **Malt** (the Malt tab's malts, then the water
+  treatment's acid malt, `EDT-070`, noted "from the water treatment"), **Hops** (each hop with its additions summed,
+  `EDT-061`, and its alpha acid noted "α 5.5 %"), **Other additions** (likewise, without alpha acid), **Yeast** (its
+  name and grams), **Water** (mash, sparge and top-up water in litres, `EDT-051`) and **Water treatment** (the
+  brewing gypsum in g and the lactic acid 80 % in ml for the mash water, the totals of `EDT-069`). Each line has the
+  name and the amount ("4500 g", "16 L", "2.7 g", "0.9 ml", one decimal at most); an entry without a valid amount
+  shows "–", one without a name is called by its table and number ("Malt 2"). The entries keep the brewer's order;
+  the same name twice stays two lines. Malt, Hops and Water end with a **Total** line. Each group's heading links to
+  the tab it is entered on ("Malt tab", "Boiling tab", "Water tab", "Fermentation tab"). Without any group: "No
+  ingredients yet."
+- `EDT-077` (`QE-85`) Under **Brewing time**, computed, never stored, each with an ⓘ (`EDT-072`): **Mashing**, the
+  total of the mash schedule (`EDT-039`) at the default heating rate of 1 °C/min, with its rests and heating
+  ("1 h 49 min (1 h 15 min of rests, 34 min heating)"); **Boil**, the Boil Schedule's total boil time in minutes as there ("60 min", `EDT-054`);
+  and **Mash + boil**, their sum. A missing part shows "–" and "Plan the rests on the Mashing tab.", "Enter the
+  cooking times on the Boiling tab." or, for the sum, "Needs the mashing and the boil.". The sum's ⓘ says what is
+  not counted: heating the water to the mash-in, lautering, heating to the boil, the whirlpool and cooling.
 
 ## 3.11 Water treatment (`QE-61`)
 

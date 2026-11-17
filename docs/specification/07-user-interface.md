@@ -54,7 +54,8 @@ in the brand colours. Unlike the website, the editor also has a dark mode, follo
   name `<id>.json` is not repeated below it (it is in the recipe list, `GUI-021`; `QE-49`); the state (`BRW-004`,
   `DRV-010`) at the right. Then the tabs (`GUI-032`); the problems are on the Overview tab (`EDT-020`, `QE-59`).
 - `GUI-032` The recipe's sections are **tabs** below its title (`QE-28`). So far there are seven, in this order (`QE-43`,
-  `QE-55`, `QE-56`): **Overview** (selected when a recipe is opened): the description (`EDT-065`); **Malt**: the
+  `QE-55`, `QE-56`): **Overview** (selected when a recipe is opened): the description, the ingredients, the brewing time and the
+  status (`EDT-065`, `EDT-076`, `EDT-077`); **Malt**: the
   malts (`EDT-041`..`EDT-050`, `QE-34`, `QE-35`); **Mashing**: the mashing plan (`EDT-030`..`EDT-035`, `QE-32`);
   **Boiling**: the hops and other additions (`EDT-041`..`EDT-054`, `EDT-060`, `QE-42`); **Water**: the
   brewing-day water and the knockout volume (`EDT-051`..`EDT-053`, `QE-36`); **Fermentation**: the gravity, the

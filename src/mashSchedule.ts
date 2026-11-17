@@ -13,6 +13,12 @@ export interface MashStep {
   holdMinutes: number;
 }
 
+/** Minutes as "1 h 18 min" or "45 min". */
+export function formatMinutes(minutes: number): string {
+  const m = Math.round(minutes);
+  return m >= 60 ? `${Math.floor(m / 60)} h${m % 60 ? ` ${m % 60} min` : ""}` : `${m} min`;
+}
+
 /** The default heating rate of the kettle, °C per minute (EDT-039). */
 export const DEFAULT_HEATING_RATE = 1;
 

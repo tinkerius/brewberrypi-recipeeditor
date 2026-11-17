@@ -285,7 +285,7 @@ export function RecipeEditor(props: { doc: Doc; onChange: (recipe: Recipe) => vo
       <Tabs label="Recipe sections" tabs={RECIPE_TABS} selected={tab} onSelect={setTab} badges={badges}>
         {tab === "overview" ? (
           <>
-            <OverviewTab recipe={doc.recipe} problems={problems} onChange={setRecipe} />
+            <OverviewTab recipe={doc.recipe} problems={problems} onChange={setRecipe} onTab={setTab} />
             {/* The errors and warnings of the whole recipe: on the Overview tab only (QE-59); the other tabs show
                 theirs at the fields and count them on the tabs (EDT-062, EDT-063). */}
             {!doc.loadError && (

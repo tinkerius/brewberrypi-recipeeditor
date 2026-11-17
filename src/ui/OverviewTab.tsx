@@ -9,7 +9,7 @@ import { useState } from "preact/hooks";
 import type { Problem } from "../validate";
 import { withDescription, type Recipe } from "../model";
 import { DEFAULT_HEATING_RATE, formatMinutes } from "../mashSchedule";
-import { brewDayTimeline, brewingTime, ingredientList, type ListGroup, type ListTab } from "../overview";
+import { brewDayTimeline, brewingTime, ingredientList, type ListGroup, type ListLine, type ListTab } from "../overview";
 import { BrewDayTimeline } from "./BrewDayTimeline";
 import { TextField } from "./fields";
 import { InfoButton, InfoContent, INFO_PANEL } from "./info";
@@ -27,6 +27,29 @@ const TAB_NAMES: Record<OverviewLinkTab, string> = {
   fermentation: "Fermentation tab",
 };
 
+/** The lines of a group: each name (with its note) and its amount. */
+function Lines(props: { lines: ListLine[] }) {
+  return (
+    <>
+      {props.lines.map((line, i) => (
+        <div key={i} class="contents" data-overview-line>
+          <dt class="min-w-0 text-stone-700 dark:text-stone-300">
+            <span data-overview-name>{line.name}</span>
+            {line.note && (
+              <span class="ml-1.5 text-xs text-stone-500 dark:text-stone-400" data-overview-note>
+                {line.note}
+              </span>
+            )}
+          </dt>
+          <dd class="pl-4 text-right tabular-nums text-ink dark:text-ink-light" data-overview-amount>
+            {line.amount}
+          </dd>
+        </div>
+      ))}
+    </>
+  );
+}
+
 /** One group of the ingredient list: its heading (a link to the tab it is entered on), its lines and its total. */
 function Group(props: { group: ListGroup; onTab?: (tab: OverviewLinkTab) => void }) {
   const { group } = props;
@@ -42,21 +65,7 @@ function Group(props: { group: ListGroup; onTab?: (tab: OverviewLinkTab) => void
         )}
       </h4>
       <dl class="grid grid-cols-[1fr_auto] gap-y-1 text-sm" aria-labelledby={id}>
-        {group.lines.map((line, i) => (
-          <div key={i} class="contents" data-overview-line>
-            <dt class="min-w-0 text-stone-700 dark:text-stone-300">
-              <span data-overview-name>{line.name}</span>
-              {line.note && (
-                <span class="ml-1.5 text-xs text-stone-500 dark:text-stone-400" data-overview-note>
-                  {line.note}
-                </span>
-              )}
-            </dt>
-            <dd class="pl-4 text-right tabular-nums text-ink dark:text-ink-light" data-overview-amount>
-              {line.amount}
-            </dd>
-          </div>
-        ))}
+        <Lines lines={group.lines} />
         {group.total !== undefined && (
           <div class="contents" data-overview-total>
             <dt class="border-t border-line pt-1 font-medium text-ink dark:border-white/10 dark:text-ink-light">Total</dt>
@@ -64,6 +73,14 @@ function Group(props: { group: ListGroup; onTab?: (tab: OverviewLinkTab) => void
               {group.total}
             </dd>
           </div>
+        )}
+        {group.more && (
+          <>
+            <dt class="col-span-2 mt-2 text-sm font-semibold text-ink dark:text-ink-light" data-overview-more>
+              {group.more.title}
+            </dt>
+            <Lines lines={group.more.lines} />
+          </>
         )}
       </dl>
     </div>
@@ -129,9 +146,9 @@ export function OverviewTab(props: {
               <InfoContent
                 info={{
                   explanation:
-                    "The mashing and the boil: the mash schedule of the Mashing tab (heating to each rest and the rests) and the " +
-                    "total boil time of the Boil Schedule. Not counted: heating the water to the mash-in, lautering, heating to the " +
-                    "boil, the whirlpool and cooling.",
+                    "The mash schedule of the Mashing tab (heating to each rest and the rests), heating from its last temperature to " +
+                    "the boil, and the total boil time of the Boil Schedule. Not counted: heating the water to the mash-in, " +
+                    "lautering, the whirlpool, filtering and cooling.",
                   calculation: `Heating at ${DEFAULT_HEATING_RATE} °C/min.`,
                 }}
               />

@@ -46,6 +46,8 @@ export interface ListGroup {
   lines: ListLine[];
   /** The group's total, where adding up makes sense (malt, hops, water). */
   total?: string;
+  /** A part below the total in the same box: the other additions in the Hops box (QE-90). */
+  more?: { title: string; lines: ListLine[] };
 }
 
 /** One decimal, without a trailing ".0": "13.5", "18". */
@@ -66,8 +68,8 @@ function entryLines(entries: Ingredient[], one: string, note?: (entry: Ingredien
 
 /**
  * Everything the brew needs (EDT-076), in groups in this order, each left out while empty: the malts with the water
- * treatment's acid malt, the hops (all additions of each summed, with its alpha acid), the other additions, the
- * yeast, the water and the water treatment's gypsum and lactic acid for the mash water.
+ * treatment's acid malt, the hops (all additions of each summed, with its alpha acid) with the other additions in
+ * their box (QE-90), the yeast, the water and the water treatment's gypsum and lactic acid for the mash water.
  */
 export function ingredientList(recipe: Recipe): ListGroup[] {
   const groups: ListGroup[] = [];
@@ -82,15 +84,24 @@ export function ingredientList(recipe: Recipe): ListGroup[] {
     const total = totalGrams(malts);
     groups.push({ id: "malts", title: "Malt", tab: "malts", lines, ...(total > 0 ? { total: grams(total) } : {}) });
   }
+  // The hops and, in the same box below their total, the other boil additions (QE-90); the other additions alone get
+  // their own box.
   const hops = ingredientsOf(recipe, "hops");
+  const others = ingredientsOf(recipe, "others");
+  const otherLines = entryLines(others, INGREDIENT_LABELS.others.one);
   if (hops.length > 0) {
     const lines = entryLines(hops, INGREDIENT_LABELS.hops.one, (h) => (validAlpha(h.alpha) ? `α ${h.alpha} %` : undefined));
     const total = totalGrams(hops);
-    groups.push({ id: "hops", title: "Hops", tab: "hops", lines, ...(total > 0 ? { total: grams(total) } : {}) });
-  }
-  const others = ingredientsOf(recipe, "others");
-  if (others.length > 0) {
-    groups.push({ id: "others", title: INGREDIENT_LABELS.others.title, tab: "hops", lines: entryLines(others, INGREDIENT_LABELS.others.one) });
+    groups.push({
+      id: "hops",
+      title: "Hops",
+      tab: "hops",
+      lines,
+      ...(total > 0 ? { total: grams(total) } : {}),
+      ...(others.length > 0 ? { more: { title: INGREDIENT_LABELS.others.title, lines: otherLines } } : {}),
+    });
+  } else if (others.length > 0) {
+    groups.push({ id: "others", title: INGREDIENT_LABELS.others.title, tab: "hops", lines: otherLines });
   }
   const yeast = yeastOf(recipe);
   if (yeast.name !== undefined || yeast.grams !== undefined) {
@@ -125,28 +136,57 @@ export function ingredientList(recipe: Recipe): ListGroup[] {
   return groups;
 }
 
+/** The boil's temperature, °C. */
+export const BOIL_TEMPERATURE = 100;
+
+/** The mash schedule at the default heating rate (the Mashing tab's rate is a view setting, not stored). */
+function mashOf(recipe: Recipe) {
+  const plan = restsOf(recipe);
+  const steps = stepsOf(plan);
+  return steps.length > 0 ? mashProfile(steps, DEFAULT_HEATING_RATE, mashInTemperature(plan)) : undefined;
+}
+
+/**
+ * Heating to the boil (EDT-077, QE-91): from the mash schedule's last temperature (the mash-out) to 100 °C at the
+ * same default heating rate as the mash; undefined without a mash schedule (no temperature to start from) or a boil.
+ */
+function heatToBoilOf(profile: ReturnType<typeof mashOf>, boil: number | undefined) {
+  if (!profile || boil === undefined) {
+    return undefined;
+  }
+  const fromTemp = profile.points[profile.points.length - 1].temp;
+  return { fromTemp, minutes: Math.max(0, BOIL_TEMPERATURE - fromTemp) / DEFAULT_HEATING_RATE };
+}
+
 export interface BrewingTime {
   /** The mash schedule (EDT-039): its total, of which rests and heating; undefined while no rest has both values. */
   mash?: { total: number; rests: number; heating: number };
+  /** Heating from the mash's last temperature to the boil (QE-91); undefined without the mash or the boil. */
+  heatToBoil?: { fromTemp: number; minutes: number };
   /** The boil time (EDT-054); undefined while no boil addition has an amount and a cooking time. */
   boil?: number;
-  /** Mash + boil, while both are known. */
+  /** Mash + heating to the boil + boil, while the mash and the boil are known. */
   total?: number;
   missing: ("mash" | "boil")[];
 }
 
 /**
- * The brewing time (EDT-077, QE-85): the mash schedule as on the Mashing tab, at the default heating rate (the tab's
- * rate is a view setting, not stored), plus the boil as in the Boil Schedule. Nothing else is counted.
+ * The brewing time (EDT-077, QE-85, QE-91): the mash schedule as on the Mashing tab, heating to the boil, and the boil
+ * as in the Boil Schedule, all at the default heating rate.
  */
 export function brewingTime(recipe: Recipe): BrewingTime {
-  const plan = restsOf(recipe);
-  const steps = stepsOf(plan);
-  const profile = steps.length > 0 ? mashProfile(steps, DEFAULT_HEATING_RATE, mashInTemperature(plan)) : undefined;
+  const profile = mashOf(recipe);
   const mash = profile ? { total: profile.totalMinutes, rests: profile.holdMinutes, heating: profile.rampMinutes } : undefined;
   const boil = boilMinutesOf(recipe);
+  const heatToBoil = heatToBoilOf(profile, boil);
   const missing = [...(mash ? [] : (["mash"] as const)), ...(boil !== undefined ? [] : (["boil"] as const))];
-  return { mash, boil, total: mash && boil !== undefined ? mash.total + boil : undefined, missing };
+  return {
+    mash,
+    heatToBoil,
+    boil,
+    total: mash && heatToBoil && boil !== undefined ? mash.total + heatToBoil.minutes + boil : undefined,
+    missing,
+  };
 }
 
 /** One addition on the brew-day timeline: what, its row (for its colour, as in the Boil Schedule), and when it goes in. */
@@ -175,20 +215,19 @@ export interface TimelineSegment {
 
 export interface BrewDayTimeline {
   mash?: { minutes: number; segments: TimelineSegment[] };
+  /** Heating to the boil (QE-91), right after the mash. */
+  heatToBoil?: { from: number; to: number; fromTemp: number };
   boil?: { start: number; minutes: number; additions: TimelineAddition[] };
   total: number;
 }
 
 /**
  * The brew-day timeline (EDT-078, QE-87): the brewing time of EDT-077 as one line of time. The mash schedule's
- * heating and rests (as on the Mashing tab, at the default heating rate), then the boil right after it (heating to the
- * boil is not counted, so it takes no time here), with each boil addition at the minute it goes in. Undefined while
- * there is neither a mash schedule nor a boil.
+ * heating and rests (as on the Mashing tab, at the default heating rate), heating to the boil (QE-91), then the boil
+ * with each boil addition at the minute it goes in. Undefined while there is neither a mash schedule nor a boil.
  */
 export function brewDayTimeline(recipe: Recipe): BrewDayTimeline | undefined {
-  const plan = restsOf(recipe);
-  const steps = stepsOf(plan);
-  const profile = steps.length > 0 ? mashProfile(steps, DEFAULT_HEATING_RATE, mashInTemperature(plan)) : undefined;
+  const profile = mashOf(recipe);
   const mash = profile && {
     minutes: profile.totalMinutes,
     segments: profile.segments.map(
@@ -203,7 +242,9 @@ export function brewDayTimeline(recipe: Recipe): BrewDayTimeline | undefined {
     ),
   };
   const minutes = boilMinutesOf(recipe);
-  const start = mash?.minutes ?? 0;
+  const heat = heatToBoilOf(profile, minutes);
+  const heatToBoil = mash && heat ? { from: mash.minutes, to: mash.minutes + heat.minutes, fromTemp: heat.fromTemp } : undefined;
+  const start = heatToBoil?.to ?? mash?.minutes ?? 0;
   const boil =
     minutes === undefined
       ? undefined
@@ -230,5 +271,5 @@ export function brewDayTimeline(recipe: Recipe): BrewDayTimeline | undefined {
   if (!mash && !boil) {
     return undefined;
   }
-  return { mash, boil, total: start + (boil?.minutes ?? 0) };
+  return { mash, heatToBoil, boil, total: start + (boil?.minutes ?? 0) };
 }

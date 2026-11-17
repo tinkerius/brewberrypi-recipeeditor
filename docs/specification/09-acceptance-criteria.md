@@ -350,26 +350,26 @@ a release that changes sign-in or Drive behaviour.
   with them moved into `mashing` (`malts`, `rests`), `boiling` (`whirlpool`, `hops`, `others`), `water`
   (`target_knockout_volume`) and `fermentation` (`original_gravity`, `final_gravity`), with a notice naming each move,
   and is valid; a value whose new place is taken, or a draft section that is not an object, stays and is a problem.
-- `ACC-111` (EDT-076, QE-85) A recipe with Pilsner malt 4500 g, a second malt without an amount, acid malt 1 % in the
+- `ACC-111` (EDT-076, QE-85, QE-90) A recipe with Pilsner malt 4500 g, a second malt without an amount, acid malt 1 % in the
   water treatment, Hallertauer 5.5 % with 20 g and 10 g, Saaz twice, Irish Moss 10 g, the yeast WB-06 11.5 g, 16 L
   mash, 14 L sparge water and gypsum 1.5 g/10 L lists, in this order, Malt (Pilsner malt 4500 g, Malt 2 "–", Acid
-  malt 45 g "from the water treatment", Total 4545 g), Hops (Hallertauer 30 g "α 5.5 %", both Saaz lines, Total),
-  Other additions (Irish Moss 10 g), Yeast (WB-06 11.5 g), Water (Mash water 16 L, Sparge water 14 L, Total 30 L)
+  malt 45 g "from the water treatment", Total 4545 g), Hops (Hallertauer 30 g "α 5.5 %", both Saaz lines, Total 45 g,
+  then under "Other additions" Irish Moss 10 g), Yeast (WB-06 11.5 g), Water (Mash water 16 L, Sparge water 14 L, Total 30 L)
   and Water treatment (Brewing gypsum 2.4 g); a group's link opens its tab. An empty recipe shows "No ingredients
   yet.".
-- `ACC-112` (EDT-077, QE-85, QE-88) For a plan of mash-in 57 °C, Maltose rest 63 °C 45 min and Mash-out 78 °C 10 min
+- `ACC-112` (EDT-077, QE-85, QE-88, QE-91) For a plan of mash-in 57 °C, Maltose rest 63 °C 45 min and Mash-out 78 °C 10 min
   (the Mashing tab's "Total mash time 1 h 16 min" at 1 °C/min) and hops of 60 and 10 min, the line right below the
-  heading Brewing time and above the timeline reads "Total brewing time: 2 h 16 min", its ⓘ saying what is not
-  counted; the section has no table of figures. Without rests and cooking times the total is "–" with "Plan the
+  heading Brewing time and above the timeline reads "Total brewing time: 2 h 38 min" (with 22 min heating from 78 °C to
+  the boil), its ⓘ saying what is not counted; the section has no table of figures. Without rests and cooking times the total is "–" with "Plan the
   rests on the Mashing tab. Enter the cooking times on the Boiling tab."; with only the boil, "–" with "Plan the
   rests on the Mashing tab.".
-- `ACC-113` (EDT-078, QE-87, QE-88, QE-89) For that plan, hops Hallertauer 20 g 60 min and 10 g 10 min, Irish Moss 5 g
+- `ACC-113` (EDT-078, QE-87, QE-88, QE-89, QE-91) For that plan, hops Hallertauer 20 g 60 min and 10 g 10 min, Irish Moss 5 g
   10 min and the whirlpool ticked, the brew-day timeline below the total brewing time has the phases "Mashing · 1 h
   16 min" and "Boil · 60 min" over a bar of heating 0:00–0:06, "Maltose rest 63°" 0:06–0:51, heating, the Mash-out
-  from 1:06, the divider "Heating to the boil (not counted)" and the boil from 1:16 (tooltips "Heating from 57 °C to
-  63 °C: 6 min, from 0:00", …); above it two hop icons, at 1:16 ("Hallertauer: 20 g at 1:16, cooks 60 min") and at
-  2:06, which the hop and the Irish Moss share (both in its tooltip); no whirlpool; the clock from 0:00, and the
-  legend Heating, Rest, Boil, Hop; its label reads "Brew day: mashing 1 h 16 min in 2 rests, boil 60 min with 3
+  from 1:06, "Heating to the boil from 78 °C to 100 °C: 22 min, from 1:16" and the boil from 1:38 (tooltips
+  "Heating from 57 °C to 63 °C: 6 min, from 0:00", …); above it two hop icons, at 1:38 ("Hallertauer: 20 g at 1:38,
+  cooks 60 min") and at 2:28, which the hop and the Irish Moss share (both in its tooltip); no whirlpool; the clock
+  from 0:00, and the legend Heating, Rest, Heating to the boil, Boil, Hop; its label reads "Brew day: mashing 1 h 16 min in 2 rests, boil 60 min with 3
   additions.". The stretches are the Mashing tab's; without a mash schedule the boil starts at 0:00, without a boil
   there is only the mash, and without both there is no timeline.
 - `ACC-020` (BRW-001) A draft stored, then the store opened again (a reload), gives the same draft; it can be

@@ -1,7 +1,7 @@
 /**
  * The brew-day timeline on the Overview tab (EDT-078, QE-87): the brewing time as one bar of time, left to right. The
- * mash's heating (striped) and rests (solid berry, with their temperature and name where they fit), a divider for the
- * jump to the boil (heating to the boil is not counted, so it takes no time), the boil in brass; above the bar one
+ * mash's heating (striped) and rests (solid berry, with their temperature and name where they fit), heating to the
+ * boil (striped brass, QE-91), the boil in brass; above the bar one
  * icon at each minute something goes into the boil, in its Boil Schedule colour (QE-89), with all that goes in then in
  * its tooltip. Below it a brew-day clock (h:mm) and a legend.
  */
@@ -137,6 +137,17 @@ export function BrewDayTimeline(props: { timeline: Timeline }) {
                 </div>
               );
             })}
+            {/* Heating to the boil (QE-91): striped, in the boil's colour. */}
+            {timeline.heatToBoil && (
+              <div
+                class="absolute inset-y-0 bg-brass-light/60 dark:bg-brass/60"
+                style={{ left: pct(timeline.heatToBoil.from), width: pct(timeline.heatToBoil.to - timeline.heatToBoil.from), ...STRIPES }}
+                title={`Heating to the boil from ${timeline.heatToBoil.fromTemp} °C to 100 °C: ${formatMinutes(
+                  timeline.heatToBoil.to - timeline.heatToBoil.from,
+                )}, from ${clock(timeline.heatToBoil.from)}`}
+                data-timeline-segment="heat-to-boil"
+              />
+            )}
             {boil && (
               <div
                 class="absolute inset-y-0 flex items-center justify-center overflow-hidden whitespace-nowrap bg-brass text-[11px] font-semibold text-ink dark:bg-brass-light"
@@ -151,21 +162,12 @@ export function BrewDayTimeline(props: { timeline: Timeline }) {
             {[...atMinute.keys()].map((minute) => (
               <span key={`n${minute}`} class="absolute inset-y-0 w-0.5 -translate-x-1/2 bg-white/80 dark:bg-surface-dark/80" style={{ left: pct(minute) }} />
             ))}
-            {/* Heating to the boil takes no time here: a divider. */}
-            {timeline.mash && boil && (
-              <span
-                class="absolute -inset-y-px w-1 -translate-x-1/2 bg-white dark:bg-surface-dark"
-                style={{ left: pct(boil.start) }}
-                title="Heating to the boil (not counted)"
-                data-timeline-jump
-              />
-            )}
           </div>
         </div>
         {/* The brew-day clock. */}
         <div class="relative h-4 text-[10px] text-stone-500 tabular-nums dark:text-stone-400" aria-hidden="true" data-timeline-axis>
           {ticks.map((m) => (
-            <span key={m} class={`absolute top-0.5 ${m === 0 ? "" : "-translate-x-1/2"}`} style={{ left: pct(m) }}>
+            <span key={m} class={`absolute top-0.5 ${m === 0 ? "" : px(span - m) < 16 ? "-translate-x-full" : "-translate-x-1/2"}`} style={{ left: pct(m) }}>
               {clock(m)}
             </span>
           ))}
@@ -183,6 +185,9 @@ export function BrewDayTimeline(props: { timeline: Timeline }) {
             <Key swatch={<span class="h-3 w-5 rounded-sm bg-berry-light/60 dark:bg-berry/70" style={STRIPES} />} label="Heating" />
             <Key swatch={<span class="h-3 w-5 rounded-sm bg-berry dark:bg-berry-light" />} label="Rest" />
           </>
+        )}
+        {timeline.heatToBoil && (
+          <Key swatch={<span class="h-3 w-5 rounded-sm bg-brass-light/60 dark:bg-brass/60" style={STRIPES} />} label="Heating to the boil" />
         )}
         {boil && <Key swatch={<span class="h-3 w-5 rounded-sm bg-brass dark:bg-brass-light" />} label="Boil" />}
         {kinds.has("hops") && <Key swatch={<AdditionIcon kind="hops" colour="var(--hop-1)" size={14} />} label="Hop" />}

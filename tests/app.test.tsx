@@ -2444,7 +2444,7 @@ describe("App, the Overview's ingredients and brewing time (QE-85)", () => {
   const groups = () =>
     [...overview().querySelectorAll("[data-overview-group]")].map((g) => [
       g.querySelector("h4")!.firstChild!.textContent,
-      [...g.querySelectorAll("[data-overview-line], [data-overview-total]")].map((l) => l.textContent),
+      [...g.querySelectorAll("[data-overview-line], [data-overview-total], [data-overview-more]")].map((l) => l.textContent),
     ]);
 
   it("ACC-111 lists what the brew needs, by group, and a group's link opens its tab", async () => {
@@ -2467,13 +2467,12 @@ describe("App, the Overview's ingredients and brewing time (QE-85)", () => {
     expect(recipe().querySelector("#tab-overview")!.getAttribute("aria-selected")).toBe("true");
     expect(groups()).toEqual([
       ["Malt", ["Pilsner malt4500 g", "Munich malt–", "Acid maltfrom the water treatment45 g", "Total4545 g"]],
-      ["Hops", ["Hallertauerα 5.5 %30 g", "Saaz10 g", "Saaz5 g", "Total45 g"]],
-      ["Other additions", ["Irish Moss10 g"]],
+      ["Hops", ["Hallertauerα 5.5 %30 g", "Saaz10 g", "Saaz5 g", "Total45 g", "Other additions", "Irish Moss10 g"]],
       ["Yeast", ["WB-0611.5 g"]],
       ["Water", ["Mash water16 L", "Sparge water14 L", "Total30 L"]],
       ["Water treatment", ["Brewing gypsum2.4 g"]],
     ]);
-    const link = overview().querySelector<HTMLButtonElement>("[data-overview-group=others] [data-tab-link]")!;
+    const link = overview().querySelector<HTMLButtonElement>("[data-overview-group=hops] [data-tab-link]")!;
     expect(link.textContent).toBe("Boiling tab");
     await act(async () => link.click());
     expect(recipe().querySelector("#tab-hops")!.getAttribute("aria-selected")).toBe("true");
@@ -2495,14 +2494,14 @@ describe("App, the Overview's ingredients and brewing time (QE-85)", () => {
     expect(line().previousElementSibling!.textContent?.trim()).toBe("Brewing time");
     expect(line().nextElementSibling!.hasAttribute("data-brew-day-timeline")).toBe(true);
     expect(section().querySelector("dl")).toBeNull();
-    expect(line().querySelector("p")!.textContent).toBe("Total brewing time:2 h 16 mini");
-    // 1 h 16 min of mashing, as on the Mashing tab, and 60 min of boil.
+    expect(line().querySelector("p")!.textContent).toBe("Total brewing time:2 h 38 mini");
+    // 1 h 16 min of mashing, as on the Mashing tab, 22 min heating from 78 °C to the boil, and 60 min of boil.
     await act(async () => recipe().querySelector<HTMLElement>("#tab-mashing")!.click());
     expect(recipe().querySelector("[data-mash-total]")!.textContent).toBe("Total mash time 1 h 16 min: 55 min of rests, 21 min heating at 1 °C/min.");
     await act(async () => recipe().querySelector<HTMLElement>("#tab-overview")!.click());
     await act(async () => line().querySelector<HTMLButtonElement>("[aria-controls=brew-time-info]")!.click());
     expect(line().querySelector("[data-brew-time-info]")!.textContent).toContain(
-      "Not counted: heating the water to the mash-in, lautering, heating to the boil, the whirlpool and cooling.",
+      "Not counted: heating the water to the mash-in, lautering, the whirlpool, filtering and cooling.",
     );
   });
 
@@ -2531,15 +2530,15 @@ describe("App, the Overview's ingredients and brewing time (QE-85)", () => {
       ["rest", "Maltose rest: 63 °C for 45 min, from 0:06"],
       ["heat", "Heating from 63 °C to 78 °C: 15 min, from 0:51"],
       ["rest", "Mash-out: 78 °C for 10 min, from 1:06"],
-      ["boil", "Boil at 100 °C for 60 min, from 1:16"],
+      ["heat-to-boil", "Heating to the boil from 78 °C to 100 °C: 22 min, from 1:16"],
+      ["boil", "Boil at 100 °C for 60 min, from 1:38"],
     ]);
     // The Maltose rest is wide enough for its name and temperature.
     expect(timeline().querySelector("[data-timeline-rest=MaltoseRest][data-timeline-segment=rest]")!.textContent).toBe("Maltose rest 63°");
-    expect(timeline().querySelector("[data-timeline-jump]")!.getAttribute("title")).toBe("Heating to the boil (not counted)");
-    // One icon at each minute something goes in: the hop and the Irish Moss at 2:06 share one hop icon (QE-89).
+    // One icon at each minute something goes in: the hop and the Irish Moss at 2:28 share one hop icon (QE-89).
     expect([...timeline().querySelectorAll("[data-timeline-addition]")].map((a) => [a.getAttribute("data-timeline-addition"), a.getAttribute("title")])).toEqual([
-      ["hop", "Hallertauer: 20 g at 1:16, cooks 60 min"],
-      ["hop", "Hallertauer: 10 g at 2:06, cooks 10 min\nIrish Moss: 5 g at 2:06, cooks 10 min"],
+      ["hop", "Hallertauer: 20 g at 1:38, cooks 60 min"],
+      ["hop", "Hallertauer: 10 g at 2:28, cooks 10 min\nIrish Moss: 5 g at 2:28, cooks 10 min"],
     ]);
     expect(timeline().querySelectorAll("[data-addition-icon]")).toHaveLength(2 + 1); // and the legend's hop
     // The whirlpool (ticked) is not shown.
@@ -2548,6 +2547,7 @@ describe("App, the Overview's ingredients and brewing time (QE-85)", () => {
     expect([...timeline().querySelectorAll("[data-timeline-key]")].map((k) => k.textContent)).toEqual([
       "Heating",
       "Rest",
+      "Heating to the boil",
       "Boil",
       "Hop", // no jar is shown, so no "Other addition"
     ]);
@@ -2562,7 +2562,8 @@ describe("App, the Overview's ingredients and brewing time (QE-85)", () => {
       "1:45",
       "2:00",
       "2:15",
-    ]); // at 640 px; the end (2:16) is too close to 2:15 for its own label
+      "2:30",
+    ]); // at 640 px; the end (2:38) is too close to 2:30 for its own label
   });
 
   it("ACC-113 without a mash schedule or a boil there is no timeline", async () => {

@@ -498,10 +498,12 @@ temperature of their own. The typical durations of `EDT-038` and the flags:
   and the **Ingredients** (`EDT-076`, `QE-86`), then, under **Status**, the recipe's errors and
   warnings (`EDT-020`, `QE-59`); the other tabs show theirs at the fields and count them on the tab (`EDT-062`,
   `EDT-063`).
-- `EDT-076` (`QE-85`) Under **Ingredients**, everything the brew needs, computed from the other tabs and never
+- `EDT-076` (`QE-85`, `QE-90`) Under **Ingredients**, everything the brew needs, computed from the other tabs and never
   stored, in groups in this order, each left out while empty: **Malt** (the Malt tab's malts, then the water
   treatment's acid malt, `EDT-070`, noted "from the water treatment"), **Hops** (each hop with its additions summed,
-  `EDT-061`, and its alpha acid noted "α 5.5 %"), **Other additions** (likewise, without alpha acid), **Yeast** (its
+  `EDT-061`, and its alpha acid noted "α 5.5 %"; below its Total, under the subheading **Other additions**, the other
+  additions likewise, without alpha acid, `QE-90`; with other additions but no hops, they have their own box **Other
+  additions**), **Yeast** (its
   name and grams), **Water** (mash, sparge and top-up water in litres, `EDT-051`) and **Water treatment** (the
   brewing gypsum in g and the lactic acid 80 % in ml for the mash water, the totals of `EDT-069`). Each line has the
   name and the amount ("4500 g", "16 L", "2.7 g", "0.9 ml", one decimal at most); an entry without a valid amount
@@ -509,25 +511,27 @@ temperature of their own. The typical durations of `EDT-038` and the flags:
   the same name twice stays two lines. Malt, Hops and Water end with a **Total** line. Each group's heading links to
   the tab it is entered on ("Malt tab", "Boiling tab", "Water tab", "Fermentation tab"). Without any group: "No
   ingredients yet."
-- `EDT-077` (`QE-85`, `QE-88`) Right below the heading **Brewing time**, computed, never stored: "Total brewing time:"
-  and the sum of the mashing, the total of the mash schedule (`EDT-039`) at the default heating rate of 1 °C/min, and
-  the boil, the Boil Schedule's total boil time (`EDT-054`) ("2 h 16 min"), with an ⓘ (`EDT-072`) saying what it
-  counts and what not: heating the water to the mash-in, lautering, heating to the boil, the whirlpool and cooling.
+- `EDT-077` (`QE-85`, `QE-88`, `QE-91`) Right below the heading **Brewing time**, computed, never stored: "Total brewing
+  time:" and the sum of the mashing, the total of the mash schedule (`EDT-039`) at the default heating rate of
+  1 °C/min, the **heating to the boil**, from the mash schedule's last temperature (the mash-out) to 100 °C at the same
+  rate (78 °C: 22 min), and the boil, the Boil Schedule's total boil time (`EDT-054`) ("2 h 38 min"), with an ⓘ
+  (`EDT-072`) saying what it counts and what not: heating the water to the mash-in, lautering, the whirlpool,
+  filtering and cooling.
   While a part is missing the total is "–" with what to enter: "Plan the rests on the Mashing tab.", "Enter the
   cooking times on the Boiling tab.". The two parts' own times are the timeline's phases (`EDT-078`); there is no
   table of figures.
-- `EDT-078` (`QE-86`, `QE-87`, `QE-88`, `QE-89`) Below the total brewing time, while there is a mash schedule or a boil, the
+- `EDT-078` (`QE-86`..`QE-89`, `QE-91`) Below the total brewing time, while there is a mash schedule or a boil, the
   **brew-day timeline**: the brewing time of `EDT-077` as one bar of time, left to right, on a clock from "0:00"
   (h:mm; the end, e.g. "3:08", where there is room). The mash schedule as on the Mashing tab (`EDT-039`): its heating
-  striped, its rests solid berry with their temperature ("63°") and, where it fits, name ("Maltose rest 63°"); then,
-  after a divider because heating to the boil is not counted, the boil in brass ("Boil 100 °C" where it fits). Above
+  striped, its rests solid berry with their temperature ("63°") and, where it fits, name ("Maltose rest 63°"); then
+  the heating to the boil striped in brass, and the boil in brass ("Boil 100 °C" where it fits). Above
   the bar **one icon at each minute** something goes into the boil (a boil addition with an amount and a cooking
   time), with a notch in the bar there: a hop cone while a hop goes in then, else the jar of another addition, in the
   Boil Schedule colour of the first of them (`EDT-054`, `QE-46`, `QE-47`, `QE-48`); its tooltip names everything that
-  goes in then, one per line ("Hallertauer: 10 g at 2:06, cooks 10 min", "Irish Moss: 5 g at 2:06, cooks 10 min").
+  goes in then, one per line ("Hallertauer: 10 g at 2:28, cooks 10 min", "Irish Moss: 5 g at 2:28, cooks 10 min").
   The whirlpool is not shown. Above that the phases "Mashing · 1 h 16 min" and "Boil · 60 min" (as much as fits);
-  below the clock a legend of what is shown (Heating, Rest, Boil, and Hop or Other addition while such an icon is
-  shown). Each stretch's details are in its tooltip ("Heating from 57 °C to 63 °C: 6 min, from 0:00"). It fits the
+  below the clock a legend of what is shown (Heating, Rest, Heating to the boil, Boil, and Hop or Other addition
+  while such an icon is shown). Each stretch's details are in its tooltip ("Heating from 57 °C to 63 °C: 6 min, from 0:00"). It fits the
   tab's width, also on a phone.
 
 ## 3.11 Water treatment (`QE-61`)

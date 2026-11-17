@@ -2506,7 +2506,7 @@ describe("App, the Overview's ingredients and brewing time (QE-85)", () => {
     );
   });
 
-  it("ACC-113 the brew-day curve shows the mash, the jump to the boil, the additions and the whirlpool", async () => {
+  it("ACC-113 the brew-day timeline shows the mash's heating and rests, the boil, the additions and the whirlpool", async () => {
     await open({
       version: 3,
       name: "Brew",
@@ -2518,28 +2518,55 @@ describe("App, the Overview's ingredients and brewing time (QE-85)", () => {
         others: [{ name: "Irish Moss", additions: [{ minutes: 10, grams: 5 }] }],
       },
     });
-    const curve = () => recipe().querySelector("[data-brewing-time] [data-brew-day-curve]")!;
+    const timeline = () => recipe().querySelector("[data-brewing-time] [data-brew-day-timeline]")!;
     // Above the time figures, in the Brewing time section, before the Ingredients.
-    expect(curve().nextElementSibling!.tagName).toBe("DL");
-    expect(curve().querySelector("svg")!.getAttribute("aria-label")).toBe(
+    expect(timeline().nextElementSibling!.tagName).toBe("DL");
+    expect(timeline().querySelector("[data-timeline-bar]")!.getAttribute("aria-label")).toBe(
       "Brew day: mashing 1 h 16 min in 2 rests, boil 60 min with 3 additions, then the whirlpool.",
     );
-    expect([...curve().querySelectorAll("[data-curve-band]")].map((b) => b.getAttribute("data-curve-band"))).toEqual(["mash", "boil"]);
-    expect([...curve().querySelectorAll("[data-curve-phase]")].map((p) => p.textContent)).toEqual(["Mashing · 1 h 16 min", "Boil · 60 min"]);
-    expect([...curve().querySelectorAll("[data-curve-rest]")].map((r) => r.getAttribute("data-curve-rest"))).toEqual(["MaltoseRest", "MashOut"]);
-    expect(curve().querySelector("[data-curve-jump]")).not.toBeNull();
-    // Each addition at the minute it goes in, with its icon; the two at 1:06 stacked.
-    expect([...curve().querySelectorAll("[data-curve-addition]")].map((a) => [a.getAttribute("data-curve-addition"), a.querySelector("title")!.textContent])).toEqual([
+    expect([...timeline().querySelectorAll("[data-timeline-phase]")].map((p) => p.textContent)).toEqual(["Mashing · 1 h 16 min", "Boil · 60 min"]);
+    expect([...timeline().querySelectorAll("[data-timeline-segment]")].map((s) => [s.getAttribute("data-timeline-segment"), s.getAttribute("title")])).toEqual([
+      ["heat", "Heating from 57 °C to 63 °C: 6 min, from 0:00"],
+      ["rest", "Maltose rest: 63 °C for 45 min, from 0:06"],
+      ["heat", "Heating from 63 °C to 78 °C: 15 min, from 0:51"],
+      ["rest", "Mash-out: 78 °C for 10 min, from 1:06"],
+      ["boil", "Boil at 100 °C for 60 min, from 1:16"],
+    ]);
+    // The Maltose rest is wide enough for its name and temperature.
+    expect(timeline().querySelector("[data-timeline-rest=MaltoseRest][data-timeline-segment=rest]")!.textContent).toBe("Maltose rest 63°");
+    expect(timeline().querySelector("[data-timeline-jump]")!.getAttribute("title")).toBe("Heating to the boil (not counted)");
+    // Each addition at the minute it goes in, with its icon; the two at 2:06 stacked.
+    expect([...timeline().querySelectorAll("[data-timeline-addition]")].map((a) => [a.getAttribute("data-timeline-addition"), a.getAttribute("title")])).toEqual([
       ["hop", "Hallertauer: 20 g at 1:16, cooks 60 min"],
       ["hop", "Hallertauer: 10 g at 2:06, cooks 10 min"],
       ["other", "Irish Moss: 5 g at 2:06, cooks 10 min"],
     ]);
-    expect(curve().querySelector("[data-curve-whirlpool] title")!.textContent).toBe("Whirlpool after the boil");
+    expect(timeline().querySelector("[data-timeline-whirlpool]")!.getAttribute("title")).toBe("Whirlpool after the boil");
+    expect([...timeline().querySelectorAll("[data-timeline-key]")].map((k) => k.textContent)).toEqual([
+      "Heating",
+      "Rest",
+      "Boil",
+      "Hop",
+      "Other addition",
+      "Whirlpool",
+    ]);
+    expect([...timeline().querySelectorAll("[data-timeline-axis] span")].map((s) => s.textContent)).toEqual([
+      "0:00",
+      "0:15",
+      "0:30",
+      "0:45",
+      "1:00",
+      "1:15",
+      "1:30",
+      "1:45",
+      "2:00",
+      "2:15",
+    ]); // at 640 px; the end (2:16) is too close to 2:15 for its own label
   });
 
-  it("ACC-113 without a mash schedule or a boil there is no curve", async () => {
+  it("ACC-113 without a mash schedule or a boil there is no timeline", async () => {
     await open({ version: 3, name: "Brew", mashing_process: { goals: [] } });
-    expect(recipe().querySelector("[data-brew-day-curve]")).toBeNull();
+    expect(recipe().querySelector("[data-brew-day-timeline]")).toBeNull();
   });
 
   it("ACC-112 without rests or cooking times the brewing time says what to enter", async () => {

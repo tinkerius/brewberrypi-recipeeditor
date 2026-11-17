@@ -150,8 +150,8 @@ export function brewingTime(recipe: Recipe): BrewingTime {
   return { mash, boil, total: mash && boil !== undefined ? mash.total + boil : undefined, missing };
 }
 
-/** One addition on the brew-day curve: what, its row (for its colour, as in the Boil Schedule), and when it goes in. */
-export interface CurveAddition {
+/** One addition on the brew-day timeline: what, its row (for its colour, as in the Boil Schedule), and when it goes in. */
+export interface TimelineAddition {
   kind: "hops" | "others";
   /** Its row in its table (EDT-047: the row's colour). */
   row: number;
@@ -162,37 +162,47 @@ export interface CurveAddition {
   minute: number;
 }
 
-/** A rest on the brew-day curve: held at `temp` from `from` to `to` (minutes of the brew day). */
-export interface CurveHold {
+/** A stretch of the mash on the timeline: heating from `fromTemp` to `temp`, or a rest held at `temp`. */
+export interface TimelineSegment {
+  kind: "heat" | "rest";
+  /** The rest it heats to, or the rest held. */
   restId: string;
+  fromTemp: number;
   temp: number;
+  /** Minutes of the brew day. */
   from: number;
   to: number;
 }
 
+export interface BrewDayTimeline {
+  mash?: { minutes: number; segments: TimelineSegment[] };
+  boil?: { start: number; minutes: number; additions: TimelineAddition[] };
+  whirlpool: boolean;
+  total: number;
+}
+
 /**
- * The brew-day curve (EDT-078, QE-86): the temperature over the brewing time of EDT-077. The mash schedule's corners
- * (as on the Mashing tab, at the default heating rate), then the boil at 100 °C right after it (heating to the boil
- * is not counted, so it takes no time here), with each boil addition at the minute it goes in and the whirlpool after
- * the boil. Undefined while there is neither a mash schedule nor a boil.
+ * The brew-day timeline (EDT-078, QE-87): the brewing time of EDT-077 as one line of time. The mash schedule's
+ * heating and rests (as on the Mashing tab, at the default heating rate), then the boil right after it (heating to the
+ * boil is not counted, so it takes no time here), with each boil addition at the minute it goes in and the whirlpool
+ * after the boil. Undefined while there is neither a mash schedule nor a boil.
  */
-export function brewDayCurve(recipe: Recipe):
-  | {
-      mash?: { points: { minute: number; temp: number }[]; holds: CurveHold[]; minutes: number };
-      boil?: { start: number; minutes: number; additions: CurveAddition[] };
-      whirlpool: boolean;
-      total: number;
-    }
-  | undefined {
+export function brewDayTimeline(recipe: Recipe): BrewDayTimeline | undefined {
   const plan = restsOf(recipe);
   const steps = stepsOf(plan);
   const profile = steps.length > 0 ? mashProfile(steps, DEFAULT_HEATING_RATE, mashInTemperature(plan)) : undefined;
   const mash = profile && {
-    points: profile.points,
-    holds: profile.segments
-      .filter((s) => s.kind === "hold")
-      .map((s) => ({ restId: s.restId, temp: s.from.temp, from: s.from.minute, to: s.to.minute })),
     minutes: profile.totalMinutes,
+    segments: profile.segments.map(
+      (s): TimelineSegment => ({
+        kind: s.kind === "ramp" ? "heat" : "rest",
+        restId: s.restId,
+        fromTemp: s.from.temp,
+        temp: s.to.temp,
+        from: s.from.minute,
+        to: s.to.minute,
+      }),
+    ),
   };
   const minutes = boilMinutesOf(recipe);
   const start = mash?.minutes ?? 0;

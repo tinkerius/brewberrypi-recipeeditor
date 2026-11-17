@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { toRecipe, type Recipe } from "../src/model";
 import { mashProfile, stepsOf } from "../src/mashSchedule";
-import { brewDayCurve, brewingTime, ingredientList } from "../src/overview";
+import { brewDayTimeline, brewingTime, ingredientList } from "../src/overview";
 
 const recipe = (more: Record<string, unknown>): Recipe => toRecipe({ version: 3, name: "O", mashing_process: { goals: [] }, ...more });
 
@@ -80,10 +80,10 @@ describe("the Overview's brewing time (EDT-077, QE-85)", () => {
   });
 });
 
-describe("the Overview's brew-day curve (EDT-078, QE-86)", () => {
-  it("ACC-113 puts the boil right after the mash, each addition at its minute, the whirlpool after it", () => {
+describe("the Overview's brew-day timeline (EDT-078, QE-87)", () => {
+  it("ACC-113 puts the mash's heating and rests, then the boil, each addition at its minute, the whirlpool after it", () => {
     const rests = { MashIn: { temperature: 57 }, MaltoseRest: { temperature: 63, minutes: 45 }, MashOut: { temperature: 78, minutes: 10 } };
-    const curve = brewDayCurve(
+    const timeline = brewDayTimeline(
       recipe({
         mashing: { rests },
         boiling: {
@@ -93,14 +93,17 @@ describe("the Overview's brew-day curve (EDT-078, QE-86)", () => {
         },
       }),
     )!;
-    expect(curve.mash!.points).toEqual(mashProfile(stepsOf(rests), 1, 57).points);
-    expect(curve.mash!.holds).toEqual([
-      { restId: "MaltoseRest", temp: 63, from: 6, to: 51 },
-      { restId: "MashOut", temp: 78, from: 66, to: 76 },
+    // The Mashing tab's schedule at 1 °C/min, as stretches of heating and rests.
+    expect(timeline.mash!.minutes).toBe(mashProfile(stepsOf(rests), 1, 57).totalMinutes);
+    expect(timeline.mash!.segments).toEqual([
+      { kind: "heat", restId: "MaltoseRest", fromTemp: 57, temp: 63, from: 0, to: 6 },
+      { kind: "rest", restId: "MaltoseRest", fromTemp: 63, temp: 63, from: 6, to: 51 },
+      { kind: "heat", restId: "MashOut", fromTemp: 63, temp: 78, from: 51, to: 66 },
+      { kind: "rest", restId: "MashOut", fromTemp: 78, temp: 78, from: 66, to: 76 },
     ]);
-    expect([curve.boil!.start, curve.boil!.minutes, curve.total, curve.whirlpool]).toEqual([76, 60, 136, true]);
+    expect([timeline.boil!.start, timeline.boil!.minutes, timeline.total, timeline.whirlpool]).toEqual([76, 60, 136, true]);
     // In the order they go in; one without a cooking time is left out; one without a name is called by its row.
-    expect(curve.boil!.additions.map((a) => [a.kind, a.row, a.name, a.minute])).toEqual([
+    expect(timeline.boil!.additions.map((a) => [a.kind, a.row, a.name, a.minute])).toEqual([
       ["hops", 0, "H", 76],
       ["hops", 0, "H", 126],
       ["others", 0, "Irish Moss", 126],
@@ -110,10 +113,10 @@ describe("the Overview's brew-day curve (EDT-078, QE-86)", () => {
 
   it("ACC-113 has only the boil without a mash schedule, only the mash without a boil, and nothing without both", () => {
     const hops = [{ name: "H", additions: [{ minutes: 60, grams: 20 }] }];
-    const onlyBoil = brewDayCurve(recipe({ boiling: { hops } }))!;
+    const onlyBoil = brewDayTimeline(recipe({ boiling: { hops } }))!;
     expect([onlyBoil.mash, onlyBoil.boil!.start, onlyBoil.total, onlyBoil.whirlpool]).toEqual([undefined, 0, 60, false]);
-    const onlyMash = brewDayCurve(recipe({ mashing: { rests: { MashIn: { temperature: 63 }, MaltoseRest: { temperature: 63, minutes: 45 } } } }))!;
-    expect([onlyMash.boil, onlyMash.total]).toEqual([undefined, 45]);
-    expect(brewDayCurve(recipe({}))).toBeUndefined();
+    const onlyMash = brewDayTimeline(recipe({ mashing: { rests: { MashIn: { temperature: 63 }, MaltoseRest: { temperature: 63, minutes: 45 } } } }))!;
+    expect([onlyMash.boil, onlyMash.total, onlyMash.mash!.segments.map((s) => s.kind)]).toEqual([undefined, 45, ["rest"]]);
+    expect(brewDayTimeline(recipe({}))).toBeUndefined();
   });
 });

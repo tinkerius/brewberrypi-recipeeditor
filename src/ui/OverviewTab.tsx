@@ -1,7 +1,7 @@
 /**
  * The Overview tab (EDT-065, QE-55): the first tab, open when a recipe is opened. It holds the recipe's description,
  * the brewer's free text about it (app RCP-016), with as many lines as needed; below it the brewing time with the
- * brew-day curve (EDT-077, EDT-078, QE-85, QE-86) and the list of everything the brew needs (EDT-076), all computed,
+ * brew-day timeline (EDT-077, EDT-078, QE-85..QE-87) and the list of everything the brew needs (EDT-076), all computed,
  * never stored.
  */
 
@@ -9,8 +9,8 @@ import { useState } from "preact/hooks";
 import type { Problem } from "../validate";
 import { withDescription, type Recipe } from "../model";
 import { DEFAULT_HEATING_RATE, formatMinutes } from "../mashSchedule";
-import { brewDayCurve, brewingTime, ingredientList, type ListGroup, type ListTab } from "../overview";
-import { BrewDayCurve } from "./BrewDayCurve";
+import { brewDayTimeline, brewingTime, ingredientList, type ListGroup, type ListTab } from "../overview";
+import { BrewDayTimeline } from "./BrewDayTimeline";
 import { TextField } from "./fields";
 import { FigureRow } from "./info";
 import { FieldNotes, notesAt } from "./notes";
@@ -80,7 +80,7 @@ export function OverviewTab(props: {
   const notes = notesAt({ problems: props.problems, warnings: [] }, "description");
   const groups = ingredientList(props.recipe);
   const time = brewingTime(props.recipe);
-  const curve = brewDayCurve(props.recipe);
+  const timeline = brewDayTimeline(props.recipe);
   // One figure's info open at a time.
   const [figure, setFigure] = useState<string>();
   const toggle = (id: string) => setFigure(figure === id ? undefined : id);
@@ -108,7 +108,7 @@ export function OverviewTab(props: {
         <h3 id="brewing-time-title" class={`${SECTION_TITLE_STYLE} mb-2`}>
           Brewing time
         </h3>
-        {curve && <BrewDayCurve curve={curve} />}
+        {timeline && <BrewDayTimeline timeline={timeline} />}
         <dl class={FIGURES.replace("mt-4 ", "")}>
           <FigureRow
             id="mash-time"

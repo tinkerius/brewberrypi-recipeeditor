@@ -2485,23 +2485,23 @@ describe("App, the Overview's ingredients and brewing time (QE-85)", () => {
     expect(overview().querySelector("[data-overview-group]")).toBeNull();
   });
 
-  it("ACC-112 the brewing time is the Mashing tab's mash time plus the boil, or says what is missing", async () => {
+  it("ACC-112 the total brewing time, between the heading and the timeline, is the Mashing tab's mash time plus the boil", async () => {
     const base = { version: 3, name: "Brew", mashing_process: { goals: [] } };
     const rests = { MashIn: { temperature: 57 }, MaltoseRest: { temperature: 63, minutes: 45 }, MashOut: { temperature: 78, minutes: 10 } };
     await open({ ...base, mashing: { rests }, boiling: { hops: [{ name: "H", additions: [{ minutes: 60, grams: 20 }, { minutes: 10, grams: 10 }] }] } });
-    const time = () => recipe().querySelector("[data-brewing-time]")!;
-    const value = (id: string) => time().querySelector(`[data-${id}]`)!.textContent;
-    expect([value("mash-time"), value("boil-time-total"), value("brew-time")]).toEqual([
-      "1 h 16 min (55 min of rests, 21 min heating)",
-      "60 min", // as the Boil Schedule says it
-      "2 h 16 min",
-    ]);
-    // The same as the Mashing tab's total mash time.
+    const section = () => recipe().querySelector("[data-brewing-time]")!;
+    const line = () => section().querySelector("[data-brew-total-line]")!;
+    // Right after the heading, before the timeline; no table of figures.
+    expect(line().previousElementSibling!.textContent?.trim()).toBe("Brewing time");
+    expect(line().nextElementSibling!.hasAttribute("data-brew-day-timeline")).toBe(true);
+    expect(section().querySelector("dl")).toBeNull();
+    expect(line().querySelector("p")!.textContent).toBe("Total brewing time:2 h 16 mini");
+    // 1 h 16 min of mashing, as on the Mashing tab, and 60 min of boil.
     await act(async () => recipe().querySelector<HTMLElement>("#tab-mashing")!.click());
     expect(recipe().querySelector("[data-mash-total]")!.textContent).toBe("Total mash time 1 h 16 min: 55 min of rests, 21 min heating at 1 °C/min.");
     await act(async () => recipe().querySelector<HTMLElement>("#tab-overview")!.click());
-    await act(async () => time().querySelector<HTMLButtonElement>("[aria-controls=figure-info-brew-time]")!.click());
-    expect(time().querySelector("[data-figure-info=brew-time]")!.textContent).toContain(
+    await act(async () => line().querySelector<HTMLButtonElement>("[aria-controls=brew-time-info]")!.click());
+    expect(line().querySelector("[data-brew-time-info]")!.textContent).toContain(
       "Not counted: heating the water to the mash-in, lautering, heating to the boil, the whirlpool and cooling.",
     );
   });
@@ -2519,8 +2519,9 @@ describe("App, the Overview's ingredients and brewing time (QE-85)", () => {
       },
     });
     const timeline = () => recipe().querySelector("[data-brewing-time] [data-brew-day-timeline]")!;
-    // Above the time figures, in the Brewing time section, before the Ingredients.
-    expect(timeline().nextElementSibling!.tagName).toBe("DL");
+    // Below the total brewing time, the last of the Brewing time section.
+    expect(timeline().previousElementSibling!.hasAttribute("data-brew-total-line")).toBe(true);
+    expect(timeline().nextElementSibling).toBeNull();
     expect(timeline().querySelector("[data-timeline-bar]")!.getAttribute("aria-label")).toBe(
       "Brew day: mashing 1 h 16 min in 2 rests, boil 60 min with 3 additions, then the whirlpool.",
     );
@@ -2569,14 +2570,21 @@ describe("App, the Overview's ingredients and brewing time (QE-85)", () => {
     expect(recipe().querySelector("[data-brew-day-timeline]")).toBeNull();
   });
 
-  it("ACC-112 without rests or cooking times the brewing time says what to enter", async () => {
+  it("ACC-112 without rests or cooking times the total brewing time says what to enter", async () => {
     await open({ version: 3, name: "Brew", mashing_process: { goals: [] } });
-    const missing = (id: string) => recipe().querySelector(`[data-figure-missing=${id}]`)!.textContent;
-    expect([missing("mash-time"), missing("boil-time"), missing("brew-time")]).toEqual([
+    const line = () => recipe().querySelector("[data-brew-total-line]")!;
+    expect(line().querySelector("[data-brew-time]")!.textContent).toBe("–");
+    expect(line().querySelector("[data-brew-time-missing]")!.textContent).toBe(
+      "Plan the rests on the Mashing tab. Enter the cooking times on the Boiling tab.",
+    );
+  });
+
+  it("ACC-112 with only the boil the total brewing time asks for the rests", async () => {
+    await open({ version: 3, name: "Brew", mashing_process: { goals: [] }, boiling: { hops: [{ name: "H", additions: [{ minutes: 60, grams: 5 }] }] } });
+    const line = () => recipe().querySelector("[data-brew-total-line]")!;
+    expect([line().querySelector("[data-brew-time]")!.textContent, line().querySelector("[data-brew-time-missing]")!.textContent]).toEqual([
+      "–",
       "Plan the rests on the Mashing tab.",
-      "Enter the cooking times on the Boiling tab.",
-      "Needs the mashing and the boil.",
     ]);
-    expect(recipe().querySelector("[data-brew-time]")!.textContent).toBe("–");
   });
 });

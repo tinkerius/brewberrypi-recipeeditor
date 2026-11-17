@@ -357,13 +357,14 @@ a release that changes sign-in or Drive behaviour.
   Other additions (Irish Moss 10 g), Yeast (WB-06 11.5 g), Water (Mash water 16 L, Sparge water 14 L, Total 30 L)
   and Water treatment (Brewing gypsum 2.4 g); a group's link opens its tab. An empty recipe shows "No ingredients
   yet.".
-- `ACC-112` (EDT-077, QE-85) For a plan of mash-in 57 °C, Maltose rest 63 °C 45 min and Mash-out 78 °C 10 min,
-  Mashing shows the Mashing tab's total mash time at 1 °C/min, with its rests and heating; with hops of 60 and
-  10 min, Boil is 60 min and Mash + boil the sum. Without rests Mashing is "–" with "Plan the rests on the Mashing
-  tab.", without cooking times Boil is "–" with "Enter the cooking times on the Boiling tab.", and Mash + boil is
-  "–" with "Needs the mashing and the boil.".
-- `ACC-113` (EDT-078, QE-87) For that plan, hops Hallertauer 20 g 60 min and 10 g 10 min, Irish Moss 5 g 10 min and
-  the whirlpool ticked, the brew-day timeline above the figures has the phases "Mashing · 1 h 16 min" and "Boil · 60
+- `ACC-112` (EDT-077, QE-85, QE-88) For a plan of mash-in 57 °C, Maltose rest 63 °C 45 min and Mash-out 78 °C 10 min
+  (the Mashing tab's "Total mash time 1 h 16 min" at 1 °C/min) and hops of 60 and 10 min, the line right below the
+  heading Brewing time and above the timeline reads "Total brewing time: 2 h 16 min", its ⓘ saying what is not
+  counted; the section has no table of figures. Without rests and cooking times the total is "–" with "Plan the
+  rests on the Mashing tab. Enter the cooking times on the Boiling tab."; with only the boil, "–" with "Plan the
+  rests on the Mashing tab.".
+- `ACC-113` (EDT-078, QE-87, QE-88) For that plan, hops Hallertauer 20 g 60 min and 10 g 10 min, Irish Moss 5 g 10 min and
+  the whirlpool ticked, the brew-day timeline below the total brewing time has the phases "Mashing · 1 h 16 min" and "Boil · 60
   min" over a bar of heating 0:00–0:06, "Maltose rest 63°" 0:06–0:51, heating, the Mash-out from 1:06, the divider
   "Heating to the boil (not counted)" and the boil from 1:16 (tooltips "Heating from 57 °C to 63 °C: 6 min, from
   0:00", …); above it the hop at 1:16 and the hop and Irish Moss stacked at 2:06 ("Hallertauer: 20 g at 1:16, cooks

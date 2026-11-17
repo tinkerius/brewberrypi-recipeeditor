@@ -12,10 +12,9 @@ import { DEFAULT_HEATING_RATE, formatMinutes } from "../mashSchedule";
 import { brewDayTimeline, brewingTime, ingredientList, type ListGroup, type ListTab } from "../overview";
 import { BrewDayTimeline } from "./BrewDayTimeline";
 import { TextField } from "./fields";
-import { FigureRow } from "./info";
+import { InfoButton, InfoContent, INFO_PANEL } from "./info";
 import { FieldNotes, notesAt } from "./notes";
 import { HINT_STYLE, LINK_STYLE, SECTION_TITLE_STYLE } from "./styles";
-import { FIGURES, TERM, VALUE } from "./WaterTab";
 
 /** The tabs the Overview links to. */
 export type OverviewLinkTab = ListTab | "mashing";
@@ -81,9 +80,12 @@ export function OverviewTab(props: {
   const groups = ingredientList(props.recipe);
   const time = brewingTime(props.recipe);
   const timeline = brewDayTimeline(props.recipe);
-  // One figure's info open at a time.
-  const [figure, setFigure] = useState<string>();
-  const toggle = (id: string) => setFigure(figure === id ? undefined : id);
+  const [about, setAbout] = useState(false);
+  // What to enter while a part of the brewing time is missing.
+  const missing = [
+    ...(time.mash ? [] : ["Plan the rests on the Mashing tab."]),
+    ...(time.boil !== undefined ? [] : ["Enter the cooking times on the Boiling tab."]),
+  ];
   return (
     <>
       <section aria-labelledby="description-title">
@@ -108,60 +110,35 @@ export function OverviewTab(props: {
         <h3 id="brewing-time-title" class={`${SECTION_TITLE_STYLE} mb-2`}>
           Brewing time
         </h3>
+        {/* The overall time (EDT-077, QE-88), then the timeline (EDT-078). */}
+        <div class="mb-3" data-brew-total-line>
+          <p class="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-ink dark:text-ink-light">
+            <span class="font-medium">Total brewing time:</span>
+            <span class="text-lg font-semibold tabular-nums" data-brew-time>
+              {time.total !== undefined ? formatMinutes(time.total) : "–"}
+            </span>
+            <InfoButton open={about} label="About: Total brewing time" controls="brew-time-info" onClick={() => setAbout(!about)} />
+            {missing.length > 0 && (
+              <span class={HINT_STYLE} data-brew-time-missing>
+                {missing.join(" ")}
+              </span>
+            )}
+          </p>
+          {about && (
+            <div id="brew-time-info" class={`mt-2 ${INFO_PANEL}`} data-brew-time-info>
+              <InfoContent
+                info={{
+                  explanation:
+                    "The mashing and the boil: the mash schedule of the Mashing tab (heating to each rest and the rests) and the " +
+                    "total boil time of the Boil Schedule. Not counted: heating the water to the mash-in, lautering, heating to the " +
+                    "boil, the whirlpool and cooling.",
+                  calculation: `Heating at ${DEFAULT_HEATING_RATE} °C/min.`,
+                }}
+              />
+            </div>
+          )}
+        </div>
         {timeline && <BrewDayTimeline timeline={timeline} />}
-        <dl class={FIGURES.replace("mt-4 ", "")}>
-          <FigureRow
-            id="mash-time"
-            term="Mashing"
-            termClass={TERM}
-            value={
-              <span class={VALUE} data-mash-time>
-                {time.mash
-                  ? `${formatMinutes(time.mash.total)} (${formatMinutes(time.mash.rests)} of rests, ${formatMinutes(time.mash.heating)} heating)`
-                  : "–"}
-              </span>
-            }
-            missing={time.mash ? undefined : "Plan the rests on the Mashing tab."}
-            info={{
-              explanation: "The mash schedule of the Mashing tab: heating from the mash-in to each rest, and the rests.",
-              calculation: `Heating at ${DEFAULT_HEATING_RATE} °C/min.`,
-            }}
-            open={figure === "mash-time"}
-            onToggle={() => toggle("mash-time")}
-          />
-          <FigureRow
-            id="boil-time"
-            term="Boil"
-            termClass={TERM}
-            value={
-              <span class={VALUE} data-boil-time-total>
-                {time.boil !== undefined ? `${time.boil} min` : "–"}
-              </span>
-            }
-            missing={time.boil !== undefined ? undefined : "Enter the cooking times on the Boiling tab."}
-            info={{ explanation: "The total boil time of the Boil Schedule: the longest cooking time of the boil additions." }}
-            open={figure === "boil-time"}
-            onToggle={() => toggle("boil-time")}
-          />
-          <FigureRow
-            id="brew-time"
-            term="Mash + boil"
-            termClass={TERM}
-            value={
-              <span class={VALUE} data-brew-time>
-                {time.total !== undefined ? formatMinutes(time.total) : "–"}
-              </span>
-            }
-            missing={time.total !== undefined ? undefined : "Needs the mashing and the boil."}
-            info={{
-              explanation:
-                "The mashing and the boil. Not counted: heating the water to the mash-in, lautering, heating to the boil, " +
-                "the whirlpool and cooling.",
-            }}
-            open={figure === "brew-time"}
-            onToggle={() => toggle("brew-time")}
-          />
-        </dl>
       </section>
       <section class="mt-6" aria-labelledby="overview-ingredients-title" data-overview-ingredients>
         <h3 id="overview-ingredients-title" class={`${SECTION_TITLE_STYLE} mb-2`}>

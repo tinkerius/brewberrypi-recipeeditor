@@ -509,13 +509,14 @@ temperature of their own. The typical durations of `EDT-038` and the flags:
   the same name twice stays two lines. Malt, Hops and Water end with a **Total** line. Each group's heading links to
   the tab it is entered on ("Malt tab", "Boiling tab", "Water tab", "Fermentation tab"). Without any group: "No
   ingredients yet."
-- `EDT-077` (`QE-85`) Under **Brewing time**, computed, never stored, each with an ⓘ (`EDT-072`): **Mashing**, the
-  total of the mash schedule (`EDT-039`) at the default heating rate of 1 °C/min, with its rests and heating
-  ("1 h 49 min (1 h 15 min of rests, 34 min heating)"); **Boil**, the Boil Schedule's total boil time in minutes as there ("60 min", `EDT-054`);
-  and **Mash + boil**, their sum. A missing part shows "–" and "Plan the rests on the Mashing tab.", "Enter the
-  cooking times on the Boiling tab." or, for the sum, "Needs the mashing and the boil.". The sum's ⓘ says what is
-  not counted: heating the water to the mash-in, lautering, heating to the boil, the whirlpool and cooling.
-- `EDT-078` (`QE-86`, `QE-87`) Above the brewing time's figures, while there is a mash schedule or a boil, the
+- `EDT-077` (`QE-85`, `QE-88`) Right below the heading **Brewing time**, computed, never stored: "Total brewing time:"
+  and the sum of the mashing, the total of the mash schedule (`EDT-039`) at the default heating rate of 1 °C/min, and
+  the boil, the Boil Schedule's total boil time (`EDT-054`) ("2 h 16 min"), with an ⓘ (`EDT-072`) saying what it
+  counts and what not: heating the water to the mash-in, lautering, heating to the boil, the whirlpool and cooling.
+  While a part is missing the total is "–" with what to enter: "Plan the rests on the Mashing tab.", "Enter the
+  cooking times on the Boiling tab.". The two parts' own times are the timeline's phases (`EDT-078`); there is no
+  table of figures.
+- `EDT-078` (`QE-86`, `QE-87`, `QE-88`) Below the total brewing time, while there is a mash schedule or a boil, the
   **brew-day timeline**: the brewing time of `EDT-077` as one bar of time, left to right, on a clock from "0:00"
   (h:mm; the end, e.g. "3:08", where there is room). The mash schedule as on the Mashing tab (`EDT-039`): its heating
   striped, its rests solid berry with their temperature ("63°") and, where it fits, name ("Maltose rest 63°"); then,

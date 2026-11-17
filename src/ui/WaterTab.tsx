@@ -16,6 +16,7 @@ import {
   MASH_WATER_BY_STYLE,
   WATER_FIELDS,
   WATER_LABELS,
+  BATCH_SECTIONS,
   batchOf,
   maltsWithAcidMalt,
   mashThickness,
@@ -54,18 +55,18 @@ export const VALUE = "font-semibold tabular-nums text-ink dark:text-ink-light";
 
 /** The batch fields (EDT-050, EDT-057): label, unit, hint and typical value; the knockout volume here, the gravities on Fermentation. */
 const BATCH_FIELDS: Record<BatchField, { label: string; unit: string; hint: string; typical?: string }> = {
-  liters: {
+  target_knockout_volume: {
     label: "Knockout volume (target)",
     unit: "L",
     hint: "The wort at the end of the boil, the target for the fermenter (used for the beer colour and bitterness).",
   },
-  plato: {
+  original_gravity: {
     label: "Original gravity (target)",
     unit: "°P",
     hint: "The wort's gravity at the end of the boil (used for the bitterness and the alcohol).",
     typical: `${TYPICAL.plato.min}–${TYPICAL.plato.max} °P`,
   },
-  final_plato: {
+  final_gravity: {
     label: "Final gravity",
     unit: "°P",
     hint: "The beer's gravity after fermentation.",
@@ -82,7 +83,7 @@ export function BatchFieldRow(props: {
   onChange: (recipe: Recipe) => void;
 }) {
   const { field } = props;
-  const path = `batch.${field}`;
+  const path = `${BATCH_SECTIONS[field]}.${field}`;
   const info = BATCH_FIELDS[field];
   return (
     <div class="contents" data-batch-field={field}>
@@ -142,7 +143,7 @@ export function WaterTab(props: { recipe: Recipe; problems: Problem[]; warnings:
   const total = totalWater(props.recipe);
   const thickness = mashThickness(props.recipe);
   // The knockout volume, for the Water Overview's donut (EDT-074, QE-82).
-  const liters = batchOf(props.recipe).liters;
+  const liters = batchOf(props.recipe).target_knockout_volume;
   const knockout = typeof liters === "number" && Number.isFinite(liters) && liters > 0 ? liters : undefined;
   const kg = totalGrams(maltsWithAcidMalt(props.recipe)) / 1000; // the acid malt too (EDT-070)
   const estimate = waterEstimate(props.recipe);
@@ -165,7 +166,7 @@ export function WaterTab(props: { recipe: Recipe; problems: Problem[]; warnings:
           "missing" in estimate ? (
             <p data-water-estimate>
               For an estimate of the total and the sparge water, enter{" "}
-              {estimate.missing.map((m) => (m === "liters" ? "the knockout volume" : "the malts on the Malt tab")).join(" and ")}.
+              {estimate.missing.map((m) => (m === "target_knockout_volume" ? "the knockout volume" : "the malts on the Malt tab")).join(" and ")}.
             </p>
           ) : (
             <div class="space-y-1" data-water-estimate>
@@ -273,7 +274,7 @@ export function WaterTab(props: { recipe: Recipe; problems: Problem[]; warnings:
           ))}
           {/* The batch's knockout volume (EDT-050): entered here only; the Malt and Boiling tabs use it. */}
           <div class="contents" data-knockout>
-            <BatchFieldRow field="liters" {...props} />
+            <BatchFieldRow field="target_knockout_volume" {...props} />
           </div>
         </FieldGrid>
         <WaterTreatment {...props} />

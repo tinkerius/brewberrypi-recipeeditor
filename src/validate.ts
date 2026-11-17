@@ -8,8 +8,8 @@ import {
   GOAL_INFO,
   ID_PATTERN,
   INGREDIENT_EXTRA_FIELDS,
-  INGREDIENT_KINDS,
   INGREDIENT_LABELS,
+  INGREDIENT_PATHS,
   IODINE_TEST,
   MASH_IN,
   MASH_RESTS,
@@ -24,19 +24,23 @@ import {
 export interface Problem {
   /**
    * Where: "" for the whole recipe, "name", "mashing_process.goals", "mashing_process.goals[2].minutes", "mashing",
-   * "mashing.MaltoseRest.temperature", "ingredients",
-   * "ingredients.malts[0].grams", "batch" or "batch.liters".
+   * "mashing.rests.MaltoseRest.temperature", "mashing.malts[0].grams", "boiling.hops[1].additions[0].minutes",
+   * "water.target_knockout_volume" or "fermentation.original_gravity".
    */
   path: string;
   message: string;
 }
 
-const TOP_LEVEL = new Set(["$schema", "version", "name", "description", "mashing_process", "mashing", "ingredients", "batch", "water", "boil", "fermentation"]);
+const TOP_LEVEL = new Set(["$schema", "version", "name", "description", "mashing_process", "mashing", "boiling", "water", "fermentation"]);
 export const GOALS_PATH = "mashing_process.goals";
+/** The mashing (app RCP-012, Q-51): the malts and the mashing plan. */
 export const MASHING_PATH = "mashing";
-export const INGREDIENTS_PATH = "ingredients";
-export const BATCH_PATH = "batch";
+/** The mashing plan, the rests keyed by rest id (app RCP-012). */
+export const RESTS_PATH = "mashing.rests";
+/** The boil (app RCP-018, Q-51): the whirlpool, the hops and the other additions. */
+export const BOILING_PATH = "boiling";
 export const WATER_PATH = "water";
+export const FERMENTATION_PATH = "fermentation";
 
 /** Which goal fields are allowed and required, per goal type (the schema's allOf branches). */
 const GOAL_FIELDS: Record<string, { required: GoalField[]; allowed: GoalField[] }> = {
@@ -116,16 +120,33 @@ function checkGoal(goal: unknown, index: number, problems: Problem[]) {
   }
 }
 
+/** The mashing (app RCP-012, Q-51): the list of malts and the mashing plan, no other field. */
+function checkMashing(mashing: unknown, problems: Problem[]) {
+  if (!isObject(mashing)) {
+    problems.push({ path: MASHING_PATH, message: "The mashing must be an object with the malts and the rests." });
+    return;
+  }
+  for (const [key, value] of Object.entries(mashing)) {
+    if (key === "malts") {
+      checkList("malts", value, problems);
+    } else if (key === "rests") {
+      checkRests(value, problems);
+    } else {
+      problems.push({ path: `${MASHING_PATH}.${key}`, message: `The mashing has no field "${key}".` });
+    }
+  }
+}
+
 /**
  * The mashing plan (app RCP-012): the mash-in with exactly a temperature, required in a non-empty plan (app Q-48),
  * the iodine test as an empty marker (app Q-49), and known rests only, each with exactly a temperature and minutes.
  */
-function checkMashing(plan: unknown, problems: Problem[]) {
+function checkRests(plan: unknown, problems: Problem[]) {
   if (!isObject(plan)) {
-    problems.push({ path: MASHING_PATH, message: "The mashing plan must be an object of rests." });
+    problems.push({ path: RESTS_PATH, message: "The mashing plan must be an object of rests." });
     return;
   }
-  const mashInAt = `${MASHING_PATH}.${MASH_IN}`;
+  const mashInAt = `${RESTS_PATH}.${MASH_IN}`;
   const mashIn = plan[MASH_IN];
   if (mashIn !== undefined && !isObject(mashIn)) {
     problems.push({ path: mashInAt, message: "The mash-in must be an object with a temperature." });
@@ -140,7 +161,7 @@ function checkMashing(plan: unknown, problems: Problem[]) {
     checkField("temperature", mashIn.temperature, `${mashInAt}.temperature`, problems);
   }
   for (const [id, rest] of Object.entries(plan)) {
-    const at = `${MASHING_PATH}.${id}`;
+    const at = `${RESTS_PATH}.${id}`;
     if (id === MASH_IN) {
       continue;
     }
@@ -190,114 +211,89 @@ function checkGrams(grams: unknown, path: string, label: string, problems: Probl
   }
 }
 
-function isIngredientKind(key: string): key is IngredientKind {
-  return (INGREDIENT_KINDS as readonly string[]).includes(key);
-}
-
-/** The ingredients (app RCP-013): the lists malts and hops, each entry exactly a name and whole grams ≥ 1. */
-function checkIngredients(ingredients: unknown, problems: Problem[]) {
-  if (!isObject(ingredients)) {
-    problems.push({ path: INGREDIENTS_PATH, message: "The ingredients must be an object with the lists malts and hops." });
+/**
+ * An ingredient list (app RCP-013): the malts in `mashing`, the hops and other additions in `boiling` (app Q-51). A
+ * malt has a name and whole grams ≥ 1, a hop or another addition a name and its additions.
+ */
+function checkList(kind: IngredientKind, list: unknown, problems: Problem[]) {
+  const at = INGREDIENT_PATHS[kind];
+  const { one, title } = INGREDIENT_LABELS[kind];
+  if (!Array.isArray(list)) {
+    problems.push({ path: at, message: `${title} must be a list.` });
     return;
   }
-  for (const [kind, list] of Object.entries(ingredients)) {
-    const at = `${INGREDIENTS_PATH}.${kind}`;
-    if (!isIngredientKind(kind)) {
-      problems.push({ path: at, message: `The ingredients have no list "${kind}".` });
-      continue;
+  list.forEach((entry, i) => {
+    const item = `${at}[${i}]`;
+    const label = `${one} ${i + 1}`;
+    if (!isObject(entry)) {
+      problems.push({ path: item, message: `${label} must be an object with a name and grams.` });
+      return;
     }
-    const { one, title } = INGREDIENT_LABELS[kind];
-    if (!Array.isArray(list)) {
-      problems.push({ path: at, message: `${title} must be a list.` });
-      continue;
+    const extra = INGREDIENT_EXTRA_FIELDS[kind];
+    for (const key of Object.keys(entry)) {
+      if (key !== "name" && !extra.includes(key)) {
+        problems.push({ path: `${item}.${key}`, message: `${label} has no field "${key}".` });
+      }
     }
-    list.forEach((entry, i) => {
-      const item = `${at}[${i}]`;
-      const label = `${one} ${i + 1}`;
-      if (!isObject(entry)) {
-        problems.push({ path: item, message: `${label} must be an object with a name and grams.` });
+    const number = (value: unknown) => typeof value === "number" && Number.isFinite(value);
+    if (entry.ebc !== undefined && extra.includes("ebc") && !(number(entry.ebc) && (entry.ebc as number) >= 0)) {
+      problems.push({ path: `${item}.ebc`, message: `${label}: the colour must be a number of at least 0 EBC.` });
+    }
+    if (entry.alpha !== undefined && extra.includes("alpha")) {
+      const alpha = entry.alpha;
+      if (!number(alpha) || (alpha as number) < 0 || (alpha as number) > 100) {
+        problems.push({ path: `${item}.alpha`, message: `${label}: the alpha acid must be a number from 0 to 100 %.` });
+      }
+    }
+    if (typeof entry.name !== "string" || entry.name.length === 0) {
+      problems.push({ path: `${item}.name`, message: `${label} needs a name.` });
+    }
+    if (kind === "malts") {
+      checkGrams(entry.grams, `${item}.grams`, label, problems);
+      return;
+    }
+    // A hop or another addition: at least one addition, each with grams and maybe minutes (app RCP-013, Q-43).
+    const additions = entry.additions;
+    if (additions === undefined || (Array.isArray(additions) && additions.length === 0)) {
+      problems.push({ path: `${item}.additions`, message: `${label} needs an addition.` });
+      return;
+    }
+    if (!Array.isArray(additions)) {
+      problems.push({ path: `${item}.additions`, message: `${label}: the additions must be a list.` });
+      return;
+    }
+    additions.forEach((addition, j) => {
+      const at = `${item}.additions[${j}]`;
+      const name = `${label}, addition ${j + 1}`;
+      if (!isObject(addition)) {
+        problems.push({ path: at, message: `${name} must be an object with minutes and grams.` });
         return;
       }
-      const extra = INGREDIENT_EXTRA_FIELDS[kind];
-      for (const key of Object.keys(entry)) {
-        if (key !== "name" && !extra.includes(key)) {
-          problems.push({ path: `${item}.${key}`, message: `${label} has no field "${key}".` });
+      for (const key of Object.keys(addition)) {
+        if (key !== "minutes" && key !== "grams") {
+          problems.push({ path: `${at}.${key}`, message: `${name} has no field "${key}".` });
         }
       }
-      const number = (value: unknown) => typeof value === "number" && Number.isFinite(value);
-      if (entry.ebc !== undefined && extra.includes("ebc") && !(number(entry.ebc) && (entry.ebc as number) >= 0)) {
-        problems.push({ path: `${item}.ebc`, message: `${label}: the colour must be a number of at least 0 EBC.` });
+      const minutes = addition.minutes;
+      if (minutes !== undefined && (typeof minutes !== "number" || !Number.isInteger(minutes) || minutes < 0)) {
+        problems.push({ path: `${at}.minutes`, message: `${name}: the boil time must be a whole number of minutes, at least 0.` });
       }
-      if (entry.alpha !== undefined && extra.includes("alpha")) {
-        const alpha = entry.alpha;
-        if (!number(alpha) || (alpha as number) < 0 || (alpha as number) > 100) {
-          problems.push({ path: `${item}.alpha`, message: `${label}: the alpha acid must be a number from 0 to 100 %.` });
-        }
-      }
-      if (typeof entry.name !== "string" || entry.name.length === 0) {
-        problems.push({ path: `${item}.name`, message: `${label} needs a name.` });
-      }
-      if (kind === "malts") {
-        checkGrams(entry.grams, `${item}.grams`, label, problems);
-        return;
-      }
-      // A hop or another addition: at least one addition, each with grams and maybe minutes (app RCP-013, Q-43).
-      const additions = entry.additions;
-      if (additions === undefined || (Array.isArray(additions) && additions.length === 0)) {
-        problems.push({ path: `${item}.additions`, message: `${label} needs an addition.` });
-        return;
-      }
-      if (!Array.isArray(additions)) {
-        problems.push({ path: `${item}.additions`, message: `${label}: the additions must be a list.` });
-        return;
-      }
-      additions.forEach((addition, j) => {
-        const at = `${item}.additions[${j}]`;
-        const name = `${label}, addition ${j + 1}`;
-        if (!isObject(addition)) {
-          problems.push({ path: at, message: `${name} must be an object with minutes and grams.` });
-          return;
-        }
-        for (const key of Object.keys(addition)) {
-          if (key !== "minutes" && key !== "grams") {
-            problems.push({ path: `${at}.${key}`, message: `${name} has no field "${key}".` });
-          }
-        }
-        const minutes = addition.minutes;
-        if (minutes !== undefined && (typeof minutes !== "number" || !Number.isInteger(minutes) || minutes < 0)) {
-          problems.push({ path: `${at}.minutes`, message: `${name}: the boil time must be a whole number of minutes, at least 0.` });
-        }
-        checkGrams(addition.grams, `${at}.grams`, name, problems);
-      });
+      checkGrams(addition.grams, `${at}.grams`, name, problems);
     });
+  });
+}
+
+/** A gravity (app RCP-014, RCP-017): a number from 0 to 40 °P. */
+function checkGravity(value: unknown, path: string, what: "original" | "final", problems: Problem[]) {
+  if (typeof value !== "number" || !Number.isFinite(value) || value < 0 || value > 40) {
+    problems.push({ path, message: `The ${what} gravity must be a number from 0 to 40 °P.` });
   }
 }
 
-/** The batch (app RCP-014): the wort volume above 0 litres and the original gravity from 0 to 40 °P. */
-function checkBatch(batch: unknown, problems: Problem[]) {
-  if (!isObject(batch)) {
-    problems.push({ path: BATCH_PATH, message: "The batch must be an object with liters, plato and final_plato." });
-    return;
-  }
-  for (const [key, value] of Object.entries(batch)) {
-    const at = `${BATCH_PATH}.${key}`;
-    const number = typeof value === "number" && Number.isFinite(value);
-    if (key === "liters") {
-      if (!number || value <= 0) {
-        problems.push({ path: at, message: "The knockout volume must be a number above 0 litres." });
-      }
-    } else if (key === "plato" || key === "final_plato") {
-      if (!number || value < 0 || value > 40) {
-        const what = key === "plato" ? "original" : "final";
-        problems.push({ path: at, message: `The ${what} gravity must be a number from 0 to 40 °P.` });
-      }
-    } else {
-      problems.push({ path: at, message: `The batch has no field "${key}".` });
-    }
-  }
-}
-
-/** The water (app RCP-015): the mash, sparge and top-up water, each a number of at least 0 litres. */
+/**
+ * The water (app RCP-015): the mash, sparge and top-up water, each a number of at least 0 litres, and the target
+ * knockout volume, above 0 litres (app RCP-014, Q-51).
+ */
 function checkWater(water: unknown, problems: Problem[]) {
   if (!isObject(water)) {
     problems.push({ path: WATER_PATH, message: "The water must be an object with mash, sparge and top_up." });
@@ -307,6 +303,10 @@ function checkWater(water: unknown, problems: Problem[]) {
     const at = `${WATER_PATH}.${key}`;
     if (key === "treatment") {
       checkTreatment(value, problems);
+    } else if (key === "target_knockout_volume") {
+      if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) {
+        problems.push({ path: at, message: "The knockout volume must be a number above 0 litres." });
+      }
     } else if (!(WATER_FIELDS as readonly string[]).includes(key)) {
       problems.push({ path: at, message: `The water has no field "${key}".` });
     } else if (typeof value !== "number" || !Number.isFinite(value) || value < 0) {
@@ -354,22 +354,30 @@ function checkTreatment(treatment: unknown, problems: Problem[]) {
   }
 }
 
-/** After the boil (app RCP-018, Q-50): whether a whirlpool follows, a boolean; no other field. */
-function checkBoil(boil: unknown, problems: Problem[]) {
-  if (!isObject(boil)) {
-    problems.push({ path: "boil", message: "The boil must be an object with the whirlpool." });
+/**
+ * The boil (app RCP-018, Q-50, Q-51): whether a whirlpool follows, a boolean, the hops and the other additions; no
+ * other field.
+ */
+function checkBoiling(boiling: unknown, problems: Problem[]) {
+  if (!isObject(boiling)) {
+    problems.push({ path: BOILING_PATH, message: "The boiling must be an object with the whirlpool, the hops and the other additions." });
     return;
   }
-  for (const [key, value] of Object.entries(boil)) {
-    if (key !== "whirlpool") {
-      problems.push({ path: `boil.${key}`, message: `The boil has no field "${key}".` });
+  for (const [key, value] of Object.entries(boiling)) {
+    if (key === "hops" || key === "others") {
+      checkList(key, value, problems);
+    } else if (key !== "whirlpool") {
+      problems.push({ path: `${BOILING_PATH}.${key}`, message: `The boiling has no field "${key}".` });
     } else if (typeof value !== "boolean") {
-      problems.push({ path: "boil.whirlpool", message: "The whirlpool must be yes or no (true or false)." });
+      problems.push({ path: `${BOILING_PATH}.whirlpool`, message: "The whirlpool must be yes or no (true or false)." });
     }
   }
 }
 
-/** The fermentation (app RCP-017, Q-45): the yeast with its name and maybe grams, the target carbonation. */
+/**
+ * The fermentation (app RCP-017, Q-45, Q-51): the original and final gravity, the yeast with its name and maybe grams,
+ * the target carbonation.
+ */
 function checkFermentation(fermentation: unknown, problems: Problem[]) {
   if (!isObject(fermentation)) {
     problems.push({ path: "fermentation", message: "The fermentation must be an object with the yeast and the CO₂ target." });
@@ -377,7 +385,9 @@ function checkFermentation(fermentation: unknown, problems: Problem[]) {
   }
   const positive = (value: unknown) => typeof value === "number" && Number.isFinite(value) && value > 0;
   for (const [key, value] of Object.entries(fermentation)) {
-    if (key === "co2") {
+    if (key === "original_gravity" || key === "final_gravity") {
+      checkGravity(value, `${FERMENTATION_PATH}.${key}`, key === "original_gravity" ? "original" : "final", problems);
+    } else if (key === "co2") {
       if (!positive(value)) {
         problems.push({ path: "fermentation.co2", message: "The CO₂ target must be a number above 0 g/L." });
       }
@@ -432,17 +442,11 @@ export function validateRecipe(recipe: unknown): Problem[] {
   if ("mashing" in recipe) {
     checkMashing(recipe.mashing, problems);
   }
-  if ("ingredients" in recipe) {
-    checkIngredients(recipe.ingredients, problems);
-  }
-  if ("batch" in recipe) {
-    checkBatch(recipe.batch, problems);
+  if ("boiling" in recipe) {
+    checkBoiling(recipe.boiling, problems);
   }
   if ("water" in recipe) {
     checkWater(recipe.water, problems);
-  }
-  if ("boil" in recipe) {
-    checkBoil(recipe.boil, problems);
   }
   if ("fermentation" in recipe) {
     checkFermentation(recipe.fermentation, problems);

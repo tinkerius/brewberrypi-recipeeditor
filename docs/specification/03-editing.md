@@ -179,8 +179,8 @@ Applies signed out (drafts, §4) and signed in (Drive recipes, §5) alike, unles
   typical range" follows that range (`EDT-062`). It is only a warning (`EDT-020`): the recipe stays complete and can be saved and
   downloaded (`FMT-010`).
 - `EDT-034` The plan holds the mash-in (once its temperature is entered) and the ticked rests, the mash-in first.
-  When no rest is ticked and the mash-in's field is empty, the recipe file has no `mashing`; a file read
-  with an empty `mashing` (`{}`) keeps it until a rest is ticked and unticked.
+  When no rest is ticked and the mash-in's field is empty, the recipe file has no `mashing.rests` (and no `mashing`
+  without malts); a file read with an empty `rests` (`{}`) keeps it until a rest is ticked and unticked.
 - `EDT-035` Problems of the plan (`FMT-004`) are listed with the others (`EDT-020`) as "Mashing, <rest>" ("Mashing, Mash in", "Mashing, Iodine test"); clicking
   that opens the Mashing tab, and the field with the problem is marked. Clicking a goal's "Goal n" opens the Mash
   Process tab with that goal open.
@@ -259,7 +259,8 @@ temperature of their own. The typical durations of `EDT-038` and the flags:
   of the file). After the last row and before the Total line, an add row like the goal list's (`EDT-012`),
   **+ Add malt** (or **+ Add hop**), adds an empty row at the end, whose name field gets the focus. The rows keep
   the brewer's order. ✕ removes the row. An empty table says "No malt yet." / "No hop yet."; a table without rows
-  is left out of the file, and `ingredients` too when both are empty.
+  is left out of the file, and its section (`mashing` for the malts, `boiling` for the hops, app `Q-51`) too when
+  nothing else is in it.
 - `EDT-043` The **Relative amount (%)** column (the Malt table only, `QE-52`) is a malt's share of the malts' total
   weight, rounded to one
   decimal ("90 %", "33.3 %"), with a swatch in its colour of the donut (`EDT-047`); it is computed, never stored. A
@@ -308,8 +309,9 @@ temperature of their own. The typical durations of `EDT-038` and the flags:
   **Knockout volume (target)** (L, the wort at the end of the boil, the target for the fermenter; `QE-36`) on the
   Water tab (`EDT-051`), the target **Original gravity** and the **Final gravity** (°P) on the Fermentation tab
   (`EDT-057`). The Malt and Boiling tabs use them and name them in their
-  hints (`EDT-048`, `EDT-049`); they have no batch fields. A field left empty is left out of the
-  file, and `batch` too when both are.
+  hints (`EDT-048`, `EDT-049`); they have no batch fields. In the file the knockout volume is
+  `water.target_knockout_volume`, the gravities `fermentation.original_gravity` and `final_gravity` (app `RCP-014`,
+  `Q-51`). A field left empty is left out of the file, and its section too when nothing else is in it.
 - `EDT-054` The **Boil Schedule** (`QE-41`, `QE-42`) works back from the cooking times of the hops and the other
   additions (`EDT-060`), one entry per addition (`EDT-061`): the **total boil time** is the longest cooking time of those with an amount ("Total boil time: 60 min"; `QE-44`), and each goes
   in at that time minus its own cooking time, counted from the start of the boil (a 60-minute hop at "0 min
@@ -330,7 +332,8 @@ temperature of their own. The typical durations of `EDT-038` and the flags:
 - `EDT-075` The Boil Schedule ends with the row **Whirlpool** (`QE-83`, app `RCP-018`), after the end of the boil,
   like the Rests table's iodine test (`EDT-031`, `QE-79`): a check box, its name and an ⓘ ("What: …", "How long: …"),
   and "after the boil" in the timeline column; no amount and no bar. Unticked its name is grey; ticked the row is
-  highlighted like a planned rest and the file has `"boil": { "whirlpool": true }`; unticking it removes `boil`. The
+  highlighted like a planned rest and the file has `"boiling": { "whirlpool": true, … }`; unticking it removes
+  `whirlpool`, and `boiling` too when nothing else is in it. The
   row is there also while the schedule has no additions yet (below "Enter the amounts and cooking times …"). It
   changes neither the total boil time, the bitterness nor the water estimate, and is shown nowhere else.
 - `EDT-055` Below the beer colour, a **colour scale** shows where it lies among common beers: the SRM colour chart
@@ -450,7 +453,7 @@ temperature of their own. The typical durations of `EDT-038` and the flags:
   water (Verdünnungswasser), knockout volume (Ausschlagwürze).
 - `EDT-057` The tab **Fermentation** (`GUI-032`, `QE-56`), after Water, starts with the heading **Gravity**: the
   **Original gravity (target)** and the **Final gravity** (°P, each 0–40, app
-  `RCP-014` `plato` and `final_plato`) with their explanations in their ⓘ (`EDT-072`), and computed, never stored: the **Alcohol** in % vol by
+  `RCP-014`, `fermentation.original_gravity` and `final_gravity`) with their explanations in their ⓘ (`EDT-072`), and computed, never stored: the **Alcohol** in % vol by
   Balling's formula (real extract RE = 0.1808 · OE + 0.8192 · AE, ABW = (OE − RE) / (2.0665 − 0.010665 · OE), ABV
   = ABW · SG(AE) / 0.7907), one decimal ("5.1 % vol"), and the **Apparent attenuation** ((OE − AE) / OE, "79 %"),
   each with an ⓘ holding its explanation and formula (the attenuation's typical 65–85 %).
@@ -460,7 +463,7 @@ temperature of their own. The typical durations of `EDT-038` and the flags:
 - `EDT-066` Below the gravity, on the Fermentation tab (`QE-57`, app `RCP-017`): under **Yeast** its **Name** (text,
   e.g. "Fermentis WB-06") and **Amount** (g, decimals allowed, e.g. 11.5), and under **Carbonation** the **CO₂
   target** (g of CO₂ per litre of beer), each with its explanation and typical value in its ⓘ (`EDT-068`). They are written as
-  `"fermentation": { "yeast": { "name", "grams" }, "co2" }`; an empty field is left out, the yeast when both of its
+  `"fermentation": { "original_gravity", "final_gravity", "yeast": { "name", "grams" }, "co2" }` (the gravities `EDT-057`); an empty field is left out, the yeast when both of its
   are, and `fermentation` when nothing is left. A yeast amount without a name is an error ("The yeast needs a
   name."), as are an amount or a CO₂ target not above 0; problems read "Yeast" or "CO₂ target" and open the
   Fermentation tab.

@@ -33,8 +33,8 @@ export function FermentationTab(props: { recipe: Recipe; problems: Problem[]; wa
           Gravity
         </h3>
         <FieldGrid data-gravity-fields>
-          <BatchFieldRow field="plato" {...props} />
-          <BatchFieldRow field="final_plato" {...props} />
+          <BatchFieldRow field="original_gravity" {...props} />
+          <BatchFieldRow field="final_gravity" {...props} />
         </FieldGrid>
         <dl class={FIGURES} data-gravity-figures>
           <FigureRow
@@ -51,7 +51,7 @@ export function FermentationTab(props: { recipe: Recipe; problems: Problem[]; wa
                 ? undefined
                 : alcohol.notBelow
                   ? "The final gravity must be below the original gravity."
-                  : `Enter ${alcohol.missing.map((m) => (m === "plato" ? "the original gravity" : "the final gravity")).join(" and ")}.`
+                  : `Enter ${alcohol.missing.map((m) => (m === "original_gravity" ? "the original gravity" : "the final gravity")).join(" and ")}.`
             }
             info={{
               explanation: "The alcohol by volume, from the original and final gravity.",

@@ -846,13 +846,13 @@ describe("App, the Mashing tab (QE-32)", () => {
     expect(await status()).toContain("Complete: BrewberryPi can load this recipe.");
     const text = await download();
     expect(text).toContain(
-      '  },\n  "mashing": {\n    "MashIn": { "temperature": 57 },\n    "MaltoseRest": { "temperature": 63, "minutes": 50 },\n    "MashOut": { "temperature": 78, "minutes": 10 }\n  }\n}\n',
+      '  },\n  "mashing": {\n    "rests": {\n      "MashIn": { "temperature": 57 },\n      "MaltoseRest": { "temperature": 63, "minutes": 50 },\n      "MashOut": { "temperature": 78, "minutes": 10 }\n    }\n  }\n}\n',
     );
     await tick("MaltoseRest");
     await tick("MashOut");
     expect(row("MaltoseRest").querySelector("input:not([type=checkbox])")).toBeNull();
     // The mash-in stays until its field is cleared too (EDT-034).
-    expect(await download()).toContain('"mashing": {\n    "MashIn": { "temperature": 57 }\n  }');
+    expect(await download()).toContain('"mashing": {\n    "rests": {\n      "MashIn": { "temperature": 57 }\n    }\n  }');
     await type(mashInField(), "");
     expect(await download()).not.toContain("mashing\"");
     await tick("PreMash");
@@ -1039,7 +1039,7 @@ describe("App, the Mashing tab (QE-32)", () => {
     await type(mashInField(), "65");
     expect(scheduleWarningsShown()).toContain("⚠ Maltose rest at 63 °C is lower than the mash-in (65 °C): the steps should rise.");
     expect(await status()).toContain("Complete: BrewberryPi can load this recipe.");
-    expect(await download()).toContain('"mashing": {\n    "MashIn": { "temperature": 65 },\n    "MaltoseRest"');
+    expect(await download()).toContain('"mashing": {\n    "rests": {\n      "MashIn": { "temperature": 65 },\n      "MaltoseRest"');
   });
 
   it("ACC-104 the iodine test is an optional marker between the Saccharification rest and the Mash-out", async () => {
@@ -1062,14 +1062,14 @@ describe("App, the Mashing tab (QE-32)", () => {
     expect(total()).toBe(before);
     expect(await status()).toContain("Complete: BrewberryPi can load this recipe.");
     expect(await download()).toContain(
-      '    "SaccharificationRest": { "temperature": 72, "minutes": 30 },\n    "IodineTest": {},\n    "MashOut": { "temperature": 78, "minutes": 5 }\n',
+      '      "SaccharificationRest": { "temperature": 72, "minutes": 30 },\n      "IodineTest": {},\n      "MashOut": { "temperature": 78, "minutes": 5 }\n',
     );
     await tick("IodineTest");
     expect(await download()).not.toContain("IodineTest");
   });
 
   it("ACC-061 keeps and reports an unknown rest of an opened file", async () => {
-    await openMashing({ version: 3, name: "Plan", mashing_process: { goals: [] }, mashing: { MainRest: { temperature: 63, minutes: 45 } } });
+    await openMashing({ version: 3, name: "Plan", mashing_process: { goals: [] }, mashing: { rests: { MainRest: { temperature: 63, minutes: 45 } } } });
     expect(await status()).toContain('Mashing, MainRest: Unknown rest "MainRest".');
     await tick("MashOut");
     expect(await status()).toContain('Unknown rest "MainRest".');
@@ -1177,10 +1177,10 @@ describe("App, the Malt and Hops tabs (QE-34, QE-35)", () => {
     expect(rows("malts")[0].nextElementSibling!.nextElementSibling!.querySelector("[data-add-row]")).not.toBeNull();
     await type(nameField("malts", 0), "Pilsner malt");
     await type(field("malts", 0, "grams"), "4500");
-    expect(await download()).toContain('"ingredients"');
+    expect(await download()).toContain('"mashing": {\n    "malts": [');
     await act(async () => rows("malts")[0].querySelector<HTMLButtonElement>("button[aria-label='Remove malt 1']")!.click());
     expect(rows("malts")).toHaveLength(0);
-    expect(await download()).not.toContain("ingredients");
+    expect(await download()).not.toContain('"mashing"');
     await showTab("hops");
     expect(heads("hops")).toEqual(["Move", "Name", "α %", "Additions (cooking time · amount)", "Absolute amount (g)", "Remove"]);
     // Their typical values behind the heads' ⓘ (QE-75).
@@ -1236,12 +1236,12 @@ describe("App, the Malt and Hops tabs (QE-34, QE-35)", () => {
     expect(await status()).toContain("Complete: BrewberryPi can load this recipe.");
   });
 
-  it("ACC-070 writes the ingredients one entry per line, malts before hops, then the batch, without computed values", async () => {
+  it("ACC-070 writes the malts in mashing before the rests, the hops in boiling, one entry per line, without computed values", async () => {
     await open({
       version: 3,
       name: "Brew",
       mashing_process: { goals: [{ type: "MashIn" }] },
-      mashing: { MashIn: { temperature: 63 }, MashOut: { temperature: 78, minutes: 10 } },
+      mashing: { rests: { MashIn: { temperature: 63 }, MashOut: { temperature: 78, minutes: 10 } } },
     });
     await showTab("hops");
     await add("hops", "Hallertauer Tradition", "30", { alpha: "5.5", minutes: "60" });
@@ -1251,29 +1251,34 @@ describe("App, the Malt and Hops tabs (QE-34, QE-35)", () => {
     await setKnockout("20", "malts");
     const text = await download();
     expect(text).toContain(
-      '  "mashing": {\n    "MashIn": { "temperature": 63 },\n    "MashOut": { "temperature": 78, "minutes": 10 }\n  },\n' +
-        '  "ingredients": {\n' +
+      '  "mashing": {\n' +
         '    "malts": [\n' +
         '      { "name": "Pilsner malt", "grams": 4500, "ebc": 3.5 },\n' +
         '      { "name": "Munich malt", "grams": 500 }\n' +
         "    ],\n" +
+        '    "rests": {\n      "MashIn": { "temperature": 63 },\n      "MashOut": { "temperature": 78, "minutes": 10 }\n    }\n' +
+        "  },\n" +
+        '  "boiling": {\n' +
         '    "hops": [\n' +
         '      { "name": "Hallertauer Tradition", "alpha": 5.5, "additions": [ { "minutes": 60, "grams": 30 } ] }\n' +
         "    ]\n" +
         "  },\n" +
-        '  "batch": { "liters": 20, "plato": 12.6 }\n}\n', // liters first, though the gravity was entered first
+        '  "water": { "target_knockout_volume": 20 },\n' +
+        '  "fermentation": { "original_gravity": 12.6 }\n}\n', // the malts before the rests, though entered after
     );
     expect(text).not.toMatch(/%|EBC"|IBU|share/);
     const read = toRecipe(JSON.parse(text));
-    expect([read.ingredients, read.batch]).toEqual([
+    expect([read.mashing, read.boiling, read.water, read.fermentation]).toEqual([
       {
         malts: [
           { name: "Pilsner malt", grams: 4500, ebc: 3.5 },
           { name: "Munich malt", grams: 500 },
         ],
-        hops: [{ name: "Hallertauer Tradition", alpha: 5.5, additions: [{ minutes: 60, grams: 30 }] }],
+        rests: { MashIn: { temperature: 63 }, MashOut: { temperature: 78, minutes: 10 } },
       },
-      { liters: 20, plato: 12.6 },
+      { hops: [{ name: "Hallertauer Tradition", alpha: 5.5, additions: [{ minutes: 60, grams: 30 }] }] },
+      { target_knockout_volume: 20 },
+      { original_gravity: 12.6 },
     ]);
   });
 
@@ -1388,14 +1393,14 @@ describe("App, the Malt and Hops tabs (QE-34, QE-35)", () => {
     expect(await status()).toContain("Hop 2, addition 1: the boil time must be a whole number of minutes, at least 0.");
   });
 
-  it("ACC-075 the knockout volume comes from the Water tab, the gravity from the Fermentation tab; an empty batch leaves the file", async () => {
+  it("ACC-075 the knockout volume comes from the Water tab, the gravity from the Fermentation tab; empty fields leave the file", async () => {
     await open();
     expect(recipe().querySelector("[role=tabpanel] [data-figure] input")).toBeNull();
     await showTab("hops");
     expect(recipe().querySelector("[role=tabpanel] [data-figure] input")).toBeNull(); // no batch fields on Malt or Hops
     await setOnWater("Original gravity", "12.6", "hops");
     await setKnockout("20", "hops");
-    expect(await download()).toContain('"batch": { "liters": 20, "plato": 12.6 }');
+    expect(await download()).toContain('  "water": { "target_knockout_volume": 20 },\n  "fermentation": { "original_gravity": 12.6 }\n');
     await setKnockout("0", "hops");
     expect(await status()).toContain("Knockout volume: The knockout volume must be a number above 0 litres.");
     await setOnWater("Original gravity", "41", "hops");
@@ -1408,7 +1413,7 @@ describe("App, the Malt and Hops tabs (QE-34, QE-35)", () => {
     expect(recipe().querySelector("#tab-water")!.getAttribute("aria-selected")).toBe("true");
     await setKnockout("", "hops");
     await setOnWater("Original gravity", "", "hops");
-    expect(await download()).not.toContain("batch");
+    expect(await download()).not.toMatch(/"water"|"fermentation"/);
   });
 
   it("ACC-080 places the beer colour on a scale of common beers, with the styles whose range holds it", async () => {
@@ -1547,15 +1552,14 @@ describe("App, the Malt and Hops tabs (QE-34, QE-35)", () => {
     expect(recipe().querySelector("#tab-hops")!.getAttribute("aria-selected")).toBe("true");
   });
 
-  it("ACC-107 the Boil Schedule ends with the Whirlpool row; ticking it writes boil.whirlpool, unticking removes it", async () => {
+  it("ACC-107 the Boil Schedule ends with the Whirlpool row; ticking it writes boiling.whirlpool, unticking removes it", async () => {
     await open({
       version: 3,
       name: "Brew",
       mashing_process: { goals: [{ type: "MashIn" }] },
-      ingredients: { hops: [{ name: "Hallertauer", alpha: 5.5, additions: [{ minutes: 60, grams: 30 }] }] },
-      batch: { liters: 20, plato: 12.6 },
-      water: { mash: 16 },
-      fermentation: { co2: 5 },
+      boiling: { hops: [{ name: "Hallertauer", alpha: 5.5, additions: [{ minutes: 60, grams: 30 }] }] },
+      water: { mash: 16, target_knockout_volume: 20 },
+      fermentation: { original_gravity: 12.6, co2: 5 },
     });
     await showTab("hops");
     const schedule = () => recipe().querySelector("[data-hop-schedule]")!;
@@ -1578,9 +1582,14 @@ describe("App, the Malt and Hops tabs (QE-34, QE-35)", () => {
     expect(whirlpool().hasAttribute("data-planned")).toBe(true);
     expect([schedule().querySelector("[data-boil-time]")!.textContent, figure()]).toEqual(before);
     expect(await status()).toContain("Complete: BrewberryPi can load this recipe.");
-    expect(await download()).toContain('  "water": { "mash": 16 },\n  "boil": { "whirlpool": true },\n  "fermentation": { "co2": 5 }\n');
+    expect(await download()).toContain(
+      '  "boiling": {\n    "whirlpool": true,\n    "hops": [\n' +
+        '      { "name": "Hallertauer", "alpha": 5.5, "additions": [ { "minutes": 60, "grams": 30 } ] }\n    ]\n  },\n' +
+        '  "water": { "mash": 16, "target_knockout_volume": 20 },\n  "fermentation": { "original_gravity": 12.6, "co2": 5 }\n',
+    );
     await act(async () => box().click());
-    expect(await download()).not.toContain('"boil"');
+    expect(await download()).not.toContain('"whirlpool"');
+    expect(await download()).toContain('  "boiling": {\n    "hops": [\n');
   });
 
   it("ACC-108 without boil additions the Boil Schedule still has the Whirlpool row", async () => {
@@ -1591,11 +1600,11 @@ describe("App, the Malt and Hops tabs (QE-34, QE-35)", () => {
     const box = () => schedule().querySelector<HTMLInputElement>("[data-schedule-whirlpool] input[type=checkbox]")!;
     await act(async () => box().click());
     expect(box().checked).toBe(true);
-    expect(await download()).toContain('"boil": { "whirlpool": true }');
+    expect(await download()).toContain('  "boiling": {\n    "whirlpool": true\n  }');
   });
 
-  it("ACC-109 an invalid boil is a problem on the Boiling tab and blocks the download", async () => {
-    await open({ version: 3, name: "Brew", mashing_process: { goals: [{ type: "MashIn" }] }, boil: { whirlpool: "yes" } });
+  it("ACC-109 an invalid boiling is a problem on the Boiling tab and blocks the download", async () => {
+    await open({ version: 3, name: "Brew", mashing_process: { goals: [{ type: "MashIn" }] }, boiling: { whirlpool: "yes" } });
     expect(await status()).toContain("Whirlpool: The whirlpool must be yes or no (true or false).");
     await expect(download()).rejects.toThrow("not downloaded");
     await showStatus();
@@ -1717,7 +1726,7 @@ describe("App, the Malt and Hops tabs (QE-34, QE-35)", () => {
       version: 3,
       name: "Brew",
       mashing_process: { goals: [] },
-      ingredients: { hops: [{ name: "Hallertauer", alpha: 5, grams: 15, minutes: 60, additions: [{ minutes: 30, grams: 99 }] }] },
+      boiling: { hops: [{ name: "Hallertauer", alpha: 5, grams: 15, minutes: 60, additions: [{ minutes: 30, grams: 99 }] }] },
     });
     expect(recipe().textContent).toContain(
       'Converted: hop 1 "Hallertauer": its own amount and cooking time are moved into its additions.',
@@ -1757,7 +1766,7 @@ describe("App, the Malt and Hops tabs (QE-34, QE-35)", () => {
     // On the Fermentation tab under the field's hint.
     await setOnWater("Original gravity", "25", "hops");
     await showTab("fermentation");
-    const plato = recipe().querySelector("[data-batch-field=plato]")!;
+    const plato = recipe().querySelector("[data-batch-field=original_gravity]")!;
     expect(plato.querySelector("[data-field-warning]")!.textContent).toBe("⚠ An original gravity of 25 °P is outside the typical 7–22 °P.");
     await type(plato.querySelector("input")!, "41");
     expect(plato.querySelector("[data-field-error]")!.textContent).toBe("⊘ The original gravity must be a number from 0 to 40 °P.");
@@ -1884,9 +1893,8 @@ describe("App, the Malt and Hops tabs (QE-34, QE-35)", () => {
       version: 3,
       name: "Brew",
       mashing_process: { goals: [] },
-      ingredients: { malts: [{ name: "Pilsner malt", grams: 4600, ebc: 7 }] },
-      water: { mash: 18, treatment: { acid_malt: 1 } },
-      batch: { liters: 24 },
+      mashing: { malts: [{ name: "Pilsner malt", grams: 4600, ebc: 7 }] },
+      water: { mash: 18, target_knockout_volume: 24, treatment: { acid_malt: 1 } },
     });
     const acid = () => section("malts").querySelector<HTMLTableRowElement>("[data-acid-malt]");
     // A row like the others (QE-68), its values as text where the fields' text sits (QE-70), no "read-only" label.
@@ -2030,7 +2038,7 @@ describe("App, the Water tab (QE-36)", () => {
       ["water-mash", "strike water"],
       ["water-sparge", "while lautering"],
       ["water-top_up", "after lautering, only to dilute to the original gravity"],
-      ["batch-liters", "end of the boil"],
+      ["batch-target_knockout_volume", "end of the boil"],
     ]) {
       expect(recipe().textContent).not.toContain(hint);
       await act(async () => recipe().querySelector<HTMLElement>(`[data-field-row=${row}] [data-info-button]`)!.click());
@@ -2056,7 +2064,7 @@ describe("App, the Water tab (QE-36)", () => {
       version: 3,
       name: "Brew",
       mashing_process: { goals: [{ type: "MashIn" }] },
-      ingredients: { malts: [{ name: "Pilsner malt", grams: 4500 }, { name: "Munich malt", grams: 500 }] },
+      mashing: { malts: [{ name: "Pilsner malt", grams: 4500 }, { name: "Munich malt", grams: 500 }] },
     });
     const total = () => recipe().querySelector("[data-total-water]")?.textContent;
     const thickness = () => recipe().querySelector("[data-mash-thickness]")!.textContent;
@@ -2088,7 +2096,7 @@ describe("App, the Water tab (QE-36)", () => {
       version: 3,
       name: "Brew",
       mashing_process: { goals: [{ type: "MashIn" }] },
-      ingredients: { malts: [{ name: "Pilsner malt", grams: 4500 }, { name: "Munich malt", grams: 500 }] },
+      mashing: { malts: [{ name: "Pilsner malt", grams: 4500 }, { name: "Munich malt", grams: 500 }] },
     });
     const scale = () => recipe().querySelector("[data-thickness-scale]");
     expect(scale()).toBeNull(); // no mash water yet
@@ -2182,7 +2190,7 @@ describe("App, the Water tab (QE-36)", () => {
       version: 3,
       name: "Brew",
       mashing_process: { goals: [] },
-      ingredients: { malts: [{ name: "Pilsner malt", grams: 4500 }] },
+      mashing: { malts: [{ name: "Pilsner malt", grams: 4500 }] },
     });
     expect(await typical("mash")).toBe("Typical: 11.3–22.5 L (2.5–5 L/kg of malt)");
     const styles = await info("mash");
@@ -2215,11 +2223,9 @@ describe("App, the Water tab (QE-36)", () => {
       version: 3,
       name: "Brew",
       mashing_process: { goals: [] },
-      ingredients: {
-        malts: [{ name: "Pilsner malt", grams: 4500 }],
-        hops: [{ name: "Hallertauer", additions: [{ minutes: 90, grams: 20 }, { minutes: 10, grams: 10 }] }],
-      },
-      batch: { liters: 20 },
+      mashing: { malts: [{ name: "Pilsner malt", grams: 4500 }] },
+      boiling: { hops: [{ name: "Hallertauer", additions: [{ minutes: 90, grams: 20 }, { minutes: 10, grams: 10 }] }] },
+      water: { target_knockout_volume: 20 },
     });
     expect((await info("sparge")).textContent).toContain("20 L + 3 L (90 min, ~10 %/h) + 4.5 L (~1 L/kg) + 1 L = 28.5 L");
   });
@@ -2229,9 +2235,8 @@ describe("App, the Water tab (QE-36)", () => {
       version: 3,
       name: "Brew",
       mashing_process: { goals: [] },
-      ingredients: { malts: [{ name: "Pilsner malt", grams: 4600, ebc: 7 }] },
-      water: { mash: 18 },
-      batch: { liters: 24 },
+      mashing: { malts: [{ name: "Pilsner malt", grams: 4600, ebc: 7 }] },
+      water: { mash: 18, target_knockout_volume: 24 },
     });
     const section = () => recipe().querySelector("[data-water-treatment]")!;
     // A table like the mash rests (QE-64): each step's effect in its own column (QE-62), its explanation behind its ⓘ,
@@ -2324,7 +2329,7 @@ describe("App, the Water tab (QE-36)", () => {
     expect(section().querySelector("[data-treatment=result] [data-field-warning]")).toBeNull();
     expect(await about("result")).toContain("at most 15 °dH"); // the target table
     expect(await download()).toContain(
-      '"water": { "mash": 18, "treatment": { "alkalinity": 10.3, "carbonate_hardness": 14, "boil": true, "gypsum": 1, "acid_malt": 1, "lactic_acid": 0.5 } }',
+      '"water": { "mash": 18, "target_knockout_volume": 24, "treatment": { "alkalinity": 10.3, "carbonate_hardness": 14, "boil": true, "gypsum": 1, "acid_malt": 1, "lactic_acid": 0.5 } }',
     );
     // Clearing a ticked step's amount keeps it ticked, as an error.
     await type(amount("lactic_acid")!, "");
@@ -2339,9 +2344,9 @@ describe("App, the Water tab (QE-36)", () => {
     for (const step of ["boil", "gypsum", "acid_malt", "lactic_acid"]) {
       await tickStep(step);
     }
-    expect(await download()).toContain('"water": { "mash": 18, "treatment": { "alkalinity": 10.3 } }');
+    expect(await download()).toContain('"water": { "mash": 18, "target_knockout_volume": 24, "treatment": { "alkalinity": 10.3 } }');
     await type(amount("alkalinity")!, "");
-    expect(await download()).toContain('"water": { "mash": 18 }');
+    expect(await download()).toContain('"water": { "mash": 18, "target_knockout_volume": 24 }');
   });
 
   it("ACC-101 the unit stays inside the number field, not part of its text", async () => {
@@ -2411,7 +2416,7 @@ describe("App, the Water tab (QE-36)", () => {
     await type(input("Final gravity"), "2.5");
     expect(alcohol()[0]).toBe("5.1 % vol");
     expect(recipe().querySelector("[data-attenuation]")!.textContent).toBe("79 %");
-    expect(await download()).toContain('"batch": { "plato": 12, "final_plato": 2.5 }');
+    expect(await download()).toContain('"fermentation": { "original_gravity": 12, "final_gravity": 2.5 }');
     await type(input("Final gravity"), "12");
     expect(alcohol()).toEqual(["–", "The final gravity must be below the original gravity."]);
     await type(input("Final gravity"), "41");

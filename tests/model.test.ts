@@ -10,6 +10,7 @@ import {
   newMashRest,
   outsideTypicalRange,
   readRecipe,
+  restsOf,
   serializeRecipe,
   toRecipe,
   withIodineTest,
@@ -87,8 +88,8 @@ describe("readRecipe", () => {
     const base = { version: 3, name: "Old hops", mashing_process: { goals: [] } };
     const read = readRecipe({
       ...base,
-      ingredients: {
-        malts: [{ name: "Pilsner malt", grams: 4500 }],
+      mashing: { malts: [{ name: "Pilsner malt", grams: 4500 }] },
+      boiling: {
         hops: [
           { name: "Hallertauer", grams: 15, alpha: 5, minutes: 60 },
           { name: "Saaz", grams: 15, minutes: 60, additions: [{ minutes: 60, grams: 99 }] },
@@ -98,8 +99,8 @@ describe("readRecipe", () => {
         others: [{ name: "Irish Moss", grams: 5 }],
       },
     });
-    expect(read.recipe!.ingredients).toEqual({
-      malts: [{ name: "Pilsner malt", grams: 4500 }],
+    expect(read.recipe!.mashing).toEqual({ malts: [{ name: "Pilsner malt", grams: 4500 }] });
+    expect(read.recipe!.boiling).toEqual({
       hops: [
         { name: "Hallertauer", alpha: 5, additions: [{ minutes: 60, grams: 15 }] },
         { name: "Saaz", additions: [{ minutes: 60, grams: 15 }, { minutes: 60, grams: 99 }] },
@@ -116,9 +117,63 @@ describe("readRecipe", () => {
     );
     expect(validateRecipe(read.recipe)).toEqual([]);
     // A recipe in the current shape is not changed.
-    const current = { ...base, ingredients: { hops: [{ name: "Cascade", additions: [{ minutes: 0, grams: 30 }] }] } };
+    const current = { ...base, boiling: { hops: [{ name: "Cascade", additions: [{ minutes: 0, grams: 30 }] }] } };
     expect(convertSingleAdditions(current as never).changes).toEqual([]);
     expect(readRecipe(current).converted).toBeUndefined();
+  });
+
+  it("ACC-110 moves the sections of an earlier draft of version 3 to their places, and says so", () => {
+    const read = readRecipe({
+      version: 3,
+      name: "Draft",
+      mashing_process: { goals: [] },
+      mashing: { MashIn: { temperature: 57 }, MaltoseRest: { temperature: 63, minutes: 45 } },
+      ingredients: {
+        malts: [{ name: "Pilsner malt", grams: 4500 }],
+        hops: [{ name: "Hallertauer", grams: 15, alpha: 5, minutes: 60 }],
+        others: [{ name: "Irish Moss", additions: [{ minutes: 5, grams: 10 }] }],
+      },
+      batch: { liters: 20, plato: 12.6, final_plato: 2.5 },
+      water: { mash: 16, treatment: { alkalinity: 10 } },
+      boil: { whirlpool: true },
+      fermentation: { yeast: { name: "WB-06" } },
+    });
+    expect(read.recipe).toEqual({
+      version: 3,
+      name: "Draft",
+      mashing_process: { goals: [] },
+      mashing: {
+        malts: [{ name: "Pilsner malt", grams: 4500 }],
+        rests: { MashIn: { temperature: 57 }, MaltoseRest: { temperature: 63, minutes: 45 } },
+      },
+      boiling: {
+        whirlpool: true,
+        hops: [{ name: "Hallertauer", alpha: 5, additions: [{ minutes: 60, grams: 15 }] }],
+        others: [{ name: "Irish Moss", additions: [{ minutes: 5, grams: 10 }] }],
+      },
+      water: { mash: 16, target_knockout_volume: 20, treatment: { alkalinity: 10 } },
+      fermentation: { original_gravity: 12.6, final_gravity: 2.5, yeast: { name: "WB-06" } },
+    });
+    expect(read.converted).toBe(
+      'Converted: its mashing plan is moved into "mashing.rests"; its malts are moved into "mashing"; ' +
+        'its hops are moved into "boiling"; its other additions are moved into "boiling"; its whirlpool is moved into "boiling"; ' +
+        'its knockout volume is moved into "water"; its original gravity is moved into "fermentation"; ' +
+        'its final gravity is moved into "fermentation"; ' +
+        'hop 1 "Hallertauer": its own amount and cooking time are moved into its additions.',
+    );
+    expect(validateRecipe(read.recipe)).toEqual([]);
+    // What has no free place, or is not a draft field, is kept where it was, for the validator (nothing is dropped).
+    const kept = readRecipe({
+      version: 3,
+      name: "Both",
+      mashing_process: { goals: [] },
+      water: { target_knockout_volume: 24 },
+      batch: { liters: 20, gallons: 5 },
+      ingredients: [],
+    });
+    expect(kept.recipe).toMatchObject({ water: { target_knockout_volume: 24 }, batch: { liters: 20, gallons: 5 }, ingredients: [] });
+    expect(kept.converted).toBeUndefined();
+    expect(validateRecipe(kept.recipe).map((p) => p.path)).toEqual(["batch", "ingredients"]);
   });
 
   it("counts a hop's additions, never an own amount it still has (EDT-061)", () => {
@@ -216,7 +271,7 @@ describe("mashing plan (QE-32)", () => {
     const empty = { ...emptyRecipe(), name: "P" };
     // Ticked, a rest has no values yet (QE-63): its temperature and minutes are problems until entered.
     const ticked = withMashRest(empty, "MashOut", newMashRest("MashOut"));
-    expect(ticked.mashing).toEqual({ MashOut: {} });
+    expect(ticked.mashing).toEqual({ rests: { MashOut: {} } });
     // A plan with a rest needs the mash-in's temperature (QE-77).
     expect(validateRecipe(ticked).map((p) => p.message)).toEqual([
       "The mash-in needs a temperature.",
@@ -227,13 +282,15 @@ describe("mashing plan (QE-32)", () => {
       withMashRest(withMashRest(empty, "MashOut", { temperature: 78, minutes: 10 }), "MaltoseRest", { temperature: 63, minutes: 45 }),
       57,
     );
-    expect(planned.mashing).toEqual({ MashIn: { temperature: 57 }, MaltoseRest: { temperature: 63, minutes: 45 }, MashOut: { temperature: 78, minutes: 10 } });
-    expect(Object.keys(planned.mashing as object)).toEqual(["MashIn", "MaltoseRest", "MashOut"]);
+    expect(planned.mashing).toEqual({
+      rests: { MashIn: { temperature: 57 }, MaltoseRest: { temperature: 63, minutes: 45 }, MashOut: { temperature: 78, minutes: 10 } },
+    });
+    expect(Object.keys(restsOf(planned))).toEqual(["MashIn", "MaltoseRest", "MashOut"]);
     expect(validateRecipe(planned)).toEqual([]);
     const text = serializeRecipe(planned);
     expect(text).toBe(
-      '{\n  "version": 3,\n  "name": "P",\n  "mashing_process": {\n    "goals": []\n  },\n  "mashing": {\n' +
-        '    "MashIn": { "temperature": 57 },\n    "MaltoseRest": { "temperature": 63, "minutes": 45 },\n    "MashOut": { "temperature": 78, "minutes": 10 }\n  }\n}\n',
+      '{\n  "version": 3,\n  "name": "P",\n  "mashing_process": {\n    "goals": []\n  },\n  "mashing": {\n    "rests": {\n' +
+        '      "MashIn": { "temperature": 57 },\n      "MaltoseRest": { "temperature": 63, "minutes": 45 },\n      "MashOut": { "temperature": 78, "minutes": 10 }\n    }\n  }\n}\n',
     );
     expect(readRecipe(JSON.parse(text))).toEqual({ recipe: planned, converted: undefined });
     const none = withMashIn(withMashRest(withMashRest(planned, "MaltoseRest", undefined), "MashOut", undefined), undefined);
@@ -244,7 +301,7 @@ describe("mashing plan (QE-32)", () => {
   it("ACC-104 plans the iodine test as {} before the Mash-out and drops it again", () => {
     const base = withMashIn(withMashRest({ ...emptyRecipe(), name: "P" }, "MashOut", { temperature: 78, minutes: 5 }), 38);
     const planned = withIodineTest(base, true);
-    expect(Object.keys(planned.mashing as object)).toEqual(["MashIn", "IodineTest", "MashOut"]);
+    expect(Object.keys(restsOf(planned))).toEqual(["MashIn", "IodineTest", "MashOut"]);
     expect(validateRecipe(planned)).toEqual([]);
     expect(withIodineTest(planned, false)).toEqual(base);
     expect("mashing" in withIodineTest(withIodineTest({ ...emptyRecipe(), name: "P" }, true), false)).toBe(false);

@@ -1,8 +1,10 @@
 /**
  * Recipe and goal types: the recipe file format of brewberrypi-app (data/recipe.schema.json, spec 04 and 07 §7.2):
- * { "version": 3, "name": …, "mashing_process": { "goals": […] }, "mashing": { … } }, one recipe per file, the file
- * name is the id. The goals may be empty (app Q-34): the app then lists the recipe but can't load it. "mashing" is
- * the optional mashing plan (app Q-37, RCP-012): the rests the brewer plans, keyed by rest id; the app doesn't use it.
+ * { "version": 3, "name": …, "description": …, "mashing_process": { "goals": […] }, "mashing": { "malts", "rests" },
+ * "boiling": { "whirlpool", "hops", "others" }, "water": { …, "target_knockout_volume", "treatment" },
+ * "fermentation": { "original_gravity", "final_gravity", "yeast", "co2" } }, one recipe per file, the file name is
+ * the id. The goals may be empty (app Q-34): the app then lists the recipe but can't load it. The other sections are
+ * design information (app Q-37..Q-51) the app doesn't use; "mashing.rests" is the mashing plan, keyed by rest id.
  */
 
 import { alcoholByVolume, apparentAttenuation, beerColourEbc, bitternessIbu } from "./brewMath";
@@ -42,17 +44,13 @@ export interface Recipe {
   /** The brewer's free text, possibly several lines (app RCP-016); absent while empty. */
   description?: unknown;
   mashing_process: MashingProcess;
-  /** The mashing plan (app RCP-012); absent while no rest is planned. */
+  /** The malts and the mashing plan `rests` (app RCP-012, Q-51); absent while there are neither. */
   mashing?: unknown;
-  /** The malts and hops (app RCP-013); absent while there are none. */
-  ingredients?: unknown;
-  /** The knockout volume and original gravity (app RCP-014); absent while neither is set. */
-  batch?: unknown;
-  /** The brewing-day water in litres (app RCP-015); absent while none is set. */
+  /** The whirlpool, the hops and the other additions (app RCP-018, Q-51); absent while there are none. */
+  boiling?: unknown;
+  /** The brewing-day water in litres and the target knockout volume (app RCP-015); absent while none is set. */
   water?: unknown;
-  /** After the boil: the whirlpool (app RCP-018); absent while it is not ticked. */
-  boil?: unknown;
-  /** The yeast and the target carbonation (app RCP-017); absent while neither is set. */
+  /** The gravities, the yeast and the target carbonation (app RCP-017); absent while none is set. */
   fermentation?: unknown;
   [key: string]: unknown;
 }
@@ -64,9 +62,59 @@ export function isMashRestId(id: unknown): id is MashRestId {
   return typeof id === "string" && (MASH_REST_IDS as readonly string[]).includes(id);
 }
 
-/** The mashing plan as an object (an uploaded file's non-object plan reads as empty here; the validator reports it). */
-export function mashingOf(recipe: Recipe): Record<string, unknown> {
-  return isObject(recipe.mashing) ? recipe.mashing : {};
+/**
+ * The keys of the design sections in the file's order (FMT-006, app Q-51); any other key follows, as found.
+ */
+export const SECTION_ORDER = {
+  mashing: ["malts", "rests"],
+  boiling: ["whirlpool", "hops", "others"],
+  water: ["mash", "sparge", "top_up", "target_knockout_volume", "treatment"],
+  fermentation: ["original_gravity", "final_gravity", "yeast", "co2"],
+} as const;
+export type Section = keyof typeof SECTION_ORDER;
+
+/** An object's keys in this order, then any other key as found; undefined values are left out. */
+function inOrder(value: Record<string, unknown>, order: readonly string[]): Record<string, unknown> {
+  const result: Record<string, unknown> = {};
+  for (const key of [...order, ...Object.keys(value)]) {
+    if (value[key] !== undefined && !(key in result)) {
+      result[key] = value[key];
+    }
+  }
+  return result;
+}
+
+/** A design section as an object (an uploaded file's non-object section reads as empty here; the validator reports it). */
+export function sectionOf(recipe: Recipe, section: Section): Record<string, unknown> {
+  const value = recipe[section];
+  return isObject(value) ? value : {};
+}
+
+/**
+ * The recipe with a field of a design section set, or removed when `value` is undefined; an empty section leaves the
+ * file. Kept in the file's order (SECTION_ORDER); any other key as found.
+ */
+export function withSectionField(recipe: Recipe, section: Section, field: string, value: unknown): Recipe {
+  const next = { ...sectionOf(recipe, section), [field]: value };
+  if (value === undefined) {
+    delete next[field];
+  }
+  const { [section]: _old, ...others } = recipe;
+  return Object.keys(next).length === 0 ? (others as Recipe) : ({ ...others, [section]: inOrder(next, SECTION_ORDER[section]) } as Recipe);
+}
+
+/**
+ * The mashing plan `mashing.rests` as an object (an uploaded file's non-object plan reads as empty here; the validator
+ * reports it).
+ */
+export function restsOf(recipe: Recipe): Record<string, unknown> {
+  const rests = sectionOf(recipe, "mashing").rests;
+  return isObject(rests) ? rests : {};
+}
+
+/** The recipe with its mashing plan replaced: without any rest, `rests` leaves `mashing`, and so does `mashing` (EDT-034). */
+function withRests(recipe: Recipe, plan: Record<string, unknown>): Recipe {
+  return withSectionField(recipe, "mashing", "rests", Object.keys(plan).length === 0 ? undefined : inPlanOrder(plan));
 }
 
 /** The plan's entries in the table's order (the mash-in first, the iodine test before the mash-out), then whatever else it holds. */
@@ -81,44 +129,42 @@ function inPlanOrder(plan: Record<string, unknown>): Record<string, unknown> {
 }
 
 /**
- * Plans a rest (or, with undefined, drops it) (EDT-032). Without any rest left, the recipe has no "mashing" (EDT-034).
+ * Plans a rest (or, with undefined, drops it) (EDT-032). Without any rest left, the recipe has no "mashing.rests"
+ * (EDT-034).
  */
 export function withMashRest(recipe: Recipe, id: MashRestId, rest: MashRest | undefined): Recipe {
-  const plan = { ...mashingOf(recipe) };
+  const plan = { ...restsOf(recipe) };
   if (rest === undefined) {
     delete plan[id];
   } else {
     plan[id] = rest;
   }
-  const { mashing: _old, ...others } = recipe;
-  return Object.keys(plan).length === 0 ? others : { ...others, mashing: inPlanOrder(plan) };
+  return withRests(recipe, plan);
 }
 
 /**
  * Sets the mash-in temperature (EDT-031, QE-77); undefined (an emptied field) drops the mash-in. Without anything
- * left, the recipe has no "mashing" (EDT-034).
+ * left, the recipe has no "mashing.rests" (EDT-034).
  */
 export function withMashIn(recipe: Recipe, temperature: unknown): Recipe {
-  const plan = { ...mashingOf(recipe) };
+  const plan = { ...restsOf(recipe) };
   if (temperature === undefined) {
     delete plan[MASH_IN];
   } else {
     plan[MASH_IN] = { ...(isObject(plan[MASH_IN]) ? plan[MASH_IN] : {}), temperature };
   }
-  const { mashing: _old, ...others } = recipe;
-  return Object.keys(plan).length === 0 ? others : { ...others, mashing: inPlanOrder(plan) };
+  return withRests(recipe, plan);
 }
 
 /** Plans the iodine test (a marker, `{}`) or drops it (EDT-031, QE-79). */
 export function withIodineTest(recipe: Recipe, planned: boolean): Recipe {
-  const plan = { ...mashingOf(recipe) };
+  const plan = { ...restsOf(recipe) };
   if (planned) {
     plan[IODINE_TEST] = {};
   } else {
     delete plan[IODINE_TEST];
   }
-  const { mashing: _old, ...others } = recipe;
-  return Object.keys(plan).length === 0 ? others : { ...others, mashing: inPlanOrder(plan) };
+  return withRests(recipe, plan);
 }
 
 /** The mash-in temperature where the schedule starts (EDT-039): only a valid one (0–110 °C). */
@@ -143,9 +189,19 @@ export function outsideTypicalRange(id: MashBandId, temperature: unknown): boole
   return typeof temperature === "number" && (temperature < bandInfo(id).tempMin || temperature > bandInfo(id).tempMax);
 }
 
-/** The two ingredient lists of the Ingredients tab (app RCP-013, EDT-041), in the file's key order. */
+/** The ingredient lists of the Malt and Boiling tabs (app RCP-013, EDT-041). */
 export const INGREDIENT_KINDS = ["malts", "hops", "others"] as const;
 export type IngredientKind = (typeof INGREDIENT_KINDS)[number];
+
+/** The section each list is in (app Q-51): the malts in `mashing`, the hops and other additions in `boiling`. */
+export const INGREDIENT_SECTIONS: Record<IngredientKind, Section> = { malts: "mashing", hops: "boiling", others: "boiling" };
+
+/** Each list's path in the file, as the validator reports it (app Q-51). */
+export const INGREDIENT_PATHS: Record<IngredientKind, string> = {
+  malts: "mashing.malts",
+  hops: "boiling.hops",
+  others: "boiling.others",
+};
 
 /** How an ingredient kind is called: the section heading, one entry, the add button. */
 export const INGREDIENT_LABELS: Record<IngredientKind, { title: string; one: string }> = {
@@ -201,17 +257,17 @@ export function entryGrams(entry: Ingredient): number {
  * changed, one line per entry, for the "Converted" notice.
  */
 export function convertSingleAdditions(recipe: Recipe): { recipe: Recipe; changes: string[] } {
-  if (!isObject(recipe.ingredients)) {
+  if (!isObject(recipe.boiling)) {
     return { recipe, changes: [] };
   }
   const changes: string[] = [];
-  const ingredients: Record<string, unknown> = { ...recipe.ingredients };
+  const boiling: Record<string, unknown> = { ...recipe.boiling };
   for (const kind of ["hops", "others"] as const) {
-    const list = ingredients[kind];
+    const list = boiling[kind];
     if (!Array.isArray(list)) {
       continue;
     }
-    ingredients[kind] = list.map((entry, i) => {
+    boiling[kind] = list.map((entry, i) => {
       if (!isObject(entry) || (entry.grams === undefined && entry.minutes === undefined)) {
         return entry;
       }
@@ -224,42 +280,93 @@ export function convertSingleAdditions(recipe: Recipe): { recipe: Recipe; change
       return { ...rest, additions: known ? additions : [own, ...additions] };
     });
   }
-  return { recipe: { ...recipe, ingredients }, changes };
+  return { recipe: { ...recipe, boiling }, changes };
+}
+
+/**
+ * Moves the sections of an earlier draft of version 3 (before brewberrypi-app Q-51; never released) to their places
+ * (FMT-003): `ingredients.malts` to `mashing.malts`, the rests directly in `mashing` to `mashing.rests`,
+ * `ingredients.hops` and `others` and `boil.whirlpool` to `boiling`, `batch.liters` to `water.target_knockout_volume`,
+ * `batch.plato` and `final_plato` to `fermentation.original_gravity` and `final_gravity`. A value is moved only where
+ * its new place is free and the old section is an object; whatever can't be moved stays where it was (the validator
+ * reports it), so nothing is dropped. Returns what changed, for the "Converted" notice.
+ */
+export function convertDraftSections(recipe: Recipe): { recipe: Recipe; changes: string[] } {
+  const changes: string[] = [];
+  let next: Recipe = { ...recipe };
+  const move = (from: string, key: string, section: Section, field: string, what: string): void => {
+    const source = next[from];
+    if (!isObject(source) || !(key in source) || field in sectionOf(next, section)) {
+      return;
+    }
+    const { [key]: value, ...rest } = source;
+    next = withSectionField(next, section, field, value);
+    if (Object.keys(rest).length === 0) {
+      delete next[from];
+    } else {
+      next[from] = rest;
+    }
+    changes.push(what);
+  };
+  // The rests directly in `mashing` (no `malts` or `rests` there yet): the mashing plan.
+  const mashing = next.mashing;
+  if (isObject(mashing) && Object.keys(mashing).length > 0 && Object.keys(mashing).every((k) => MASH_PLAN_ORDER.includes(k))) {
+    next = { ...next, mashing: { rests: mashing } };
+    changes.push('its mashing plan is moved into "mashing.rests"');
+  }
+  move("ingredients", "malts", "mashing", "malts", 'its malts are moved into "mashing"');
+  move("ingredients", "hops", "boiling", "hops", 'its hops are moved into "boiling"');
+  move("ingredients", "others", "boiling", "others", 'its other additions are moved into "boiling"');
+  move("boil", "whirlpool", "boiling", "whirlpool", 'its whirlpool is moved into "boiling"');
+  move("batch", "liters", "water", "target_knockout_volume", 'its knockout volume is moved into "water"');
+  move("batch", "plato", "fermentation", "original_gravity", 'its original gravity is moved into "fermentation"');
+  move("batch", "final_plato", "fermentation", "final_gravity", 'its final gravity is moved into "fermentation"');
+  for (const from of ["ingredients", "boil", "batch"]) {
+    if (isObject(next[from]) && Object.keys(next[from]).length === 0) {
+      delete next[from];
+    }
+  }
+  return { recipe: next, changes };
 }
 
 function finite(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value);
 }
 
-/** The valid values of the new fields (app RCP-013, RCP-014): the same ranges the validator checks. */
+/** The valid values of the design fields (app RCP-013, RCP-014): the same ranges the validator checks. */
 export const validEbc = (v: unknown): v is number => finite(v) && v >= 0;
 export const validAlpha = (v: unknown): v is number => finite(v) && v >= 0 && v <= 100;
 export const validBoilMinutes = (v: unknown): v is number => finite(v) && Number.isInteger(v) && v >= 0;
 export const validLiters = (v: unknown): v is number => finite(v) && v > 0;
 export const validPlato = (v: unknown): v is number => finite(v) && v >= 0 && v <= 40;
 
-export type BatchField = "liters" | "plato" | "final_plato";
+/**
+ * The figures of the brew the recipe is for (app RCP-014, Q-51): the target knockout volume in `water`, the target
+ * original gravity and the final gravity in `fermentation`.
+ */
+export type BatchField = "target_knockout_volume" | "original_gravity" | "final_gravity";
 
-export function batchOf(recipe: Recipe): Record<string, unknown> {
-  return isObject(recipe.batch) ? recipe.batch : {};
+/** The section each batch figure is in (app Q-51). */
+export const BATCH_SECTIONS: Record<BatchField, Section> = {
+  target_knockout_volume: "water",
+  original_gravity: "fermentation",
+  final_gravity: "fermentation",
+};
+
+/** The batch figures as they are in the file (each may be missing or invalid). */
+export function batchOf(recipe: Recipe): Partial<Record<BatchField, unknown>> {
+  const water = sectionOf(recipe, "water");
+  const fermentation = sectionOf(recipe, "fermentation");
+  return {
+    target_knockout_volume: water.target_knockout_volume,
+    original_gravity: fermentation.original_gravity,
+    final_gravity: fermentation.final_gravity,
+  };
 }
 
-/** The recipe with a batch field set, or removed when `value` is undefined; an empty batch leaves the file (EDT-050). */
+/** The recipe with a batch figure set, or removed when `value` is undefined; an empty section leaves the file (EDT-050). */
 export function withBatchField(recipe: Recipe, field: BatchField, value: unknown): Recipe {
-  const batch = { ...batchOf(recipe) };
-  if (value === undefined) {
-    delete batch[field];
-  } else {
-    batch[field] = value;
-  }
-  const ordered: Record<string, unknown> = {};
-  for (const key of ["liters", "plato", "final_plato"]) {
-    if (key in batch) {
-      ordered[key] = batch[key];
-    }
-  }
-  const { batch: _old, ...others } = recipe;
-  return Object.keys(batch).length === 0 ? others : { ...others, batch: { ...ordered, ...batch } };
+  return withSectionField(recipe, BATCH_SECTIONS[field], field, value);
 }
 
 /** The water volumes of the Water tab (app RCP-015, EDT-051), in the file's key order. */
@@ -276,29 +383,20 @@ export const WATER_LABELS: Record<WaterField, { label: string; hint: string }> =
 export const validWater = (v: unknown): v is number => finite(v) && v >= 0;
 
 export function waterOf(recipe: Recipe): Record<string, unknown> {
-  return isObject(recipe.water) ? recipe.water : {};
+  return sectionOf(recipe, "water");
 }
 
-/** The recipe with a water volume set, or removed when `value` is undefined; empty water leaves the file (EDT-051). */
 /** Whether the brewer does a whirlpool after the boil (app RCP-018, EDT-075). */
 export function whirlpoolOf(recipe: Recipe): boolean {
-  return isObject(recipe.boil) && recipe.boil.whirlpool === true;
+  return sectionOf(recipe, "boiling").whirlpool === true;
 }
 
 /**
- * The recipe with the whirlpool ticked or not (EDT-075): ticked, `boil.whirlpool` is true; unticked, it is left out,
- * and `boil` too while it holds nothing. Any other key of `boil` is kept.
+ * The recipe with the whirlpool ticked or not (EDT-075): ticked, `boiling.whirlpool` is true; unticked, it is left
+ * out, and `boiling` too while it holds nothing. The hops and other additions are kept.
  */
 export function withWhirlpool(recipe: Recipe, on: boolean): Recipe {
-  const { whirlpool: _whirlpool, ...more } = isObject(recipe.boil) ? recipe.boil : {};
-  const next: Record<string, unknown> = { ...(on ? { whirlpool: true } : {}), ...more };
-  const { boil: _old, ...others } = recipe;
-  if (Object.keys(next).length === 0) {
-    return others as Recipe;
-  }
-  // In the file's place: after the water, before the fermentation (FMT-006).
-  const { fermentation, ...head } = others;
-  return { ...head, boil: next, ...(fermentation !== undefined ? { fermentation } : {}) } as Recipe;
+  return withSectionField(recipe, "boiling", "whirlpool", on ? true : undefined);
 }
 
 /** The fermentation (app RCP-017, EDT-066): the yeast and the target carbonation. */
@@ -314,46 +412,26 @@ export function yeastOf(recipe: Recipe): Record<string, unknown> {
 
 /**
  * The recipe with the fermentation's yeast field (`name`, `grams`) or `co2` set, or removed when cleared: an empty
- * yeast is left out, and `fermentation` too while it holds nothing (EDT-066). Kept in the file's order: yeast (name,
- * grams), then co2; any other key as found.
+ * yeast is left out, and `fermentation` too while it holds nothing (EDT-066). Kept in the file's order: the
+ * gravities, the yeast (name, grams), then co2; any other key as found.
  */
 export function withFermentationField(recipe: Recipe, field: "name" | "grams" | "co2", value: unknown): Recipe {
-  const { yeast: _yeast, co2: _co2, ...more } = fermentationOf(recipe);
-  const yeast: Record<string, unknown> = { ...yeastOf(recipe) };
-  let co2 = fermentationOf(recipe).co2;
   if (field === "co2") {
-    co2 = value;
-  } else if (value === undefined || value === "") {
+    return withSectionField(recipe, "fermentation", "co2", value);
+  }
+  const yeast: Record<string, unknown> = { ...yeastOf(recipe) };
+  if (value === undefined || value === "") {
     delete yeast[field];
   } else {
     yeast[field] = value;
   }
-  const { name, grams, ...yeastMore } = yeast;
-  const orderedYeast = { ...(name !== undefined ? { name } : {}), ...(grams !== undefined ? { grams } : {}), ...yeastMore };
-  const next: Record<string, unknown> = {
-    ...(Object.keys(orderedYeast).length > 0 ? { yeast: orderedYeast } : {}),
-    ...(co2 !== undefined ? { co2 } : {}),
-    ...more,
-  };
-  const { fermentation: _old, ...others } = recipe;
-  return Object.keys(next).length === 0 ? (others as Recipe) : { ...others, fermentation: next };
+  const ordered = inOrder(yeast, ["name", "grams"]);
+  return withSectionField(recipe, "fermentation", "yeast", Object.keys(ordered).length > 0 ? ordered : undefined);
 }
 
+/** The recipe with a water volume set, or removed when `value` is undefined; empty water leaves the file (EDT-051). */
 export function withWaterField(recipe: Recipe, field: WaterField, value: unknown): Recipe {
-  const water = { ...waterOf(recipe) };
-  if (value === undefined) {
-    delete water[field];
-  } else {
-    water[field] = value;
-  }
-  const ordered: Record<string, unknown> = {};
-  for (const key of WATER_FIELDS) {
-    if (key in water) {
-      ordered[key] = water[key];
-    }
-  }
-  const { water: _old, ...others } = recipe;
-  return Object.keys(water).length === 0 ? others : { ...others, water: { ...ordered, ...water } };
+  return withSectionField(recipe, "water", field, value);
 }
 
 /** The total water in litres (EDT-052): the sum of the valid volumes; undefined while none is set. */
@@ -426,12 +504,12 @@ export function waterEstimate(recipe: Recipe):
       /** Undefined while the mash water is not entered. */
       sparge?: number;
     }
-  | { missing: ("liters" | "malts")[] } {
-  const knockout = batchOf(recipe).liters;
+  | { missing: ("target_knockout_volume" | "malts")[] } {
+  const knockout = batchOf(recipe).target_knockout_volume;
   const kg = totalGrams(maltsWithAcidMalt(recipe)) / 1000;
-  const missing: ("liters" | "malts")[] = [];
+  const missing: ("target_knockout_volume" | "malts")[] = [];
   if (!validLiters(knockout)) {
-    missing.push("liters");
+    missing.push("target_knockout_volume");
   }
   if (kg <= 0) {
     missing.push("malts");
@@ -456,9 +534,9 @@ export function waterEstimate(recipe: Recipe):
  */
 export function alcoholOf(
   recipe: Recipe,
-): { abv: number; attenuation: number } | { missing: ("plato" | "final_plato")[]; notBelow?: undefined } | { notBelow: true; missing?: undefined } {
-  const { plato, final_plato: final } = batchOf(recipe);
-  const missing = (["plato", "final_plato"] as const).filter((f) => !validPlato(f === "plato" ? plato : final));
+): { abv: number; attenuation: number } | { missing: ("original_gravity" | "final_gravity")[]; notBelow?: undefined } | { notBelow: true; missing?: undefined } {
+  const { original_gravity: plato, final_gravity: final } = batchOf(recipe);
+  const missing = (["original_gravity", "final_gravity"] as const).filter((f) => !validPlato(f === "original_gravity" ? plato : final));
   if (missing.length > 0) {
     return { missing: [...missing] };
   }
@@ -484,8 +562,8 @@ export function beerColourOf(recipe: Recipe): Figure {
     return { noEntries: true };
   }
   const rows = counted.filter(({ m }) => !validEbc(m.ebc)).map(({ i }) => i + 1);
-  const liters = batchOf(recipe).liters;
-  const batch: BatchField[] = validLiters(liters) ? [] : ["liters"];
+  const liters = batchOf(recipe).target_knockout_volume;
+  const batch: BatchField[] = validLiters(liters) ? [] : ["target_knockout_volume"];
   if (rows.length > 0 || batch.length > 0) {
     return { rows, batch };
   }
@@ -505,8 +583,10 @@ export function bitternessOf(recipe: Recipe): Figure {
   const rows = counted
     .filter(({ h, additions }) => !validAlpha(h.alpha) || additions.some((a) => !validBoilMinutes(a.minutes)))
     .map(({ i }) => i + 1);
-  const { liters, plato } = batchOf(recipe);
-  const batch = (["liters", "plato"] as const).filter((f) => !(f === "liters" ? validLiters(liters) : validPlato(plato)));
+  const { target_knockout_volume: liters, original_gravity: plato } = batchOf(recipe);
+  const batch = (["target_knockout_volume", "original_gravity"] as const).filter((f) =>
+    !(f === "target_knockout_volume" ? validLiters(liters) : validPlato(plato)),
+  );
   if (rows.length > 0 || batch.length > 0) {
     return { rows, batch: [...batch] };
   }
@@ -516,31 +596,19 @@ export function bitternessOf(recipe: Recipe): Figure {
   return { value: bitternessIbu(values, liters as number, plato as number) };
 }
 
+/** A list of ingredients (app RCP-013): the malts from `mashing`, the hops and other additions from `boiling` (Q-51). */
 export function ingredientsOf(recipe: Recipe, kind: IngredientKind): Ingredient[] {
-  const list = isObject(recipe.ingredients) ? recipe.ingredients[kind] : undefined;
+  const list = sectionOf(recipe, INGREDIENT_SECTIONS[kind])[kind];
   return Array.isArray(list) ? list.map((entry) => (isObject(entry) ? entry : {})) : [];
 }
 
 /**
- * The recipe with `kind`'s list replaced (EDT-042): an empty list is left out of the file, and so is `ingredients`
- * when nothing is left in it. Other keys of `ingredients` are kept (they are reported, FMT-004).
+ * The recipe with `kind`'s list replaced (EDT-042): an empty list is left out of the file, and so is its section when
+ * nothing is left in it. Other keys of the section are kept (the mashing plan, the whirlpool, or what the validator
+ * reports, FMT-004).
  */
 export function withIngredients(recipe: Recipe, kind: IngredientKind, list: Ingredient[]): Recipe {
-  const current = isObject(recipe.ingredients) ? { ...recipe.ingredients } : {};
-  if (list.length === 0) {
-    delete current[kind];
-  } else {
-    current[kind] = list;
-  }
-  const ordered: Record<string, unknown> = {};
-  for (const k of INGREDIENT_KINDS) {
-    if (k in current) {
-      ordered[k] = current[k];
-    }
-  }
-  const ingredients = { ...ordered, ...current };
-  const { ingredients: _old, ...others } = recipe;
-  return Object.keys(ingredients).length === 0 ? others : { ...others, ingredients };
+  return withSectionField(recipe, INGREDIENT_SECTIONS[kind], kind, list.length === 0 ? undefined : list);
 }
 
 /** A whole number of grams of at least 1 (app RCP-013): only such amounts count towards the total. */
@@ -787,12 +855,14 @@ export function readRecipe(json: unknown): ReadRecipe {
       rest.goals = flatGoals;
     }
   }
-  const converted = convertSingleAdditions({
+  const draft = convertDraftSections({
     version: FORMAT_VERSION,
     ...rest,
     name: typeof source.name === "string" ? source.name : "",
     mashing_process: process,
   } as Recipe);
+  changes.push(...draft.changes);
+  const converted = convertSingleAdditions(draft.recipe);
   const recipe = converted.recipe;
   changes.push(...converted.changes);
   return { recipe, converted: changes.length > 0 ? `Converted: ${changes.join("; ")}.` : undefined };
@@ -853,15 +923,77 @@ function formatEntry(entry: Record<string, unknown>): string {
   return `{ ${fields.join(", ")} }`;
 }
 
+/** One line per entry of a list: `"malts": [`, its entries, `]` (FMT-006). */
+function listLines(key: string, value: unknown, indent: string, last: boolean): string[] {
+  const comma = last ? "" : ",";
+  if (!Array.isArray(value) || value.length === 0) {
+    return [`${indent}${JSON.stringify(key)}: ${JSON.stringify(value)}${comma}`];
+  }
+  return [
+    `${indent}${JSON.stringify(key)}: [`,
+    ...value.map((entry, i) => `${indent}  ${isObject(entry) ? formatEntry(entry) : JSON.stringify(entry)}${i < value.length - 1 ? "," : ""}`),
+    `${indent}]${comma}`,
+  ];
+}
+
+/** The mashing plan, one line per rest in the table's order (FMT-006). */
+function restsLines(rests: unknown, indent: string, last: boolean): string[] {
+  const comma = last ? "" : ",";
+  if (!isObject(rests)) {
+    return [`${indent}"rests": ${JSON.stringify(rests)}${comma}`];
+  }
+  const entries = Object.entries(inPlanOrder(rests));
+  if (entries.length === 0) {
+    return [`${indent}"rests": {}${comma}`];
+  }
+  return [
+    `${indent}"rests": {`,
+    ...entries.map(([id, value], i) => {
+      // A rest's fields in the file's order, temperature then minutes, however they were entered (FMT-006).
+      // The iodine test is a marker: "{}" (app Q-49).
+      const text = isObject(value) && Object.keys(value).length === 0
+        ? "{}"
+        : isObject(value)
+        ? indentGoal((({ temperature, minutes, ...more }) => ({ temperature, minutes, ...more }))(value) as Goal)
+        : JSON.stringify(value);
+      return `${indent}  ${JSON.stringify(id)}: ${text}${i < entries.length - 1 ? "," : ""}`;
+    }),
+    `${indent}}${comma}`,
+  ];
+}
+
 /**
- * The file content, formatted like the app's shipped recipes: "version" first (RCP-008), one line per goal, then the
- * mashing plan, one line per rest in catalogue order, then the ingredients, one line per malt and hop, then the
- * batch, the water, the boil and the fermentation, each on one line (FMT-006). The editor does not write "$schema" (optional,
- * ignored by the app).
+ * A section over several lines (`mashing`, `boiling`): its keys in the file's order, each list one line per entry, the
+ * mashing plan one line per rest, any other value on one line (FMT-006).
+ */
+function sectionLines(section: "mashing" | "boiling", value: unknown): string[] {
+  if (!isObject(value) || Object.keys(value).length === 0) {
+    return [`  ${JSON.stringify(section)}: ${JSON.stringify(value)}`];
+  }
+  const entries = Object.entries(inOrder(value, SECTION_ORDER[section]));
+  const lines = [`  ${JSON.stringify(section)}: {`];
+  entries.forEach(([key, v], i) => {
+    const last = i === entries.length - 1;
+    if (section === "mashing" && key === "rests") {
+      lines.push(...restsLines(v, "    ", last));
+    } else if (key === "malts" || key === "hops" || key === "others") {
+      lines.push(...listLines(key, v, "    ", last));
+    } else {
+      lines.push(`    ${JSON.stringify(key)}: ${oneLine(v)}${last ? "" : ","}`);
+    }
+  });
+  lines.push(`  }`);
+  return lines;
+}
+
+/**
+ * The file content, formatted like the app's shipped recipes: "version" first (RCP-008), the name, the description,
+ * one line per goal, then the mashing (one line per malt and per rest), the boiling (one line per hop and other
+ * addition), the water and the fermentation, each on one line (FMT-006, app Q-51). The editor does not write
+ * "$schema" (optional, ignored by the app).
  */
 export function serializeRecipe(recipe: Recipe): string {
-  const { $schema: _schema, version, name, description, mashing_process: process, mashing, ingredients, batch, water, boil, fermentation, ...rest } =
-    recipe;
+  const { $schema: _schema, version, name, description, mashing_process: process, mashing, boiling, water, fermentation, ...rest } = recipe;
   const { goals, ...processRest } = process;
   const lines: string[] = [];
   if (version !== undefined) {
@@ -885,78 +1017,26 @@ export function serializeRecipe(recipe: Recipe): string {
     processLines.push(`    ${JSON.stringify(key)}: ${JSON.stringify(value)}`);
   }
   lines.push(`  "mashing_process": {`, ...processLines, `  }`);
-  if (isObject(mashing)) {
-    const entries = Object.entries(inPlanOrder(mashing));
-    if (entries.length === 0) {
-      lines[lines.length - 1] += ",";
-      lines.push(`  "mashing": {}`);
-    } else {
-      lines[lines.length - 1] += ",";
-      lines.push(`  "mashing": {`);
-      entries.forEach(([id, value], i) => {
-        // A rest's fields in the file's order, temperature then minutes, however they were entered (FMT-006).
-        // The iodine test is a marker: "{}" (app Q-49).
-        const text = isObject(value) && Object.keys(value).length === 0
-          ? "{}"
-          : isObject(value)
-          ? indentGoal((({ temperature, minutes, ...more }) => ({ temperature, minutes, ...more }))(value) as Goal)
-          : JSON.stringify(value);
-        lines.push(`    ${JSON.stringify(id)}: ${text}${i < entries.length - 1 ? "," : ""}`);
-      });
-      lines.push(`  }`);
-    }
-  } else if (mashing !== undefined) {
+  const add = (more: string[]) => {
     lines[lines.length - 1] += ",";
-    lines.push(`  "mashing": ${JSON.stringify(mashing)}`);
+    lines.push(...more);
+  };
+  if (mashing !== undefined) {
+    add(sectionLines("mashing", mashing));
   }
-  if (isObject(ingredients) && Object.keys(ingredients).length > 0) {
-    // One line per malt and hop, in the brewer's order (FMT-006).
-    lines[lines.length - 1] += ",";
-    lines.push(`  "ingredients": {`);
-    const keys = Object.keys(ingredients);
-    keys.forEach((key, k) => {
-      const value = ingredients[key];
-      const comma = k < keys.length - 1 ? "," : "";
-      if (Array.isArray(value) && value.length > 0) {
-        lines.push(`    ${JSON.stringify(key)}: [`);
-        value.forEach((entry, i) => {
-          const text = isObject(entry) ? formatEntry(entry) : JSON.stringify(entry);
-          lines.push(`      ${text}${i < value.length - 1 ? "," : ""}`);
-        });
-        lines.push(`    ]${comma}`);
-      } else {
-        lines.push(`    ${JSON.stringify(key)}: ${JSON.stringify(value)}${comma}`);
-      }
-    });
-    lines.push(`  }`);
-  } else if (ingredients !== undefined) {
-    lines[lines.length - 1] += ",";
-    lines.push(`  "ingredients": ${JSON.stringify(ingredients)}`);
+  if (boiling !== undefined) {
+    add(sectionLines("boiling", boiling));
   }
-  if (batch !== undefined) {
-    // One line: { "liters": 20, "plato": 12.6 } (FMT-006).
-    lines[lines.length - 1] += ",";
-    const one = isObject(batch) && Object.keys(batch).length > 0 ? indentGoal(batch as Goal) : JSON.stringify(batch);
-    lines.push(`  "batch": ${one}`);
-  }
+  // One line each: { "mash": 16, "sparge": 14, "top_up": 2, "target_knockout_volume": 20, "treatment": { … } } and
+  // { "original_gravity": 12.6, "final_gravity": 2.5, "yeast": { "name": "WB-06", "grams": 11.5 }, "co2": 6.5 }.
   if (water !== undefined) {
-    // One line: { "mash": 16, "sparge": 14, "top_up": 2, "treatment": { "alkalinity": 10.3 } } (FMT-006).
-    lines[lines.length - 1] += ",";
-    lines.push(`  "water": ${oneLine(water)}`);
-  }
-  if (boil !== undefined) {
-    // One line: { "whirlpool": true } (FMT-006).
-    lines[lines.length - 1] += ",";
-    lines.push(`  "boil": ${oneLine(boil)}`);
+    add([`  "water": ${oneLine(isObject(water) ? inOrder(water, SECTION_ORDER.water) : water)}`]);
   }
   if (fermentation !== undefined) {
-    // One line: { "yeast": { "name": "WB-06", "grams": 11.5 }, "co2": 6.5 } (FMT-006).
-    lines[lines.length - 1] += ",";
-    lines.push(`  "fermentation": ${oneLine(fermentation)}`);
+    add([`  "fermentation": ${oneLine(isObject(fermentation) ? inOrder(fermentation, SECTION_ORDER.fermentation) : fermentation)}`]);
   }
   for (const [key, value] of Object.entries(rest)) {
-    lines[lines.length - 1] += ",";
-    lines.push(`  ${JSON.stringify(key)}: ${JSON.stringify(value)}`);
+    add([`  ${JSON.stringify(key)}: ${JSON.stringify(value)}`]);
   }
   return `{\n${lines.join("\n")}\n}\n`;
 }

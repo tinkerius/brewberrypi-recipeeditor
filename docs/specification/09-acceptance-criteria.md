@@ -96,14 +96,14 @@ a release that changes sign-in or Drive behaviour.
   starting with its typical duration (`QE-75`), and collapses them again; the goals are not shown in it.
 - `ACC-059` (EDT-032, EDT-034, FMT-006, QE-63) Ticking Mash-out and then Maltose rest plans them with empty fields (a
   pre-mash too), reported as "The Maltose rest needs a temperature." and "The Mash-out needs minutes."; with 78 °C,
-  10 min and 63 °C, 50 min and the mash-in at 57 °C entered the recipe is complete, and the written file has `"mashing"` after `"mashing_process"` with
+  10 min and 63 °C, 50 min and the mash-in at 57 °C entered the recipe is complete, and the written file has `"mashing"` with its `"rests"` after `"mashing_process"` with
   `MashIn` before `MaltoseRest` before `MashOut`, one rest per line, and reads back the same. Changing the Maltose rest's fields
   changes the plan; unticking both rests leaves only `MashIn`, and clearing its field too removes `mashing` from the recipe.
 - `ACC-060` (EDT-033) A Maltose rest at 70 °C shows "⚠ Outside the typical range" after the typical range
   "60–65 °C" in the Typical column, and the field and the range are marked; the recipe stays complete and can be downloaded. At 60 °C and 65 °C there is no warning.
 - `ACC-061` (EDT-035, FMT-004) A planned Maltose rest whose temperature is cleared is reported as "Mashing, Maltose
   rest: The Maltose rest needs a temperature." and its field is marked; clicking "Mashing, Maltose rest" from the
-  Mash Process tab opens the Mashing tab. A file with an unknown rest in `mashing` is opened with it kept and
+  Mash Process tab opens the Mashing tab. A file with an unknown rest in `mashing.rests` is opened with it kept and
   reported.
 - `ACC-062` (QE-33, EDT-036) The rest data holds every rest once, with its typical temperature inside its range and
   not above 78 °C, enzymes and texts; sorted by typical temperature
@@ -130,9 +130,9 @@ a release that changes sign-in or Drive behaviour.
   min: 1 h 35 min of rests, 22 min heating at 2 °C/min."
 - `ACC-067` (QE-34, QE-35, EDT-041, EDT-042) The Malt tab has a table with Name, EBC, Absolute amount (g), Relative amount (%)
   and a Total line, the Boiling tab one with Name, α %, Additions (cooking time · amount), Absolute amount (g) and
-  a Total line, saying "No malt yet." / "No hop yet." for a recipe without `ingredients`; + Add malt / + Add
-  hop is the table's last row before the Total line, and adds an empty row above it whose name field has the focus; ✕ removes a row; removing the last row of both tables removes
-  `ingredients` from the recipe.
+  a Total line, saying "No malt yet." / "No hop yet." for a recipe without malts or hops; + Add malt / + Add
+  hop is the table's last row before the Total line, and adds an empty row above it whose name field has the focus; ✕ removes a row; removing the last malt removes
+  `mashing` from a recipe without rests.
 - `ACC-068` (EDT-043) Malts Pilsner malt 4500 g and Munich malt 500 g show 90 % and 10 % and the total 5000 g, 100 %;
   three hops of 10 g each show 33.3 % each in the donut's legend and the Total 30 g; a malt without an amount shows
   "–", and a row without an amount doesn't count.
@@ -140,8 +140,8 @@ a release that changes sign-in or Drive behaviour.
   "… needs an amount in grams.", with its fields marked; 12.5 g is "Malt 1: the amount must be a whole number of
   grams.", 0 g "… must be at least 1 g."; clicking "Malt 1" from the Mash Process tab opens the
   Malt tab, "Hop 1" the Boiling tab. A name and 4500 g make the recipe complete.
-- `ACC-070` (FMT-006, EDT-042) Two malts and a hop are written as `"ingredients"` after `"mashing"` (or after
-  `"mashing_process"`), `malts` before `hops`, one entry per line in the brewer's order
+- `ACC-070` (FMT-006, EDT-042, app Q-51) Two malts are written as `"malts"` in `"mashing"` before its `"rests"`, a hop
+  as `"hops"` in `"boiling"` after `"mashing"`, one entry per line in the brewer's order
   (`{ "name": "Pilsner malt", "grams": 4500 }`, `{ "name": "Hallertauer Tradition", "alpha": 5.5, "additions": [ { "minutes":
   60, "grams": 30 } ] }`), without shares; the file reads back the same.
 - `ACC-071` (EDT-046) Malts Pilsner malt, Munich malt, Caramunich: dragging the first handle below the third shows a
@@ -163,8 +163,8 @@ a release that changes sign-in or Drive behaviour.
   problems.
 - `ACC-075` (EDT-050, EDT-045, FMT-006) The Malt and Boiling tabs have no batch fields; the knockout volume is
   entered on the Water tab, the original gravity on the Fermentation tab; 20 l and 12.6 °P are written as
-  `"batch": { "liters": 20, "plato": 12.6 }`; 0 l and 41 °P are problems whose entries open the Water and the
-  Fermentation tab; clearing both removes `batch`.
+  `"water": { "target_knockout_volume": 20 }` and `"fermentation": { "original_gravity": 12.6 }`; 0 l and 41 °P are
+  problems whose entries open the Water and the Fermentation tab; clearing both removes `water` and `fermentation`.
 - `ACC-076` (EDT-041, QE-36, QE-42) The Malt tab has the headings Malt Overview (above the donut and figure) and Malt
   (above the table); the Boiling tab Hops Overview, Boil Schedule and Boil Ingredients, in this order (`QE-43`).
 - `ACC-077` (EDT-054, QE-47, QE-48, QE-51) Hops Saaz 10 g 0 min, Hallertauer Tradition 30 g 60 min, Tettnanger 20 g 10 min and Cascade
@@ -189,7 +189,7 @@ a release that changes sign-in or Drive behaviour.
   headings Gravity, Yeast and Carbonation; Gravity has Original
   gravity (target) and Final gravity (°P). The alcohol is "–" with "Enter the original gravity and the final
   gravity."; 12 °P and 2.5 °P give 5.1 % vol and 79 % apparent attenuation and are written as
-  `"batch": { "plato": 12, "final_plato": 2.5 }`; a final gravity of 12 says "The final gravity must be below the
+  `"fermentation": { "original_gravity": 12, "final_gravity": 2.5 }`; a final gravity of 12 says "The final gravity must be below the
   original gravity."; 41 is a problem whose entry opens the Fermentation tab.
 - `ACC-082` (EDT-056) Hallertauer Tradition 30 g, 5.5 %, 60 min, 20 L, 12.6 °P: the bitterness scale has Weissbier,
   Helles, Pils, Pale Ale, IPA and no "In the range of" line (its label still names Helles, Märzen, Dunkel), and the
@@ -317,7 +317,7 @@ a release that changes sign-in or Drive behaviour.
   "Total mash time 1 h 49 min: 1 h 15 min of rests, 34 min heating at 1 °C/min."; at 45 °C it shows "⚠ Outside the
   typical range" and its field is marked amber, the recipe staying complete; at 65 °C it warns "⚠ Maltose rest at 63 °C is lower than the mash-in
   (65 °C): the steps should rise.", the recipe stays complete, and the file has `"MashIn": { "temperature": 65 }`
-  first in `mashing`.
+  first in `mashing.rests`.
 - `ACC-104` (EDT-031, FMT-006, QE-79, app Q-49) The Rests table has the row "Iodine test" between the
   Saccharification rest and the Mash-out, unticked, with an ⓘ showing "When: …", "How: …" and "Result: …". With
   the mash-in at 38 °C, the Saccharification rest at 72 °C for 30 min and the Mash-out at 78 °C for 5 min, ticking
@@ -339,12 +339,17 @@ a release that changes sign-in or Drive behaviour.
 - `ACC-107` (EDT-075, FMT-006, QE-83, app RCP-018) On the Boiling tab the Boil Schedule's last row is "Whirlpool",
   unticked, with "after the boil" and an ⓘ showing "What: …" and "How long: …". Ticking it highlights the row, leaves
   the total boil time and the bitterness unchanged, the recipe stays complete, and the file has
-  `"boil": { "whirlpool": true }` on its own line after `water` and before `fermentation`; unticking it removes `boil`.
+  `"whirlpool": true` first in `"boiling"`, before its `"hops"`; unticking it removes `whirlpool`, and the hops stay.
 - `ACC-108` (EDT-075) Without any boil additions the Boil Schedule says "Enter the amounts and cooking times to see
   when each goes into the boil." and still has the Whirlpool row, which can be ticked.
-- `ACC-109` (FMT-004, app RCP-018) A recipe whose `boil` is not an object, has a `whirlpool` that is not true or
-  false, or another field has a problem shown on the Boiling tab and is not saved or downloaded; `boil` `{}` and
+- `ACC-109` (FMT-004, app RCP-018) A recipe whose `boiling` is not an object, has a `whirlpool` that is not true or
+  false, or another field has a problem shown on the Boiling tab and is not saved or downloaded; `boiling` `{}` and
   `{ "whirlpool": false }` are valid.
+- `ACC-110` (FMT-003, QE-84, app Q-51) A file of an earlier draft of version 3, with the rests directly in `mashing`,
+  `ingredients` (malts, hops, others), `batch` (`liters`, `plato`, `final_plato`) and `boil` (`whirlpool`), is read
+  with them moved into `mashing` (`malts`, `rests`), `boiling` (`whirlpool`, `hops`, `others`), `water`
+  (`target_knockout_volume`) and `fermentation` (`original_gravity`, `final_gravity`), with a notice naming each move,
+  and is valid; a value whose new place is taken, or a draft section that is not an object, stays and is a problem.
 - `ACC-020` (BRW-001) A draft stored, then the store opened again (a reload), gives the same draft; it can be
   deleted.
 - `ACC-021` (BRW-002, BRW-003) The banner says "only stored in this browser and can be lost" when the storage works

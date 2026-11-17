@@ -18,7 +18,7 @@ import {
   MASH_IN_INFO,
   MASH_REST_IDS,
   MASH_RESTS,
-  mashingOf,
+  restsOf,
   newMashRest,
   typicalTemperature,
   withIodineTest,
@@ -75,7 +75,7 @@ function MashInRows(props: {
   onToggle: () => void;
   onChange: (temperature: unknown) => void;
 }) {
-  const at = `mashing.${MASH_IN}.temperature`;
+  const at = `mashing.rests.${MASH_IN}.temperature`;
   const notes = notesAt({ problems: props.problems, warnings: props.warnings }, at);
   const about = `mash-about-${MASH_IN}`;
   return (
@@ -125,7 +125,7 @@ function MashInRows(props: {
 function IodineTestRows(props: { planned: boolean; problems: Problem[]; open: boolean; onToggle: () => void; onChange: (planned: boolean) => void }) {
   const checkbox = `mash-${IODINE_TEST}`;
   const about = `mash-about-${IODINE_TEST}`;
-  const notes = notesAt({ problems: props.problems, warnings: [] }, `mashing.${IODINE_TEST}`);
+  const notes = notesAt({ problems: props.problems, warnings: [] }, `mashing.rests.${IODINE_TEST}`);
   return (
     <>
       <tr
@@ -172,7 +172,7 @@ function RestRows(props: {
   const { id, rest } = props;
   const info = MASH_RESTS[id];
   const planned = rest !== undefined;
-  const at = `mashing.${id}`;
+  const at = `mashing.rests.${id}`;
   const invalid = (field: string) => props.problems.some((p) => p.path === `${at}.${field}`);
   // A field's errors and warnings, next to its typical value (EDT-033, EDT-062).
   const notes = (field: string) => (planned ? notesAt({ problems: props.problems, warnings: props.warnings }, `${at}.${field}`) : []);
@@ -264,7 +264,7 @@ function RestRows(props: {
 }
 
 export function MashingTab(props: { recipe: Recipe; problems: Problem[]; warnings: Warning[]; onChange: (recipe: Recipe) => void }) {
-  const plan = mashingOf(props.recipe);
+  const plan = restsOf(props.recipe);
   const [open, setOpen] = useState<MashRestId | typeof MASH_IN | typeof IODINE_TEST>();
   const mashIn = plan[MASH_IN];
   const table = useRef<HTMLTableElement>(null);

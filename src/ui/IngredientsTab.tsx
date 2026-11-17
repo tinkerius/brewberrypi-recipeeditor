@@ -19,6 +19,7 @@ import {
   beerColourOf,
   bitternessOf,
   formatShare,
+  INGREDIENT_PATHS,
   ingredientsOf,
   ACID_MALT,
   maltsWithAcidMalt,
@@ -251,14 +252,14 @@ function missingText(kind: IngredientKind, figure: Figure, onTab?: (tab: BatchTa
   }
   // The knockout volume is entered on the Water tab, the original gravity on the Fermentation tab (EDT-050, QE-56).
   const batch = figure.batch ?? [];
-  if (batch.includes("liters")) {
+  if (batch.includes("target_knockout_volume")) {
     needs.push(
       <>
         the knockout volume on the <TabLink tab="water" onTab={onTab} />
       </>,
     );
   }
-  if (batch.includes("plato")) {
+  if (batch.includes("original_gravity")) {
     needs.push(
       <>
         the original gravity on the <TabLink tab="fermentation" onTab={onTab} />
@@ -291,7 +292,7 @@ function FigureLine(props: { kind: IngredientKind; recipe: Recipe; onTab?: (tab:
   const aboutId = `figure-about-${props.kind}`;
   const figure = malts ? beerColourOf(props.recipe) : bitternessOf(props.recipe);
   const label = malts ? "Beer colour" : "Bitterness";
-  const { liters, plato } = batchOf(props.recipe);
+  const { target_knockout_volume: liters, original_gravity: plato } = batchOf(props.recipe);
   const knockout = (
     <>
       the knockout volume ({validLiters(liters) ? `${liters} L, ` : ""}
@@ -400,7 +401,7 @@ function AdditionsCell(props: {
 }) {
   const additions = additionsOf(props.entry);
   const { one } = INGREDIENT_LABELS[props.kind];
-  const at = (j: number, field: string) => `ingredients.${props.kind}[${props.index}].additions[${j}].${field}`;
+  const at = (j: number, field: string) => `${INGREDIENT_PATHS[props.kind]}[${props.index}].additions[${j}].${field}`;
   const invalid = (j: number, field: string) => props.problems.some((p) => p.path === at(j, field));
   const warn = (j: number, field: string) => props.warnings.some((w) => w.path === at(j, field));
   const set = (j: number, field: "minutes" | "grams", value: unknown) =>
@@ -498,11 +499,11 @@ function IngredientGroup(props: {
   const set = (next: Ingredient[]) => props.onChange(withIngredients(props.recipe, kind, next));
   const setField = (i: number, field: string, value: unknown) =>
     set(list.map((e, j) => (j === i ? withField(e, field, value) : e)));
-  const invalid = (i: number, field: string) => props.problems.some((p) => p.path === `ingredients.${kind}[${i}].${field}`);
-  const warn = (i: number, field: string) => hasWarning(notesAt(issues, `ingredients.${kind}[${i}].${field}`));
+  const invalid = (i: number, field: string) => props.problems.some((p) => p.path === `${INGREDIENT_PATHS[kind]}[${i}].${field}`);
+  const warn = (i: number, field: string) => hasWarning(notesAt(issues, `${INGREDIENT_PATHS[kind]}[${i}].${field}`));
   // A row's errors and warnings, in a line right below it (EDT-062).
   const rowNotes = (i: number) => {
-    const at = `ingredients.${kind}[${i}]`;
+    const at = `${INGREDIENT_PATHS[kind]}[${i}]`;
     return notesWhere(issues, (path) => path === at || path.startsWith(`${at}.`));
   };
   // Drag and drop with the handle, or the arrow keys on it (EDT-046), like the goals.
@@ -835,7 +836,7 @@ const WHIRLPOOL_INFO: [string, string][] = [
  * table's iodine test (QE-79): a check box and its name, no amount, no bar; planned, highlighted.
  */
 function WhirlpoolRows(props: { planned: boolean; problems: Problem[]; open: boolean; onToggle: () => void; onChange: (on: boolean) => void }) {
-  const notes = notesWhere({ problems: props.problems, warnings: [] }, (p) => p === "boil" || p.startsWith("boil."));
+  const notes = notesWhere({ problems: props.problems, warnings: [] }, (p) => p === "boiling" || (p.startsWith("boiling.") && !p.startsWith("boiling.hops") && !p.startsWith("boiling.others")));
   const ROW = "max-sm:grid max-sm:grid-cols-[auto_1fr_auto] max-sm:items-start max-sm:px-1";
   return (
     <>

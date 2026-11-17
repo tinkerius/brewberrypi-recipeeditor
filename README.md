@@ -3,15 +3,15 @@
 Web editor for BrewberryPi brewing recipes: **https://recipes.brewberrypi.org**
 
 BrewberryPi is a Raspberry Pi controller for a home-brewing mash kettle. It brews from recipes: JSON files, one per
-recipe, in its recipe folder (`{"version": 3, "name": …, "description": …, "mashing_process": {"goals": […]}, "mashing": {…},
-"ingredients": {"malts": […], "hops": […]}, "batch": {…}, "water": {…}, "fermentation": {…}}`; the goals may be empty, then the app lists the recipe but
+recipe, in its recipe folder (`{"version": 3, "name": …, "description": …, "mashing_process": {"goals": […]}, "mashing": {"malts": […], "rests": {…}},
+"boiling": {"whirlpool": true, "hops": […], "others": […]}, "water": {…, "target_knockout_volume": …}, "fermentation": {"original_gravity": …, "final_gravity": …, …}}`; the goals may be empty, then the app lists the recipe but
 can't brew it). A recipe has seven tabs: **Overview**, the recipe's description; **Malt**, the malts with their amounts, shares and colours, and the beer
 colour; **Mashing**, the brewer's mashing plan (the rests planned, each with temperature and duration); **Boiling**,
 the boil schedule, the hops (alpha acid, one or more additions each with cooking time and amount, shares, the bitterness) and other boil additions;
 **Water**, the mash, sparge and top-up water with their typical values, the knockout volume, total water and mash
 thickness, and the water treatment (the residual alkalinity after boiling, gypsum, acid malt and lactic acid); **Fermentation**,
 the original and final gravity with the alcohol, the yeast and the CO₂ target; and **Mash Process**,
-the goals the app brews. The app keeps the description, the ingredients, the batch, the water, the fermentation and the mashing plan in the
+the goals the app brews. The app keeps the description, the mashing (malts and plan), the boiling, the water and the fermentation in the
 file but doesn't use them. Errors (missing or wrong data) and warnings (values outside their typical range) are shown
 at their fields, listed on the Overview tab and counted on each tab. The editor writes the
 app's current format version. Files in the old format (goals at the top level) are converted when opened; files of a

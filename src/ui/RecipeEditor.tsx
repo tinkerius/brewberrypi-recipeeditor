@@ -4,7 +4,7 @@ import type { ComponentChildren } from "preact";
 import { useEffect, useRef, useState } from "preact/hooks";
 import { problemsOf, type Doc } from "../doc";
 import { INGREDIENT_LABELS, IODINE_TEST, IODINE_TEST_INFO, MASH_IN, MASH_IN_INFO, MASH_RESTS, goalsOf, isMashRestId, newGoal, withGoals, type Goal, type Recipe } from "../model";
-import { BATCH_PATH, GOALS_PATH, INGREDIENTS_PATH, MASHING_PATH, WATER_PATH } from "../validate";
+import { BOILING_PATH, FERMENTATION_PATH, GOALS_PATH, MASHING_PATH, RESTS_PATH, WATER_PATH } from "../validate";
 import { ADD_ROW_LINE, AddRowButton } from "./AddRow";
 import { GoalEditor } from "./GoalEditor";
 import { GoalTypeDialog } from "./GoalTypeDialog";
@@ -29,15 +29,13 @@ const PATH_LABELS: Record<string, string> = {
   mashing_process: "Mashing process",
   [GOALS_PATH]: "Goals",
   [MASHING_PATH]: "Mashing",
-  [INGREDIENTS_PATH]: "Ingredients",
-  [BATCH_PATH]: "Batch",
-  [`${BATCH_PATH}.liters`]: "Knockout volume",
-  [`${BATCH_PATH}.plato`]: "Original gravity",
-  [`${BATCH_PATH}.final_plato`]: "Final gravity",
+  [RESTS_PATH]: "Mashing",
+  [BOILING_PATH]: "Boiling",
   [WATER_PATH]: "Water",
   [`${WATER_PATH}.mash`]: "Mash water",
   [`${WATER_PATH}.sparge`]: "Sparge water",
   [`${WATER_PATH}.top_up`]: "Top-up water",
+  [`${WATER_PATH}.target_knockout_volume`]: "Knockout volume",
   [`${WATER_PATH}.treatment`]: "Water treatment",
   [`${WATER_PATH}.treatment.alkalinity`]: "Residual alkalinity",
   [`${WATER_PATH}.treatment.carbonate_hardness`]: "Carbonate hardness",
@@ -46,9 +44,10 @@ const PATH_LABELS: Record<string, string> = {
   [`${WATER_PATH}.treatment.acid_malt`]: "Acid malt",
   [`${WATER_PATH}.treatment.lactic_acid`]: "Lactic acid",
   [`${WATER_PATH}.treatment.result`]: "Water treatment",
-  boil: "Whirlpool",
-  "boil.whirlpool": "Whirlpool",
-  fermentation: "Fermentation",
+  [`${BOILING_PATH}.whirlpool`]: "Whirlpool",
+  [FERMENTATION_PATH]: "Fermentation",
+  [`${FERMENTATION_PATH}.original_gravity`]: "Original gravity",
+  [`${FERMENTATION_PATH}.final_gravity`]: "Final gravity",
   "fermentation.yeast": "Yeast",
   "fermentation.yeast.name": "Yeast",
   "fermentation.yeast.grams": "Yeast",
@@ -64,28 +63,32 @@ function goalOf(path: string): number | undefined {
 /** The tabs the ingredients, the batch and the water are entered on. */
 type DesignTab = "malts" | "hops" | "water" | "fermentation";
 
-/**
- * The tab a problem of the ingredients, the batch or the water is on (EDT-045, EDT-051, QE-56), where it is entered:
- * the hops, other additions and the whirlpool on Boiling; the water and the knockout volume on Water; the gravities on
- * Fermentation; else Malt.
- */
-function ingredientsTab(path: string): DesignTab | undefined {
-  const about = (prefix: string) => path === prefix || path.startsWith(`${prefix}.`);
-  if (path.startsWith(`${INGREDIENTS_PATH}.hops`) || path.startsWith(`${INGREDIENTS_PATH}.others`) || about("boil")) {
-    return "hops";
-  }
-  if (about(`${BATCH_PATH}.plato`) || about(`${BATCH_PATH}.final_plato`) || about("fermentation")) {
-    return "fermentation";
-  }
-  if (about(WATER_PATH) || about(BATCH_PATH)) {
-    return "water";
-  }
-  return about(INGREDIENTS_PATH) ? "malts" : undefined;
+/** Whether a path is this one or below it. */
+function within(path: string, prefix: string): boolean {
+  return path === prefix || path.startsWith(`${prefix}.`) || path.startsWith(`${prefix}[`);
 }
 
-/** Whether a problem is about the mashing plan (the Mashing tab). */
+/**
+ * The tab a problem of the ingredients, the batch or the water is on (EDT-045, EDT-051, QE-56), where it is entered:
+ * the malts on Malt; the hops, other additions and the whirlpool (`boiling`) on Boiling; the water and the knockout
+ * volume on Water; the gravities, the yeast and the carbonation (`fermentation`) on Fermentation.
+ */
+function ingredientsTab(path: string): DesignTab | undefined {
+  if (within(path, `${MASHING_PATH}.malts`)) {
+    return "malts";
+  }
+  if (within(path, BOILING_PATH)) {
+    return "hops";
+  }
+  if (within(path, FERMENTATION_PATH)) {
+    return "fermentation";
+  }
+  return within(path, WATER_PATH) ? "water" : undefined;
+}
+
+/** Whether a problem is about the mashing plan (the Mashing tab): `mashing` but not its malts. */
 function isMashing(path: string): boolean {
-  return path === MASHING_PATH || path.startsWith(`${MASHING_PATH}.`);
+  return within(path, MASHING_PATH) && !within(path, `${MASHING_PATH}.malts`);
 }
 
 /** The tab a problem or warning is on (EDT-063); none for the recipe's name, file name and format version. */
@@ -104,12 +107,12 @@ function describePath(path: string): string {
   if (goal !== undefined) {
     return `Goal ${goal + 1}`;
   }
-  const ingredient = /^ingredients\.(malts|hops|others)(?:\[(\d+)\])?/.exec(path);
+  const ingredient = /^(?:mashing\.(malts)|boiling\.(hops|others))(?:\[(\d+)\])?/.exec(path);
   if (ingredient) {
-    const { title, one } = INGREDIENT_LABELS[ingredient[1] as "malts" | "hops" | "others"];
-    return ingredient[2] === undefined ? title : `${one} ${Number(ingredient[2]) + 1}`;
+    const { title, one } = INGREDIENT_LABELS[(ingredient[1] ?? ingredient[2]) as "malts" | "hops" | "others"];
+    return ingredient[3] === undefined ? title : `${one} ${Number(ingredient[3]) + 1}`;
   }
-  const rest = /^mashing\.([^.]+)/.exec(path)?.[1];
+  const rest = /^mashing\.rests\.([^.]+)/.exec(path)?.[1];
   if (rest !== undefined) {
     return `Mashing, ${isMashRestId(rest) ? MASH_RESTS[rest].short : rest === MASH_IN ? MASH_IN_INFO.label : rest === IODINE_TEST ? IODINE_TEST_INFO.label : rest}`;
   }

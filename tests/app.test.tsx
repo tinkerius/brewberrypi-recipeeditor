@@ -1838,8 +1838,8 @@ describe("App, the Malt and Hops tabs (QE-34, QE-35)", () => {
     expect(recipe().querySelector("[role=tab][aria-selected=true]")!.id).toBe("tab-overview");
     expect([...recipe().querySelectorAll("[role=tabpanel] h3")].map((h) => h.textContent?.trim())).toEqual([
       "Description",
-      "Ingredients",
       "Brewing time",
+      "Ingredients",
       "Status",
     ]);
     const text = recipe().querySelector<HTMLTextAreaElement>("[data-description] textarea")!;
@@ -2504,6 +2504,42 @@ describe("App, the Overview's ingredients and brewing time (QE-85)", () => {
     expect(time().querySelector("[data-figure-info=brew-time]")!.textContent).toContain(
       "Not counted: heating the water to the mash-in, lautering, heating to the boil, the whirlpool and cooling.",
     );
+  });
+
+  it("ACC-113 the brew-day curve shows the mash, the jump to the boil, the additions and the whirlpool", async () => {
+    await open({
+      version: 3,
+      name: "Brew",
+      mashing_process: { goals: [] },
+      mashing: { rests: { MashIn: { temperature: 57 }, MaltoseRest: { temperature: 63, minutes: 45 }, MashOut: { temperature: 78, minutes: 10 } } },
+      boiling: {
+        whirlpool: true,
+        hops: [{ name: "Hallertauer", additions: [{ minutes: 60, grams: 20 }, { minutes: 10, grams: 10 }] }],
+        others: [{ name: "Irish Moss", additions: [{ minutes: 10, grams: 5 }] }],
+      },
+    });
+    const curve = () => recipe().querySelector("[data-brewing-time] [data-brew-day-curve]")!;
+    // Above the time figures, in the Brewing time section, before the Ingredients.
+    expect(curve().nextElementSibling!.tagName).toBe("DL");
+    expect(curve().querySelector("svg")!.getAttribute("aria-label")).toBe(
+      "Brew day: mashing 1 h 16 min in 2 rests, boil 60 min with 3 additions, then the whirlpool.",
+    );
+    expect([...curve().querySelectorAll("[data-curve-band]")].map((b) => b.getAttribute("data-curve-band"))).toEqual(["mash", "boil"]);
+    expect([...curve().querySelectorAll("[data-curve-phase]")].map((p) => p.textContent)).toEqual(["Mashing · 1 h 16 min", "Boil · 60 min"]);
+    expect([...curve().querySelectorAll("[data-curve-rest]")].map((r) => r.getAttribute("data-curve-rest"))).toEqual(["MaltoseRest", "MashOut"]);
+    expect(curve().querySelector("[data-curve-jump]")).not.toBeNull();
+    // Each addition at the minute it goes in, with its icon; the two at 1:06 stacked.
+    expect([...curve().querySelectorAll("[data-curve-addition]")].map((a) => [a.getAttribute("data-curve-addition"), a.querySelector("title")!.textContent])).toEqual([
+      ["hop", "Hallertauer: 20 g at 1:16, cooks 60 min"],
+      ["hop", "Hallertauer: 10 g at 2:06, cooks 10 min"],
+      ["other", "Irish Moss: 5 g at 2:06, cooks 10 min"],
+    ]);
+    expect(curve().querySelector("[data-curve-whirlpool] title")!.textContent).toBe("Whirlpool after the boil");
+  });
+
+  it("ACC-113 without a mash schedule or a boil there is no curve", async () => {
+    await open({ version: 3, name: "Brew", mashing_process: { goals: [] } });
+    expect(recipe().querySelector("[data-brew-day-curve]")).toBeNull();
   });
 
   it("ACC-112 without rests or cooking times the brewing time says what to enter", async () => {

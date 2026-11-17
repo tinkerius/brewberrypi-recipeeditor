@@ -246,8 +246,8 @@ a release that changes sign-in or Drive behaviour.
   gypsum 3 g/10 L and acid malt 5 % none, 3.5 g/10 L and 6 %; for 9 EBC a treated residual alkalinity of 2 °dH none,
   2.5 °dH a warning, none without a beer colour;
   the recipe stays valid.
-- `ACC-094` (EDT-065, GUI-032, QE-55, QE-85) A recipe opens on the Overview tab, the first one, with the headings
-  Description, Ingredients, Brewing time and Status, and a box of eight lines for the description; "A cloudy wheat beer." and "Banana and clove." on two lines are written as
+- `ACC-094` (EDT-065, GUI-032, QE-55, QE-85, QE-86) A recipe opens on the Overview tab, the first one, with the headings
+  Description, Brewing time, Ingredients and Status, and a box of eight lines for the description; "A cloudy wheat beer." and "Banana and clove." on two lines are written as
   `"description": "A cloudy wheat beer.\nBanana and clove."` right after `"name"`; cleared, `description` leaves
   the file. A description that is not text is "Description: The description must be text.", with the Overview tab's
   error count 1.
@@ -362,6 +362,13 @@ a release that changes sign-in or Drive behaviour.
   10 min, Boil is 60 min and Mash + boil the sum. Without rests Mashing is "–" with "Plan the rests on the Mashing
   tab.", without cooking times Boil is "–" with "Enter the cooking times on the Boiling tab.", and Mash + boil is
   "–" with "Needs the mashing and the boil.".
+- `ACC-113` (EDT-078, QE-86) For that plan, hops Hallertauer 20 g 60 min and 10 g 10 min, Irish Moss 5 g 10 min and
+  the whirlpool ticked, the brew-day curve above the figures has the shaded phases "Mashing · 1 h 16 min" and "Boil ·
+  60 min", the Maltose rest and the Mash-out, the dashed jump to the boil, the hop at 1:16 and the hop and Irish
+  Moss stacked at 2:06 (tooltips "Hallertauer: 20 g at 1:16, cooks 60 min", …), and the whirlpool after the boil;
+  its label reads "Brew day: mashing 1 h 16 min in 2 rests, boil 60 min with 3 additions, then the whirlpool.". The
+  mash points are the Mashing tab's; without a mash schedule the boil starts at 0:00, without a boil there is only
+  the mash, and without both there is no curve.
 - `ACC-020` (BRW-001) A draft stored, then the store opened again (a reload), gives the same draft; it can be
   deleted.
 - `ACC-021` (BRW-002, BRW-003) The banner says "only stored in this browser and can be lost" when the storage works

@@ -8,6 +8,7 @@ import {
   INGREDIENT_LABELS,
   WATER_FIELDS,
   WATER_LABELS,
+  additionsOf,
   boilMinutesOf,
   entryGrams,
   ingredientsOf,
@@ -17,8 +18,11 @@ import {
   totalGrams,
   totalWater,
   validAlpha,
+  validBoilMinutes,
+  validGrams,
   validWater,
   waterOf,
+  whirlpoolOf,
   yeastOf,
   type Ingredient,
   type Recipe,
@@ -144,4 +148,79 @@ export function brewingTime(recipe: Recipe): BrewingTime {
   const boil = boilMinutesOf(recipe);
   const missing = [...(mash ? [] : (["mash"] as const)), ...(boil !== undefined ? [] : (["boil"] as const))];
   return { mash, boil, total: mash && boil !== undefined ? mash.total + boil : undefined, missing };
+}
+
+/** One addition on the brew-day curve: what, its row (for its colour, as in the Boil Schedule), and when it goes in. */
+export interface CurveAddition {
+  kind: "hops" | "others";
+  /** Its row in its table (EDT-047: the row's colour). */
+  row: number;
+  name: string;
+  grams: number;
+  /** Its cooking time, and the minute of the brew day it goes in (the boil's start + boil − cooking time). */
+  cooking: number;
+  minute: number;
+}
+
+/** A rest on the brew-day curve: held at `temp` from `from` to `to` (minutes of the brew day). */
+export interface CurveHold {
+  restId: string;
+  temp: number;
+  from: number;
+  to: number;
+}
+
+/**
+ * The brew-day curve (EDT-078, QE-86): the temperature over the brewing time of EDT-077. The mash schedule's corners
+ * (as on the Mashing tab, at the default heating rate), then the boil at 100 °C right after it (heating to the boil
+ * is not counted, so it takes no time here), with each boil addition at the minute it goes in and the whirlpool after
+ * the boil. Undefined while there is neither a mash schedule nor a boil.
+ */
+export function brewDayCurve(recipe: Recipe):
+  | {
+      mash?: { points: { minute: number; temp: number }[]; holds: CurveHold[]; minutes: number };
+      boil?: { start: number; minutes: number; additions: CurveAddition[] };
+      whirlpool: boolean;
+      total: number;
+    }
+  | undefined {
+  const plan = restsOf(recipe);
+  const steps = stepsOf(plan);
+  const profile = steps.length > 0 ? mashProfile(steps, DEFAULT_HEATING_RATE, mashInTemperature(plan)) : undefined;
+  const mash = profile && {
+    points: profile.points,
+    holds: profile.segments
+      .filter((s) => s.kind === "hold")
+      .map((s) => ({ restId: s.restId, temp: s.from.temp, from: s.from.minute, to: s.to.minute })),
+    minutes: profile.totalMinutes,
+  };
+  const minutes = boilMinutesOf(recipe);
+  const start = mash?.minutes ?? 0;
+  const boil =
+    minutes === undefined
+      ? undefined
+      : {
+          start,
+          minutes,
+          additions: (["hops", "others"] as const)
+            .flatMap((kind) =>
+              ingredientsOf(recipe, kind).flatMap((entry, row) =>
+                additionsOf(entry)
+                  .filter((a) => validGrams(a.grams) && validBoilMinutes(a.minutes))
+                  .map((a) => ({
+                    kind,
+                    row,
+                    name: typeof entry.name === "string" && entry.name.trim() !== "" ? entry.name : `${INGREDIENT_LABELS[kind].one} ${row + 1}`,
+                    grams: a.grams as number,
+                    cooking: a.minutes as number,
+                    minute: start + minutes - (a.minutes as number),
+                  })),
+              ),
+            )
+            .sort((a, b) => a.minute - b.minute),
+        };
+  if (!mash && !boil) {
+    return undefined;
+  }
+  return { mash, boil, whirlpool: whirlpoolOf(recipe), total: start + (boil?.minutes ?? 0) };
 }

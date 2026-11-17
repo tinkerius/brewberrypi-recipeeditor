@@ -1,14 +1,16 @@
 /**
  * The Overview tab (EDT-065, QE-55): the first tab, open when a recipe is opened. It holds the recipe's description,
- * the brewer's free text about it (app RCP-016), with as many lines as needed; below it the list of everything the
- * brew needs (EDT-076) and the brewing time (EDT-077, QE-85), both computed, never stored.
+ * the brewer's free text about it (app RCP-016), with as many lines as needed; below it the brewing time with the
+ * brew-day curve (EDT-077, EDT-078, QE-85, QE-86) and the list of everything the brew needs (EDT-076), all computed,
+ * never stored.
  */
 
 import { useState } from "preact/hooks";
 import type { Problem } from "../validate";
 import { withDescription, type Recipe } from "../model";
 import { DEFAULT_HEATING_RATE, formatMinutes } from "../mashSchedule";
-import { brewingTime, ingredientList, type ListGroup, type ListTab } from "../overview";
+import { brewDayCurve, brewingTime, ingredientList, type ListGroup, type ListTab } from "../overview";
+import { BrewDayCurve } from "./BrewDayCurve";
 import { TextField } from "./fields";
 import { FigureRow } from "./info";
 import { FieldNotes, notesAt } from "./notes";
@@ -78,6 +80,7 @@ export function OverviewTab(props: {
   const notes = notesAt({ problems: props.problems, warnings: [] }, "description");
   const groups = ingredientList(props.recipe);
   const time = brewingTime(props.recipe);
+  const curve = brewDayCurve(props.recipe);
   // One figure's info open at a time.
   const [figure, setFigure] = useState<string>();
   const toggle = (id: string) => setFigure(figure === id ? undefined : id);
@@ -101,24 +104,11 @@ export function OverviewTab(props: {
         </div>
         <FieldNotes notes={notes} class="mt-1" />
       </section>
-      <section class="mt-6" aria-labelledby="overview-ingredients-title" data-overview-ingredients>
-        <h3 id="overview-ingredients-title" class={`${SECTION_TITLE_STYLE} mb-2`}>
-          Ingredients
-        </h3>
-        {groups.length === 0 ? (
-          <p class={HINT_STYLE}>No ingredients yet.</p>
-        ) : (
-          <div class="grid gap-3 sm:grid-cols-2">
-            {groups.map((group) => (
-              <Group key={group.id} group={group} onTab={props.onTab} />
-            ))}
-          </div>
-        )}
-      </section>
       <section class="mt-6" aria-labelledby="brewing-time-title" data-brewing-time>
         <h3 id="brewing-time-title" class={`${SECTION_TITLE_STYLE} mb-2`}>
           Brewing time
         </h3>
+        {curve && <BrewDayCurve curve={curve} />}
         <dl class={FIGURES.replace("mt-4 ", "")}>
           <FigureRow
             id="mash-time"
@@ -172,6 +162,20 @@ export function OverviewTab(props: {
             onToggle={() => toggle("brew-time")}
           />
         </dl>
+      </section>
+      <section class="mt-6" aria-labelledby="overview-ingredients-title" data-overview-ingredients>
+        <h3 id="overview-ingredients-title" class={`${SECTION_TITLE_STYLE} mb-2`}>
+          Ingredients
+        </h3>
+        {groups.length === 0 ? (
+          <p class={HINT_STYLE}>No ingredients yet.</p>
+        ) : (
+          <div class="grid gap-3 sm:grid-cols-2">
+            {groups.map((group) => (
+              <Group key={group.id} group={group} onTab={props.onTab} />
+            ))}
+          </div>
+        )}
       </section>
     </>
   );

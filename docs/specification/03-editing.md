@@ -494,8 +494,8 @@ temperature of their own. The typical durations of `EDT-038` and the flags:
   **Description** (app `RCP-016`): the brewer's free text about the recipe, in a box of eight lines that can be made
   taller, with as many lines as needed. It is written as `"description"` right after `name` (its line breaks as
   `\n`); an empty description is left out of the file. A description that is not text is an error ("The
-  description must be text.") on the Overview tab. Below the description the **Ingredients** (`EDT-076`) and the
-  **Brewing time** (`EDT-077`), then, under **Status**, the recipe's errors and
+  description must be text.") on the Overview tab. Below the description the **Brewing time** (`EDT-077`, `EDT-078`)
+  and the **Ingredients** (`EDT-076`, `QE-86`), then, under **Status**, the recipe's errors and
   warnings (`EDT-020`, `QE-59`); the other tabs show theirs at the fields and count them on the tab (`EDT-062`,
   `EDT-063`).
 - `EDT-076` (`QE-85`) Under **Ingredients**, everything the brew needs, computed from the other tabs and never
@@ -515,6 +515,15 @@ temperature of their own. The typical durations of `EDT-038` and the flags:
   and **Mash + boil**, their sum. A missing part shows "–" and "Plan the rests on the Mashing tab.", "Enter the
   cooking times on the Boiling tab." or, for the sum, "Needs the mashing and the boil.". The sum's ⓘ says what is
   not counted: heating the water to the mash-in, lautering, heating to the boil, the whirlpool and cooling.
+- `EDT-078` (`QE-86`) Above the brewing time's figures, while there is a mash schedule or a boil, the **brew-day
+  curve**: the temperature over the brewing time of `EDT-077`, on a clock from "0:00" (h:mm) and a temperature axis
+  in °C. The mash schedule as on the Mashing tab (`EDT-039`, berry, its rests' temperatures and names where they
+  fit); right after it the boil at 100 °C (brass), reached by a dashed jump because heating to the boil is not
+  counted; each boil addition with an amount and a cooking time as its icon and colour of the Boil Schedule
+  (`EDT-054`, `QE-46`, `QE-47`, `QE-48`) at the minute it goes in (additions at the same minute stacked, from the
+  fourth "+n"); and the whirlpool (`EDT-075`) as a swirl after the boil. Behind the curve the two phases are shaded,
+  labelled "Mashing · 1 h 16 min" and "Boil · 60 min" (as much as fits). A rest's and an addition's details are in
+  its tooltip ("Hallertauer: 20 g at 1:16, cooks 60 min"). It fits the tab's width, also on a phone.
 
 ## 3.11 Water treatment (`QE-61`)
 

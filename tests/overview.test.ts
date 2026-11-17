@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { toRecipe, type Recipe } from "../src/model";
 import { mashProfile, stepsOf } from "../src/mashSchedule";
-import { brewingTime, ingredientList } from "../src/overview";
+import { brewDayCurve, brewingTime, ingredientList } from "../src/overview";
 
 const recipe = (more: Record<string, unknown>): Recipe => toRecipe({ version: 3, name: "O", mashing_process: { goals: [] }, ...more });
 
@@ -77,5 +77,43 @@ describe("the Overview's brewing time (EDT-077, QE-85)", () => {
     expect(brewingTime(recipe({}))).toEqual({ mash: undefined, boil: undefined, total: undefined, missing: ["mash", "boil"] });
     expect(brewingTime(recipe({ mashing: { rests: { MashIn: { temperature: 57 } } }, boiling: { hops } })).missing).toEqual(["mash"]);
     expect(brewingTime(recipe({ mashing: { rests }, boiling: { hops: [{ name: "H", additions: [{ grams: 5 }] }] } })).missing).toEqual(["boil"]);
+  });
+});
+
+describe("the Overview's brew-day curve (EDT-078, QE-86)", () => {
+  it("ACC-113 puts the boil right after the mash, each addition at its minute, the whirlpool after it", () => {
+    const rests = { MashIn: { temperature: 57 }, MaltoseRest: { temperature: 63, minutes: 45 }, MashOut: { temperature: 78, minutes: 10 } };
+    const curve = brewDayCurve(
+      recipe({
+        mashing: { rests },
+        boiling: {
+          whirlpool: true,
+          hops: [{ name: "H", additions: [{ minutes: 60, grams: 20 }, { minutes: 10, grams: 10 }, { grams: 5 }] }, { name: "", additions: [{ minutes: 0, grams: 5 }] }],
+          others: [{ name: "Irish Moss", additions: [{ minutes: 10, grams: 5 }] }],
+        },
+      }),
+    )!;
+    expect(curve.mash!.points).toEqual(mashProfile(stepsOf(rests), 1, 57).points);
+    expect(curve.mash!.holds).toEqual([
+      { restId: "MaltoseRest", temp: 63, from: 6, to: 51 },
+      { restId: "MashOut", temp: 78, from: 66, to: 76 },
+    ]);
+    expect([curve.boil!.start, curve.boil!.minutes, curve.total, curve.whirlpool]).toEqual([76, 60, 136, true]);
+    // In the order they go in; one without a cooking time is left out; one without a name is called by its row.
+    expect(curve.boil!.additions.map((a) => [a.kind, a.row, a.name, a.minute])).toEqual([
+      ["hops", 0, "H", 76],
+      ["hops", 0, "H", 126],
+      ["others", 0, "Irish Moss", 126],
+      ["hops", 1, "Hop 2", 136],
+    ]);
+  });
+
+  it("ACC-113 has only the boil without a mash schedule, only the mash without a boil, and nothing without both", () => {
+    const hops = [{ name: "H", additions: [{ minutes: 60, grams: 20 }] }];
+    const onlyBoil = brewDayCurve(recipe({ boiling: { hops } }))!;
+    expect([onlyBoil.mash, onlyBoil.boil!.start, onlyBoil.total, onlyBoil.whirlpool]).toEqual([undefined, 0, 60, false]);
+    const onlyMash = brewDayCurve(recipe({ mashing: { rests: { MashIn: { temperature: 63 }, MaltoseRest: { temperature: 63, minutes: 45 } } } }))!;
+    expect([onlyMash.boil, onlyMash.total]).toEqual([undefined, 45]);
+    expect(brewDayCurve(recipe({}))).toBeUndefined();
   });
 });
